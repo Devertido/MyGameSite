@@ -393,3 +393,141 @@ body {
     color: #a0a5b0; /* Приглушенный серый цвет для удобства чтения */
     font-size: 15px;
 }
+/* ===================================================
+   ОБНОВЛЕННЫЕ СТИЛИ ДЛЯ ПАРАЛЛЕЛЬНОГО РОАДМАПА
+   =================================================== */
+
+/* Главный контейнер: делит экран на 2 половины */
+.split-roadmap-container {
+    max-width: 1300px;
+    margin: 0 auto 100px auto;
+    display: flex;
+    gap: 50px;
+    padding: 0 30px;
+    position: relative;
+}
+
+/* ЛЕВАЯ ЧАСТЬ: Фиксация картинки при прокрутке */
+.roadmap-sticky-visual {
+    flex: 1; /* Занимает ровно половину ширины */
+    position: sticky;
+    top: 120px; /* Расстояние от верха экрана, где картинка "застынет" */
+    height: calc(100vh - 160px); /* Высота под размер экрана */
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+}
+
+/* Стилизация длинного изображения */
+.roadmap-main-img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain; /* Картинка сохраняет пропорции и не растягивается уродливо */
+    border: 1px solid #c8aa6e; /* Тонкая золотая рамка */
+    border-radius: 6px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+}
+
+/* ПРАВАЯ ЧАСТЬ: Скроллящийся текст модулей */
+.roadmap-scroll-text {
+    flex: 1.2; /* Текстовая колонка чуть шире картинки для читаемости */
+    display: flex;
+    flex-direction: column;
+    gap: 30px; /* Расстояние между модулями */
+}
+
+/* Карточка модуля */
+.module-card {
+    background-color: #0d131a;
+    border: 1px solid #1e2328;
+    border-radius: 8px;
+    padding: 30px;
+    transition: all 0.3s ease;
+}
+
+.module-card:hover {
+    border-color: #c8aa6e;
+    box-shadow: 0 5px 20px rgba(200, 170, 110, 0.1);
+}
+
+/* Название модуля */
+.module-card h2 {
+    color: #f0e6d2;
+    font-size: 22px;
+    margin: 15px 0;
+    letter-spacing: 1px;
+}
+
+/* Метки (бэйджики) над модулями */
+.module-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    background-color: #232c36;
+    color: #a0a5b0;
+    font-size: 11px;
+    font-weight: bold;
+    text-transform: uppercase;
+    border-radius: 4px;
+    letter-spacing: 1px;
+}
+.module-badge.done { background-color: #1e4620; color: #76e07b; } /* Зеленый для 1 этапа */
+.module-badge.core { background-color: #114b5f; color: #5ce1e6; } /* Синий для 2 этапа */
+.module-badge.vital { background-color: #594218; color: #ffde91; } /* Золотой для CK3 слоя */
+
+/* Внутренние блоки задач (База / Расширение) */
+.task-block {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #1e2328;
+}
+
+.task-block h5 {
+    font-size: 14px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    letter-spacing: 0.5px;
+}
+
+/* Цвет для текста обязательной базы */
+.task-block h5 { color: #11b6e8; }
+/* Изменение цвета для расширения */
+.task-block.extension h5 { color: #c8aa6e; }
+
+/* Красивые списки с кастомными маркерами */
+.task-block ul {
+    list-style: none; /* Убираем стандартные точки */
+    padding-left: 5px;
+}
+
+.task-block ul li {
+    font-size: 14px;
+    color: #a0a5b0;
+    margin-bottom: 8px;
+    position: relative;
+    padding-left: 20px;
+}
+
+/* Рисуем красивые кастомные дефисы перед пунктами */
+.task-block ul li::before {
+    content: "•";
+    position: absolute;
+    left: 0;
+    color: #32281f; /* Сдержанный цвет маркеров */
+    font-size: 16px;
+}
+
+/* Тюнинг обязательного первого модуля */
+.task-block.spec-highlight h5 { color: #28a745; }
+
+/* Адаптивность для мобилок: если экран узкий, отключаем залипание картинки */
+@media (max-width: 900px) {
+    .split-roadmap-container {
+        flex-direction: column;
+    }
+    .roadmap-sticky-visual {
+        position: relative;
+        top: 0;
+        height: auto;
+        margin-bottom: 30px;
+    }
+}
