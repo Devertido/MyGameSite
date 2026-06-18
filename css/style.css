@@ -1,0 +1,315 @@
+/* ОБЩИЕ СТИЛИ И ОБНУЛЕНИЕ */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #0a0e13; /* Темный глубокий фон */
+    color: #f0e6d2; /* Светло-кремовый текст в стиле LoL */
+    line-height: 1.6;
+}
+
+/* ШАПКА (HEADER) */
+.main-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 50px;
+    background-color: rgba(10, 14, 19, 0.95);
+    border-bottom: 2px solid #c8aa6e; /* Золотая полоса как у Riot */
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.logo {
+    font-size: 24px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    color: #c8aa6e;
+}
+
+.nav-menu .nav-link {
+    color: #f0e6d2;
+    text-decoration: none;
+    margin: 0 15px;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 14px;
+    transition: color 0.3s;
+}
+
+.nav-menu .nav-link:hover, .nav-menu .nav-link.active {
+    color: #c8aa6e; /* Подсветка золотом при наведении */
+}
+
+/* КНОПКИ */
+.btn-primary {
+    background-color: #11b6e8; /* Сине-голубой неоновый акцент */
+    color: #0a0e13;
+    padding: 10px 20px;
+    text-decoration: none;
+    font-weight: bold;
+    text-transform: uppercase;
+    border-radius: 4px;
+    transition: background 0.3s;
+}
+
+.btn-primary:hover {
+    background-color: #00d2ff;
+}
+
+.btn-secondary {
+    border: 2px solid #c8aa6e;
+    color: #c8aa6e;
+    padding: 10px 20px;
+    text-decoration: none;
+    font-weight: bold;
+    text-transform: uppercase;
+    border-radius: 4px;
+    transition: all 0.3s;
+}
+
+.btn-secondary:hover {
+    background-color: #c8aa6e;
+    color: #0a0e13;
+}
+
+/* ГЛАВНЫЙ ЭКРАН (HERO) */
+.hero-section {
+    height: 80vh;
+    /* Вместо URL ниже позже вставите свой крутой арт */
+    background: linear-gradient(rgba(10,14,19,0.7), rgba(10,14,19,0.9)), url('https://picsum.photos/1920/1080') no-repeat center center/cover;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 0 20px;
+}
+
+.game-title {
+    font-size: 48px;
+    letter-spacing: 3px;
+    margin-bottom: 20px;
+    color: #f0e6d2;
+    text-shadow: 0px 4px 10px rgba(0,0,0,0.7);
+}
+
+.game-subtitle {
+    font-size: 18px;
+    max-width: 600px;
+    margin: 0 auto 40px auto;
+    color: #a0a5b0;
+}
+
+.hero-buttons .large {
+    padding: 15px 30px;
+    margin: 0 10px;
+    font-size: 16px;
+}
+
+/* БЛОК ОБ ИГРЕ */
+.about-section {
+    padding: 80px 50px;
+    text-align: center;
+}
+
+.about-section h2 {
+    font-size: 36px;
+    color: #c8aa6e;
+    margin-bottom: 50px;
+    text-transform: uppercase;
+}
+
+.features-grid {
+    display: flex;
+    justify-content: space-around;
+    gap: 30px;
+    flex-wrap: wrap;
+}
+
+.feature-card {
+    background-color: #121921;
+    border: 1px solid #32281f;
+    padding: 30px;
+    border-radius: 8px;
+    flex: 1;
+    min-width: 280px;
+    max-width: 350px;
+    transition: transform 0.3s;
+}
+
+.feature-card:hover {
+    transform: translateY(-5px);
+    border-color: #c8aa6e;
+}
+
+.feature-card h3 {
+    color: #c8aa6e;
+    margin-bottom: 15px;
+}
+
+/* ПОДВАЛ */
+.main-footer {
+    text-align: center;
+    padding: 40px;
+    background-color: #05070a;
+    border-top: 1px solid #1e2328;
+    color: #616973;
+    font-size: 14px;
+}
+/* СТИЛИ СТРАНИЦЫ КАРТЫ */
+.page-title-section {
+    text-align: center;
+    padding: 60px 20px 20px 20px;
+}
+
+.page-title-section h1 {
+    font-size: 40px;
+    color: #c8aa6e;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.page-title-section p {
+    color: #a0a5b0;
+    max-width: 700px;
+    margin: 10px auto 0 auto;
+}
+
+/* Контейнер для карты */
+.map-container {
+    max-width: 1200px;
+    margin: 40px auto;
+    padding: 0 20px;
+}
+
+.map-placeholder {
+    position: relative;
+    border: 2px solid #c8aa6e;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 0 20px rgba(200, 170, 110, 0.15);
+}
+
+.world-map-img {
+    width: 100%;
+    display: block;
+    height: auto;
+    filter: brightness(0.6) sepia(0.2); /* Делаем картинку чуть темнее и атмосфернее */
+}
+
+.map-overlay-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 24px;
+    font-weight: bold;
+    color: #f0e6d2;
+    text-shadow: 2px 2px 8px #000;
+    pointer-events: none;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Секция фракций */
+.regions-section {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 20px;
+}
+
+.faction-block {
+    display: flex;
+    gap: 40px;
+    margin-bottom: 50px;
+    flex-wrap: wrap;
+}
+
+.faction-info {
+    flex: 1;
+    min-width: 300px;
+}
+
+.faction-badge {
+    background-color: #11b6e8;
+    color: #0a0e13;
+    padding: 3px 10px;
+    font-size: 11px;
+    font-weight: bold;
+    text-transform: uppercase;
+    border-radius: 3px;
+    display: inline-block;
+    margin-bottom: 10px;
+}
+
+.faction-badge.dark {
+    background-color: #ff4655; /* Красный акцент для брутальной фракции */
+}
+
+.faction-info h2 {
+    color: #c8aa6e;
+    font-size: 28px;
+    margin-bottom: 15px;
+}
+
+.faction-desc {
+    color: #a0a5b0;
+}
+
+/* Сетка героев внутри фракции */
+.faction-heroes {
+    flex: 1.5;
+    min-width: 300px;
+}
+
+.faction-heroes h3 {
+    color: #f0e6d2;
+    font-size: 18px;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #32281f;
+    padding-bottom: 5px;
+}
+
+.heroes-grid {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.hero-mini-card {
+    background-color: #121921;
+    border-left: 3px solid #c8aa6e;
+    padding: 20px;
+    flex: 1;
+    min-width: 240px;
+    border-radius: 0 4px 4px 0;
+}
+
+.hero-mini-card h4 {
+    color: #f0e6d2;
+    margin-bottom: 5px;
+}
+
+.hero-role {
+    font-size: 13px;
+    color: #11b6e8;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.hero-bio {
+    font-size: 14px;
+    color: #808a95;
+}
+
+.faction-divider {
+    border: 0;
+    height: 1px;
+    background: linear-gradient(to right, transparent, #32281f, transparent);
+    margin: 40px 0;
+}
