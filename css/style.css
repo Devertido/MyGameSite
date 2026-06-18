@@ -313,3 +313,83 @@ body {
     background: linear-gradient(to right, transparent, #32281f, transparent);
     margin: 40px 0;
 }
+/* ==========================================
+   СТИЛИ ДЛЯ СТРАНИЦЫ ХРОНОЛОГИИ (TIMELINE)
+   ========================================== */
+
+/* Контейнер, который держит всю линию */
+.timeline-container {
+    max-width: 800px;
+    margin: 60px auto;
+    position: relative;
+    padding: 0 20px;
+}
+
+/* Сама вертикальная линия (серая полоса по центру) */
+.timeline-container::before {
+    content: '';
+    position: absolute;
+    left: 30px; /* Линия смещена влево для удобства чтения на смартфонах */
+    top: 0;
+    width: 2px; /* Толщина линии */
+    height: 100%;
+    background-color: #32281f; /* Цвет линии (темно-коричневый/бронзовый) */
+}
+
+/* Блок одного исторического события */
+.timeline-item {
+    position: relative;
+    margin-bottom: 50px; /* Отступ между событиями вниз */
+    padding-left: 60px;  /* Отступ текста от вертикальной линии */
+}
+
+/* Светящаяся точка на линии времени */
+.timeline-dot {
+    position: absolute;
+    left: 24px; /* Выравнивание точки ровно по центру линии */
+    top: 5px;
+    width: 14px; /* Размер точки */
+    height: 14px;
+    background-color: #0a0e13; /* Внутри точка темная */
+    border: 3px solid #c8aa6e; /* Ободок точки — золотой */
+    border-radius: 50%; /* Делает квадрат круглым */
+    box-shadow: 0 0 10px #c8aa6e; /* Эффект неонового свечения точки */
+    z-index: 2;
+}
+
+/* Стиль для текста с датой/эпохой */
+.timeline-date {
+    font-size: 14px;
+    font-weight: bold;
+    color: #11b6e8; /* Голубой неоновый цвет для дат */
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 5px;
+}
+
+/* Текстовая плашка события */
+.timeline-content {
+    background-color: #121921; /* Темно-серый фон карточки */
+    border: 1px solid #1e2328; /* Темная рамка */
+    padding: 25px;
+    border-radius: 6px; /* Закругление углов карточки */
+    transition: border-color 0.3s; /* Плавное подсвечивание рамки */
+}
+
+/* Подсветка карточки лора при наведении мышки */
+.timeline-content:hover {
+    border-color: #c8aa6e; /* Рамка становится золотой */
+}
+
+/* Заголовок внутри исторического события */
+.timeline-content h3 {
+    color: #c8aa6e; /* Золотой цвет заголовка */
+    font-size: 20px;
+    margin-bottom: 10px;
+}
+
+/* Текст описания истории */
+.timeline-content p {
+    color: #a0a5b0; /* Приглушенный серый цвет для удобства чтения */
+    font-size: 15px;
+}
