@@ -3,19 +3,85 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Название Вашей Игры — Официальный сайт</title>
+    <title>MY GAME — Официальный сайт</title>
     <link rel="stylesheet" href="css/style.css">
+    
+    <style>
+        /* ================================================================= */
+        /* СТИЛИ ДЛЯ АНИМИРОВАННОГО СЛАЙД-ШОУ НА ФОНЕ                        */
+        /* ================================================================= */
+        
+        /* Контейнер на весь экран, зафиксированный на заднем плане */
+        .bg-slideshow {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1; /* Уводит слайды под текст и шапку сайта */
+            background-color: #0a0e13; /* Базовый цвет до загрузки картинок */
+            overflow: hidden;
+        }
+
+        /* Общие стили для каждого отдельного слайда */
+        .slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            
+            /* Эффект плавного растворения при смене кадров (1.5 секунды) */
+            transition: opacity 1.5s ease-in-out; 
+            opacity: 0; /* Все слайды изначально скрыты */
+            
+            /* Алгоритм высокой четкости для игровых артов */
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: crisp-edges;
+        }
+
+        /* Класс активности: плавно проявляет текущую картинку */
+        .slide.active {
+            opacity: 1;
+        }
+
+        /* Затемняющий фильтр (тонировка), чтобы белый текст сайта отлично читался */
+        .bg-slideshow::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 14, 19, 0.65); /* 65% затемнения поверх картинок */
+        }
+    </style>
 </head>
 <body>
 
+    <div class="bg-slideshow">
+        <div class="slide active" style="background-image: url('images/mainFon1.png');"></div>
+        <div class="slide" style="background-image: url('images/mainFon2.png');"></div>
+        <div class="slide" style="background-image: url('images/mainFon3.png');"></div>
+        <div class="slide" style="background-image: url('images/mainFon4.png');"></div>
+        <div class="slide" style="background-image: url('images/mainFon5.png');"></div>
+        <div class="slide" style="background-image: url('images/mainFon6.png');"></div>
+    </div>
+
     <header class="main-header">
-        <div class="logo">(Название игры)</div>
+        <div class="logo">MY GAME</div>
+        
         <nav class="nav-menu">
             <a href="index.html" class="nav-link active">Главная</a>
             <a href="map.html" class="nav-link">Карта мира</a>
             <a href="timeline.html" class="nav-link">Хронология</a>
+            <a href="wiki.html" class="nav-link">Хроники мира</a> 
             <a href="roadmap.html" class="nav-link">Дорожная карта</a>
         </nav>
+        
         <a href="https://store.steampowered.com" target="_blank" rel="noopener noreferrer" class="btn-primary header-btn">Играть</a>
     </header>
 
@@ -24,8 +90,8 @@
             <h1 class="game-title">ДОБРО ПОЖАЛОВАТЬ В НОВУЮ ЭРУ</h1>
             <p class="game-subtitle">Эпическая игра-стратегия с глубоким лором и живым миром. Сражайтесь, исследуйте, побеждайте.</p>
             <div class="hero-buttons">
-                <a href="#download" class="btn-primary large">Скачать бесплатно</a>
-                <a href="map.html" class="btn-secondary large">Исследовать Лор</a>
+                <a href="https://store.steampowered.com" target="_blank" rel="noopener noreferrer" class="btn-primary large">Скачать бесплатно</a>
+                <a href="wiki.html" class="btn-secondary large">Исследовать Лор</a>
             </div>
         </div>
     </section>
@@ -51,6 +117,31 @@
     <footer class="main-footer">
         <p>&copy; 2026 Разработка игры. Все права защищены.</p>
     </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Собираем массив из всех фоновых картинок (слайдов)
+            const slides = document.querySelectorAll('.bg-slideshow .slide');
+            let currentSlideIndex = 0; // Начинаем отсчет с первого слайда
+            
+            // Интервал смены картинок: 5000 миллисекунд = 5 секунд
+            const slideIntervalTime = 5000; 
+
+            function nextSlide() {
+                // Плавное тушение текущего слайда (удаляем класс active)
+                slides[currentSlideIndex].classList.remove('active');
+                
+                // Считаем индекс следующего кадра. Если дошли до конца (6) — возвращаемся к 0
+                currentSlideIndex = (currentSlideIndex + 1) % slides.length;
+                
+                // Плавное появление нового слайда (добавляем класс active)
+                slides[currentSlideIndex].classList.add('active');
+            }
+
+            // Запускаем автоматический цикл смены слайдов по таймеру
+            setInterval(nextSlide, slideIntervalTime);
+        });
+    </script>
 
 </body>
 </html>

@@ -3,81 +3,85 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Карта мира и фракции — Вики по лору</title>
+    <title>Карта мира — Интерактивный мир игры</title>
     <link rel="stylesheet" href="css/style.css">
+    
+    <style>
+        /* Оформление фона страницы карты */
+        body {
+            background-color: #0a0e13;
+            color: #e2e8f0;
+        }
+
+        /* Контейнер для центрирования карты на экране */
+        .map-section {
+            max-width: 1400px;
+            margin: 40px auto 100px auto;
+            padding: 0 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Игровой блок-рамка вокруг карты */
+        .map-wrapper {
+            background: rgba(20, 26, 35, 0.8);
+            border: 1px solid #3a4b61;
+            border-radius: 16px;
+            padding: 20px;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        /* Стилизация самого изображения карты */
+        .game-map-img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            border: 1px solid #b58b3c; /* Золотая каемка вокруг карты */
+            
+            /* Включаем максимальную четкость для текстуры карты */
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: crisp-edges;
+            
+            transition: transform 0.3s ease;
+        }
+
+        /* Легкий интерактивный эффект при наведении на карту */
+        .game-map-img:hover {
+            box-shadow: 0 0 20px rgba(181, 139, 60, 0.4);
+        }
+    </style>
 </head>
 <body>
 
     <header class="main-header">
-        <div class="logo">(Название игры)</div>
+        <div class="logo">MY GAME</div>
         <nav class="nav-menu">
             <a href="index.html" class="nav-link">Главная</a>
+            
             <a href="map.html" class="nav-link active">Карта мира</a>
+            
             <a href="timeline.html" class="nav-link">Хронология</a>
+            <a href="wiki.html" class="nav-link">Хроники мира</a> 
             <a href="roadmap.html" class="nav-link">Дорожная карта</a>
         </nav>
         <a href="https://store.steampowered.com" target="_blank" rel="noopener noreferrer" class="btn-primary header-btn">Играть</a>
     </header>
 
     <section class="page-title-section">
-        <h1>Интерактивный атлас мира</h1>
-        <p>Исследуйте регионы, фракции и героев, которые сражаются за будущее этой вселенной.</p>
+        <h1>География Вселенной</h1>
+        <p>Исследуйте материки, обитаемые зоны фракций и скрытые аванпосты на глобальной карте нашего мира.</p>
     </section>
 
-    <section class="map-container">
-        <div class="map-placeholder">
-            <img src="https://picsum.photos/1200/500" alt="Карта мира игры" class="world-map-img">
-            <div class="map-overlay-text">Интерактивная карта (Место под ваш арт)</div>
+    <section class="map-section">
+        <div class="map-wrapper">
+            <img src="images/MainMap.png" alt="Глобальная карта мира" class="game-map-img">
         </div>
-    </section>
-
-    <section class="regions-section">
-        
-        <div class="faction-block">
-            <div class="faction-info">
-                <span class="faction-badge">Фракция</span>
-                <h2>Цитадель Рассвета</h2>
-                <p class="faction-desc">Древняя империя, построенная на принципах чести, строгого порядка и белой магии. Защищает свои границы от любых проявлений хаоса, но страдает от внутренних политических интриг.</p>
-            </div>
-            
-            <div class="faction-heroes">
-                <h3>Ключевые фигуры</h3>
-                <div class="heroes-grid">
-                    <div class="hero-mini-card">
-                        <h4>Алерия, Свет Пророчества</h4>
-                        <p class="hero-role">Роль: Паладин / Защитник</p>
-                        <p class="hero-bio">Верховный главнокомандующий армией Цитадели. Сражается благословенным клинком.</p>
-                    </div>
-                    <div class="hero-mini-card">
-                        <h4>Лиам, Верховный Маг</h4>
-                        <p class="hero-role">Роль: Контроль / Маг</p>
-                        <p class="hero-bio">Хранитель архивов, способный подчинять себе энергию чистых кристаллов.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <hr class="faction-divider">
-
-        <div class="faction-block">
-            <div class="faction-info">
-                <span class="faction-badge dark">Фракция</span>
-                <h2>Пустоши Пепла</h2>
-                <p class="faction-desc">Суровые, выжженные магическим катаклизмом земли, где выживают лишь сильнейшие. Местные кланы полагаются на запретные технологии, темную сталь и шаманизм крови.</p>
-            </div>
-            
-            <div class="faction-heroes">
-                <h3>Ключевые фигуры</h3>
-                <div class="heroes-grid">
-                    <div class="hero-mini-card">
-                        <h4>Гаррок, Разрушитель</h4>
-                        <p class="hero-role">Роль: Воин / Джаггернаут</p>
-                        <p class="hero-bio">Вождь объединенных кланов. Его ярость подпитывается темным пламенем недр.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
     </section>
 
     <footer class="main-footer">
