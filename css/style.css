@@ -328,12 +328,17 @@ body {
    =================================================== */
 
 /* Настраиваем фон конкретно для страницы дорожной карты */
+/* Настраиваем фон для страницы дорожной карты: максимальная четкость и оригинальный цвет */
 body:has(.fullscreen-roadmap-container) {
-    /* 1. linear-gradient накладывает темный полупрозрачный фильтр поверх картинки, чтобы текст "читался" */
-    /* 2. В url указываем путь к вашей картинке */
-    background: linear-gradient(rgba(10, 14, 19, 0.85), rgba(10, 14, 19, 0.92)), 
-                url('../images/roadmap.png') no-repeat center top / cover;
+    /* Убрали linear-gradient — теперь картинка отображается БЕЗ затемнения */
+    background: url('../images/roadmap.png') no-repeat center top / contain;
     
+    /* Включаем алгоритм высокой четкости для картинок (убирает мыло при масштабировании) */
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+    
+    background-attachment: scroll;
+    background-color: #0a0e13; /* Фоновый цвет для областей, куда картинка не дотянется */
 }
 
 /* Контейнер для карточек по центру экрана */
