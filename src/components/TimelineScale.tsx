@@ -2,7 +2,7 @@ import { useLayoutEffect, useRef, useState, type FormEvent } from 'react'
 import { toCalendarYear } from '../domain/calendarYear'
 import type { Timeline, TimelineCalendar } from '../domain/timeline'
 
-const zoomLevels = [1, 2, 4, 8]
+const zoomLevels = [1, 2, 4, 8, 16, 32]
 const baseIntervals = 4
 
 export function TimelineScale({ timeline, calendar }: { timeline: Timeline; calendar: TimelineCalendar }) {
