@@ -603,3 +603,73 @@ button.event-action:hover:enabled {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
+
+.language-picker {
+  display: flex;
+  gap: 0.75rem;
+  margin-block: 1rem;
+}
+
+.language-picker button {
+  display: grid;
+  justify-items: center;
+  gap: 0.35rem;
+  padding: 0.5rem 0.75rem;
+  border: 2px solid #b6c9c4;
+  background: #f1f6f4;
+  color: #103930;
+}
+
+.language-picker button:hover,
+.language-picker button[aria-pressed='true'] {
+  border-color: #174b43;
+  background: #d5ebe5;
+}
+
+.language-flag {
+  width: 2.75rem;
+  height: 1.75rem;
+  border: 1px solid #899892;
+  border-radius: 0.15rem;
+}
+
+.language-flag--ru {
+  background: linear-gradient(#fff 0 33.333%, #1647a6 33.333% 66.667%, #d42230 66.667%);
+}
+
+.language-flag--en {
+  background:
+    linear-gradient(90deg, transparent 41%, #c8102e 41% 59%, transparent 59%),
+    linear-gradient(transparent 36%, #c8102e 36% 64%, transparent 64%),
+    #fff;
+}
+
+.timeline-library .calendar-toolbar {
+  padding-bottom: 0;
+}
+
+.timeline-view {
+  padding-top: 0.5rem;
+}
+
+.timeline-view > h1 {
+  margin-top: 0;
+}
+
+.timeline-zoom,
+.timeline-navigation form,
+.timeline-navigation label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.timeline-navigation > * {
+  min-width: 0;
+}
+
+.timeline-navigation input[name='year'] {
+  width: 6rem;
+  max-width: 100%;
+}

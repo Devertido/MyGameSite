@@ -74,16 +74,21 @@ export default function SiteNavigation() {
 
       <dialog ref={languageDialog} lang={language} aria-labelledby="atlas-language-title">
         <h2 id="atlas-language-title">{english ? 'Navigation language' : 'Язык навигации'}</h2>
-        <p><label>{english ? 'Language' : 'Язык'}{' '}
-          <select value={language} onChange={(event) => {
-            const next = event.currentTarget.value === 'en' ? 'en' : 'ru'
-            setLanguage(next)
-            writePreference('language', next)
-          }}>
-            <option value="ru" lang="ru">Русский</option>
-            <option value="en" lang="en">English</option>
-          </select>
-        </label></p>
+        <div className="language-picker" role="group" aria-label={english ? 'Language' : 'Язык'}>
+          {([
+            { code: 'ru', short: 'Ru', name: 'Русский' },
+            { code: 'en', short: 'Eng', name: 'English' },
+          ] as const).map(({ code, short, name }) => (
+            <button key={code} type="button" aria-label={name} lang={code} aria-pressed={language === code}
+              onClick={() => {
+                setLanguage(code)
+                writePreference('language', code)
+              }}>
+              <span>{short}</span>
+              <span className={'language-flag language-flag--' + code} aria-hidden="true" />
+            </button>
+          ))}
+        </div>
         <button type="button" onClick={() => languageDialog.current?.close()}>{english ? 'Close' : 'Закрыть'}</button>
       </dialog>
 

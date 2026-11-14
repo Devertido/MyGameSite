@@ -83,21 +83,20 @@ export function TimelineScale({ timeline, calendar }: { timeline: Timeline; cale
         {' — '}{String(toCalendarYear(timeline.endYear, calendar.era))}
       </p>
 
-      <div className="timeline-controls" role="group" aria-label="Масштаб шкалы">
-        <button type="button" disabled={zoomIndex === 0} onClick={() => setZoomIndex(zoomIndex - 1)}>
-          Уменьшить
-        </button>
-        <output aria-live="polite">{zoom}×</output>
-        <button
-          type="button"
-          disabled={zoomIndex === zoomLevels.length - 1}
-          onClick={() => setZoomIndex(zoomIndex + 1)}
-        >
-          Увеличить
-        </button>
-      </div>
-
-      <div className="timeline-controls">
+      <div className="timeline-controls timeline-navigation">
+        <div className="timeline-zoom" role="group" aria-label="Масштаб шкалы">
+          <button type="button" disabled={zoomIndex === 0} onClick={() => setZoomIndex(zoomIndex - 1)}>
+            Уменьшить
+          </button>
+          <output aria-live="polite">{zoom}×</output>
+          <button
+            type="button"
+            disabled={zoomIndex === zoomLevels.length - 1}
+            onClick={() => setZoomIndex(zoomIndex + 1)}
+          >
+            Увеличить
+          </button>
+        </div>
         <form onSubmit={jumpToYear}>
           <label>Системный год{' '}
             <input name="year" type="number" step={1} min={timeline.startYear} max={timeline.endYear} required />
