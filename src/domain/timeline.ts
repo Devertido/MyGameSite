@@ -100,7 +100,26 @@ export function calendarDay(months: readonly CalendarMonth[], offset: number): s
   throw new RangeError('День вне календарного года.')
 }
 
+export type CharacterDate = { year: number; dayOfYear: number }
+
+export function isCharacterDate(value: unknown, daysPerYear: number): value is CharacterDate {
+  if (typeof value !== 'object' || value === null) return false
+  const { year, dayOfYear } = value as Partial<CharacterDate>
+  return Number.isSafeInteger(year) && typeof dayOfYear === 'number' &&
+    Number.isSafeInteger(dayOfYear) && dayOfYear >= 1 && dayOfYear <= daysPerYear
+}
+
+export function isCharacterLifeOrderValid(birth?: CharacterDate, death?: CharacterDate): boolean {
+  return !birth || !death || birth.year < death.year ||
+    (birth.year === death.year && birth.dayOfYear <= death.dayOfYear)
+}
+
 export type TimelineCharacter = {
+  surname?: string
+  race?: string
+  birth?: CharacterDate
+  death?: CharacterDate
+  portrait?: string
   color?: string
   biography?: string
   id: string

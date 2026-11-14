@@ -1,6 +1,6 @@
 import { validateMonths, validateWeek } from '../domain/calendar.ts'
 import { validateCalendarEra } from '../domain/calendarYear.ts'
-import { isAtlasColor, validateOrganization, validateEvent, type Organization, type ArchiveEntry, type Timeline, type TimelineCalendar, type TimelineCharacter, type TimelineEvent } from '../domain/timeline.ts'
+import { isAtlasColor, isCharacterDate, isCharacterLifeOrderValid, validateOrganization, validateEvent, type Organization, type ArchiveEntry, type Timeline, type TimelineCalendar, type TimelineCharacter, type TimelineEvent } from '../domain/timeline.ts'
 
 const keyPrefix = 'arena-atlas:timeline:v1:'
 
@@ -60,8 +60,20 @@ function parseTimeline(value: unknown): Timeline | null {
           characterIds.has(character.id) || typeof character.name !== 'string' || !character.name.trim() ||
           typeof character.description !== 'string' || ('color' in character && !isAtlasColor(character.color)) ||
           ('biography' in character && typeof character.biography !== 'string')) return null
+      const { surname, race, birth, death, portrait } = character
+      if ((surname !== undefined && typeof surname !== 'string') ||
+          (race !== undefined && typeof race !== 'string') ||
+          (birth !== undefined && !isCharacterDate(birth, daysPerYear)) ||
+          (death !== undefined && !isCharacterDate(death, daysPerYear)) ||
+          (portrait !== undefined && !isStoredImage(portrait)) ||
+          !isCharacterLifeOrderValid(birth, death)) return null
       characterIds.add(character.id)
       parsed.push({ id: character.id, name: character.name, description: character.description,
+        ...(surname !== undefined ? { surname } : {}),
+        ...(race !== undefined ? { race } : {}),
+        ...(birth !== undefined ? { birth } : {}),
+        ...(death !== undefined ? { death } : {}),
+        ...(portrait !== undefined ? { portrait } : {}),
         ...(isAtlasColor(character.color) ? { color: character.color } : {}),
         ...(typeof character.biography === 'string' ? { biography: character.biography } : {}),
       })

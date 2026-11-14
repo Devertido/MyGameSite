@@ -420,6 +420,22 @@ button:focus-visible {
   font: inherit;
 }
 
+.character-portrait,
+.atlas-image-field:has(input[name='portrait']) .atlas-entry-image {
+  display: block;
+  width: min(100%, 12rem);
+  height: auto;
+  aspect-ratio: 2 / 3;
+  object-fit: contain;
+  background: #e8efec;
+  border-radius: 0.5rem;
+}
+
+.character-portrait,
+.character-date {
+  margin-block: 0.75rem;
+}
+
 .character-heading {
   display: flex;
   align-items: center;
@@ -429,6 +445,15 @@ button:focus-visible {
 .character-heading .atlas-color,
 .character-heading button {
   flex-shrink: 0;
+}
+
+.character-heading button.event-action {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  line-height: 1;
 }
 
 .character-heading .atlas-color,
