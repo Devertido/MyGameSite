@@ -3,7 +3,7 @@ import { test } from 'node:test'
 import { standardYear, validateMonths, validateWeek } from '../src/domain/calendar.ts'
 import { toCalendarYear } from '../src/domain/calendarYear.ts'
 import { calendarDay, eventDays, validateEvent, validateTimelineBounds } from '../src/domain/timeline.ts'
-import { deleteTimeline, exportTimeline, importTimeline, loadTimelines, rememberSelection, restoreSelection, saveTimeline } from '../src/data/timelineStorage.ts'
+import { timelineSnapshot, deleteTimeline, exportTimeline, importTimeline, loadTimelines, rememberSelection, restoreSelection, saveTimeline } from '../src/data/timelineStorage.ts'
 
 const era = { systemAnchorYear: 100, calendarAnchorYear: 1, hasYearZero: false }
 
@@ -145,6 +145,21 @@ test('Резервная копия сохраняет персонажей и �
   assert.throws(() => importTimeline(exportTimeline({ ...timeline, characters: [] })))
   assert.throws(() => importTimeline('{"version":2}'))
   assert.throws(() => importTimeline('{'))
+})
+
+test('Сохранённая правка персонажа не выглядит как изменение из другой вкладки', () => {
+  const { daysPerYear, ...calendar } = standardYear
+  const timeline = {
+    name: 'Арена', startYear: -10, endYear: 100, daysPerYear,
+    calendars: [{ ...calendar, name: 'Основной', era }],
+    characters: [{
+      id: 'c1', name: 'Артур', description: '', biography: '', color: '#ff0000', surname: 'Дорэн',
+    }],
+  }
+  const loaded = importTimeline(exportTimeline(timeline))
+  assert.equal(timelineSnapshot(timeline), timelineSnapshot(loaded))
+  loaded.characters[0].name = 'Мариус'
+  assert.notEqual(timelineSnapshot(timeline), timelineSnapshot(loaded))
 })
 
 test('Даты сохраняют порядковый день при смене календаря', () => {

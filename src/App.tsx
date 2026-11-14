@@ -10,11 +10,7 @@ import { TimelineScale } from './components/TimelineScale'
 import { WorldMap } from './components/WorldMap'
 import { validateCalendarEra } from './domain/calendarYear'
 import { calendarDay, validateEvent, validateTimelineBounds, type Timeline, type TimelineCalendar, type TimelineEvent, type TimelineCharacter } from './domain/timeline'
-import { deleteTimeline, exportAtlas, exportTimeline, previewBackup, saveTimelineCopies, loadTimelines, rememberSelection, restoreSelection, saveTimeline } from './data/timelineStorage'
-
-function timelineSnapshot({ name, startYear, endYear, daysPerYear, calendars, events, characters, organizations, chronicles, items, locations }: Timeline) {
-  return JSON.stringify([name, startYear, endYear, daysPerYear, calendars, events, characters, organizations, chronicles, items, locations])
-}
+import { deleteTimeline, exportAtlas, exportTimeline, previewBackup, saveTimelineCopies, loadTimelines, rememberSelection, restoreSelection, saveTimeline, timelineSnapshot } from './data/timelineStorage'
 
 function App({ backupTools, english, page, eventYear, eventId, characterId, organizationId, entryId }: { backupTools: HTMLDivElement | null; english: boolean; page: 'timeline' | 'events' | 'characters' | 'organizations' | 'chronicles' | 'items' | 'locations'; eventYear?: number; eventId?: string; characterId?: string; organizationId?: string; entryId?: string }) {
   const [backupMessage, setBackupMessage] = useState('')
@@ -205,8 +201,9 @@ function App({ backupTools, english, page, eventYear, eventId, characterId, orga
     const timeline = update(latest.timeline)
     try {
       saveTimeline(id, timeline)
-    } catch {
-      throw new Error('Не удалось сохранить изменения в браузере.')
+    } catch (error) {
+      if (error instanceof DOMException) throw new Error('Не удалось записать изменения в хранилище браузера.')
+      throw error
     }
     setLibrary((current) => ({
       ...current,

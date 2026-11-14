@@ -181,6 +181,11 @@ function isCalendar(calendar: unknown, daysPerYear: number): calendar is Timelin
     validateCalendarEra({ systemAnchorYear, calendarAnchorYear, hasYearZero }) === null
 }
 
+export function timelineSnapshot(timeline: Timeline): string {
+  // Сравниваем данные в том же виде, в котором они загружаются из хранилища.
+  return JSON.stringify(parseTimeline(JSON.parse(JSON.stringify(timeline))))
+}
+
 export function saveTimeline(
   id: string,
   timeline: Timeline,
@@ -189,7 +194,9 @@ export function saveTimeline(
   if (!id.trim()) throw new Error('Для сохранения нужен идентификатор таймлайна.')
 
   // Каждый таймлайн записывается отдельно.
-  storage.setItem(keyPrefix + id, JSON.stringify(timeline))
+  const json = JSON.stringify(timeline)
+  if (!parseTimeline(JSON.parse(json))) throw new Error('Данные таймлайна не прошли проверку.')
+  storage.setItem(keyPrefix + id, json)
 }
 
 export function loadTimelines(
