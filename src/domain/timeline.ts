@@ -6,13 +6,16 @@ export type Timeline = {
   startYear: number
   endYear: number
   daysPerYear: number
-  calendar: {
-    months: CalendarMonth[]
-    weekdayNames: string[]
-    firstWeekday: number
-    epochWeekday: number
-    era: CalendarEra
-  }
+  calendars: [TimelineCalendar, ...TimelineCalendar[]]
+}
+
+export type TimelineCalendar = {
+  name: string
+  months: CalendarMonth[]
+  weekdayNames: string[]
+  firstWeekday: number
+  epochWeekday: number
+  era: CalendarEra
 }
 
 export function validateTimelineBounds(

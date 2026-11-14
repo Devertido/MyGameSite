@@ -1,6 +1,6 @@
 import { validateMonths, validateWeek } from '../domain/calendar.ts'
 import { validateCalendarEra } from '../domain/calendarYear.ts'
-import type { Timeline } from '../domain/timeline'
+import type { Timeline, TimelineCalendar } from '../domain/timeline'
 
 const keyPrefix = 'arena-atlas:timeline:v1:'
 
@@ -10,14 +10,30 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
 }
 
-function isTimeline(value: unknown): value is Timeline {
-  if (!isRecord(value)) return false
-  const { name, startYear, endYear, daysPerYear, calendar } = value
+function parseTimeline(value: unknown): Timeline | null {
+  if (!isRecord(value)) return null
+  const { name, startYear, endYear, daysPerYear } = value
   if (typeof name !== 'string' || !name.trim() ||
       typeof startYear !== 'number' || !Number.isSafeInteger(startYear) ||
       typeof endYear !== 'number' || !Number.isSafeInteger(endYear) || endYear < startYear ||
-      typeof daysPerYear !== 'number' || !isRecord(calendar)) return false
+      typeof daysPerYear !== 'number') return null
 
+  // Старые записи содержат один календарь без названия.
+  const legacy = !('calendars' in value) && isRecord(value.calendar)
+  const calendars: unknown = legacy
+    ? [{ ...value.calendar as Record<string, unknown>, name: 'Основной календарь' }]
+    : value.calendars
+
+  if (!Array.isArray(calendars) || !calendars.length ||
+      !calendars.every((calendar: unknown) => isCalendar(calendar, daysPerYear))) return null
+
+  const [first, ...rest] = calendars
+  if (!first) return null
+  return { name, startYear, endYear, daysPerYear, calendars: [first, ...rest] }
+}
+
+function isCalendar(calendar: unknown, daysPerYear: number): calendar is TimelineCalendar {
+  if (!isRecord(calendar) || typeof calendar.name !== 'string' || !calendar.name.trim()) return false
   const { months, weekdayNames, firstWeekday, epochWeekday, era } = calendar
   if (!Array.isArray(months) || !months.every((month: unknown) =>
     isRecord(month) && typeof month.name === 'string' && typeof month.days === 'number'
@@ -66,12 +82,63 @@ export function loadTimelines(
       continue
     }
 
-    if (id.trim() && isTimeline(timeline)) {
-      entries.push({ id, timeline })
+    const parsed = parseTimeline(timeline)
+    if (id.trim() && parsed) {
+      entries.push({ id, timeline: parsed })
     } else {
       skipped += 1
     }
   }
 
   return { entries, skipped }
+}
+
+export function deleteTimeline(
+  id: string,
+  storage: Pick<Storage, 'removeItem'> = window.localStorage,
+): void {
+  if (!id.trim()) throw new Error('Для удаления нужен идентификатор таймлайна.')
+
+  storage.removeItem(keyPrefix + id)
+}
+
+const selectionKey = 'arena-atlas:selection:v1'
+
+type TimelineSelection = { id: string; calendarIndex: number }
+
+export function restoreSelection(
+  entries: readonly SavedTimeline[],
+  storage?: Pick<Storage, 'getItem'>,
+): TimelineSelection {
+  const fallback = { id: entries[0]?.id ?? '', calendarIndex: 0 }
+
+  try {
+    const json = (storage ?? window.localStorage).getItem(selectionKey)
+    if (json === null) return fallback
+
+    const selection: unknown = JSON.parse(json)
+    if (!isRecord(selection)) return fallback
+
+    const entry = entries.find(({ id }) => id === selection.id)
+    if (!entry) return fallback
+
+    const index = selection.calendarIndex
+    const calendarIndex = typeof index === 'number' && Number.isInteger(index) &&
+      index >= 0 && index < entry.timeline.calendars.length ? index : 0
+
+    return { id: entry.id, calendarIndex }
+  } catch {
+    return fallback
+  }
+}
+
+export function rememberSelection(
+  selection: TimelineSelection,
+  storage?: Pick<Storage, 'setItem'>,
+): void {
+  try {
+    (storage ?? window.localStorage).setItem(selectionKey, JSON.stringify(selection))
+  } catch {
+    // Выбор в открытой вкладке работает и при недоступном хранилище.
+  }
 }

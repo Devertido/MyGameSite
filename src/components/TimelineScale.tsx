@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { toCalendarYear } from '../domain/calendarYear'
-import type { Timeline } from '../domain/timeline'
+import type { Timeline, TimelineCalendar } from '../domain/timeline'
 
 const zoomLevels = [1, 2, 4, 8]
 const baseIntervals = 4
 
-export function TimelineScale({ timeline }: { timeline: Timeline }) {
+export function TimelineScale({ timeline, calendar }: { timeline: Timeline; calendar: TimelineCalendar }) {
   const [zoomIndex, setZoomIndex] = useState(0)
   const zoom = zoomLevels[zoomIndex]!
   const start = BigInt(timeline.startYear)
@@ -27,8 +27,8 @@ export function TimelineScale({ timeline }: { timeline: Timeline }) {
       <h1 id="timeline-title">{timeline.name}</h1>
       <p>
         Системные годы: {timeline.startYear} — {timeline.endYear}<br />
-        Местные годы: {String(toCalendarYear(timeline.startYear, timeline.calendar.era))}
-        {' — '}{String(toCalendarYear(timeline.endYear, timeline.calendar.era))}
+        Местные годы: {String(toCalendarYear(timeline.startYear, calendar.era))}
+        {' — '}{String(toCalendarYear(timeline.endYear, calendar.era))}
       </p>
 
       <div className="timeline-controls" role="group" aria-label="Масштаб шкалы">

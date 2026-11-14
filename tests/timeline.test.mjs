@@ -3,7 +3,7 @@ import { test } from 'node:test'
 import { standardYear, validateMonths, validateWeek } from '../src/domain/calendar.ts'
 import { toCalendarYear } from '../src/domain/calendarYear.ts'
 import { validateTimelineBounds } from '../src/domain/timeline.ts'
-import { loadTimelines, saveTimeline } from '../src/data/timelineStorage.ts'
+import { deleteTimeline, loadTimelines, rememberSelection, restoreSelection, saveTimeline } from '../src/data/timelineStorage.ts'
 
 const era = { systemAnchorYear: 100, calendarAnchorYear: 1, hasYearZero: false }
 
@@ -46,19 +46,57 @@ test('Правки переживают повторную загрузку и �
   }
   const { daysPerYear, ...calendar } = standardYear
   const timeline = { name: 'Арена', startYear: -10, endYear: 0, daysPerYear, calendar: { ...calendar, era } }
+  const main = { ...timeline.calendar, name: 'Основной календарь' }
+  const northern = { ...main, name: 'Календарь Севера', months: [{ name: 'Зима', days: 365 }] }
   const updated = {
-    ...timeline,
+    name: timeline.name,
     startYear: -20,
-    calendar: { ...timeline.calendar, era: { ...era, calendarAnchorYear: 5 } },
+    endYear: timeline.endYear,
+    daysPerYear,
+    calendars: [{ ...main, era: { ...era, calendarAnchorYear: 5 } }, northern],
   }
 
-  saveTimeline('first', timeline, storage)
-  saveTimeline('second', timeline, storage)
+  data.set('arena-atlas:timeline:v1:second', JSON.stringify(timeline))
+  data.set('arena-atlas:timeline:v1:first', JSON.stringify(timeline))
   saveTimeline('first', updated, storage)
   data.set('arena-atlas:timeline:v1:broken', '{')
+  data.set('arena-atlas:timeline:v1:wrong-year', JSON.stringify({ ...updated, daysPerYear: 360 }))
+  data.set('arena-atlas:timeline:v1:no-calendars', JSON.stringify({ ...updated, calendars: [] }))
 
   assert.deepEqual(loadTimelines(storage), {
-    entries: [{ id: 'first', timeline: updated }, { id: 'second', timeline }],
-    skipped: 1,
+    entries: [
+      { id: 'second', timeline: { name: timeline.name, startYear: -10, endYear: 0, daysPerYear, calendars: [main] } },
+      { id: 'first', timeline: updated },
+    ],
+    skipped: 3,
   })
+})
+
+test('Выбранный календарь восстанавливается, устаревший индекс сбрасывается', () => {
+  let json = null
+  const storage = { getItem: () => json, setItem: (_, value) => { json = value } }
+  const entries = [
+    { id: 'first', timeline: { calendars: [{}] } },
+    { id: 'second', timeline: { calendars: [{}, {}] } },
+  ]
+
+  rememberSelection({ id: 'second', calendarIndex: 1 }, storage)
+  assert.deepEqual(restoreSelection(entries, storage), { id: 'second', calendarIndex: 1 })
+
+  rememberSelection({ id: 'second', calendarIndex: 2 }, storage)
+  assert.deepEqual(restoreSelection(entries, storage), { id: 'second', calendarIndex: 0 })
+  assert.deepEqual(restoreSelection(entries.slice(0, 1), storage), { id: 'first', calendarIndex: 0 })
+
+  json = '{'
+  assert.deepEqual(restoreSelection(entries, storage), { id: 'first', calendarIndex: 0 })
+  assert.deepEqual(restoreSelection([], storage), { id: '', calendarIndex: 0 })
+})
+
+test('Удаление затрагивает только выбранный таймлайн', () => {
+  const keys = new Set(['arena-atlas:timeline:v1:first', 'arena-atlas:timeline:v1:second', 'other'])
+  const storage = { removeItem: (key) => keys.delete(key) }
+
+  deleteTimeline('first', storage)
+  assert.deepEqual([...keys], ['arena-atlas:timeline:v1:second', 'other'])
+  assert.throws(() => deleteTimeline(' ', storage), /идентификатор/)
 })
