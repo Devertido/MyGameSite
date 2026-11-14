@@ -54,7 +54,8 @@ function parseTimeline(value: unknown): Timeline | null {
       (!('characterIds' in event) || (Array.isArray(event.characterIds) &&
         new Set(event.characterIds).size === event.characterIds.length &&
         event.characterIds.every((id: unknown) => typeof id === 'string' && characterIds.has(id)))) &&
-      validateEvent({ year: event.year, title: event.title, description: event.description }, timeline) === null
+      validateEvent({ year: event.year, title: event.title, description: event.description,
+        date: event.date as TimelineEvent['date'], end: event.end as TimelineEvent['end'] }, timeline) === null
     )) return null
 
     if (new Set(events.map(({ id }) => id)).size !== events.length) return null

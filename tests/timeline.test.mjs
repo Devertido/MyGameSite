@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { standardYear, validateMonths, validateWeek } from '../src/domain/calendar.ts'
 import { toCalendarYear } from '../src/domain/calendarYear.ts'
-import { validateEvent, validateTimelineBounds } from '../src/domain/timeline.ts'
+import { calendarDay, eventDays, validateEvent, validateTimelineBounds } from '../src/domain/timeline.ts'
 import { deleteTimeline, exportTimeline, importTimeline, loadTimelines, rememberSelection, restoreSelection, saveTimeline } from '../src/data/timelineStorage.ts'
 
 const era = { systemAnchorYear: 100, calendarAnchorYear: 1, hasYearZero: false }
@@ -145,4 +145,22 @@ test('Резервная копия сохраняет персонажей и �
   assert.throws(() => importTimeline(exportTimeline({ ...timeline, characters: [] })))
   assert.throws(() => importTimeline('{"version":2}'))
   assert.throws(() => importTimeline('{'))
+})
+
+test('Даты сохраняют порядковый день при смене календаря', () => {
+  const months = standardYear.months
+  assert.deepEqual(eventDays(months, 2), { first: 32, last: 59 })
+  assert.equal(eventDays(months, 2, 29), null)
+  assert.deepEqual(eventDays(months, 3, 1), { first: 60, last: 60 })
+  assert.equal(calendarDay([{ name: 'Зима', days: 365 }], 60), '60 · Зима')
+})
+
+test('Периоды проходят через системный год 0 и проверяют порядок дат', () => {
+  const bounds = { startYear: -1, endYear: 1, daysPerYear: 365 }
+  const event = { year: -1, title: 'Период', description: '', date: { first: 365, last: 365 } }
+  assert.equal(validateEvent({ ...event, end: { year: 0, date: { first: 1, last: 1 } } }, bounds), null)
+  assert.match(validateEvent({ ...event, end: { year: -1, date: { first: 1, last: 1 } } }, bounds), /не раньше/)
+  assert.match(validateEvent({ ...event, end: { year: 2 } }, bounds), /пределах/)
+  assert.match(validateEvent({ ...event, date: { first: 366, last: 366 } }, bounds), /пределах/)
+  assert.match(validateEvent({ ...event, end: null }, bounds), /пределах/)
 })

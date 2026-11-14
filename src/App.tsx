@@ -4,7 +4,7 @@ import { CharactersPage } from './components/CharactersPage'
 import { EventsPage } from './components/EventsPage'
 import { TimelineScale } from './components/TimelineScale'
 import { validateCalendarEra } from './domain/calendarYear'
-import { validateTimelineBounds, type Timeline, type TimelineCalendar, type TimelineEvent, type TimelineCharacter } from './domain/timeline'
+import { validateEvent, validateTimelineBounds, type Timeline, type TimelineCalendar, type TimelineEvent, type TimelineCharacter } from './domain/timeline'
 import { deleteTimeline, exportTimeline, importTimeline, loadTimelines, rememberSelection, restoreSelection, saveTimeline } from './data/timelineStorage'
 
 function timelineSnapshot({ name, startYear, endYear, daysPerYear, calendars, events, characters }: Timeline) {
@@ -131,6 +131,11 @@ function App({ page, eventYear }: { page: 'timeline' | 'events' | 'characters'; 
       endYear,
       daysPerYear,
       calendars,
+    }
+
+    if (timeline.events?.some((event) => validateEvent(event, timeline))) {
+      setMessage('Новые настройки года выходят за пределы дат существующих событий.')
+      return
     }
 
     let id: string

@@ -161,10 +161,6 @@ button:focus-visible {
   padding: clamp(1rem, 4vw, 3rem);
 }
 
-.timeline-axis:has(+ .timeline-markers) {
-  margin-top: 2rem;
-}
-
 .timeline-markers {
   position: relative;
   margin: 0;
@@ -174,15 +170,15 @@ button:focus-visible {
 
 .timeline-markers li {
   position: absolute;
-  bottom: 0.35rem;
   transform: translateX(-50%);
 }
 
 .timeline-markers a {
   display: grid;
   place-items: center;
-  min-width: 1.5rem;
+  width: 2rem;
   min-height: 1.5rem;
+  overflow: hidden;
   border-radius: 1rem;
   background: #174b43;
   color: #fff;
@@ -219,4 +215,25 @@ button:focus-visible {
 .backup-import {
   min-width: 0;
   max-width: 100%;
+}
+
+.timeline-position {
+  position: relative;
+  pointer-events: none;
+}
+
+.timeline-position span {
+  position: absolute;
+  top: -1.4rem;
+  height: 1.4rem;
+  border-left: 3px solid #a35814;
+}
+
+.timeline-markers a[data-highlighted='true'] {
+  outline: 2px solid #a35814;
+  outline-offset: 2px;
+}
+
+.timeline-controls select {
+  max-width: min(24rem, 100%);
 }

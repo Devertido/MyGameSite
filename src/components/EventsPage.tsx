@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { toCalendarYear } from '../domain/calendarYear'
 import type { Timeline, TimelineCalendar, TimelineEvent } from '../domain/timeline'
-import { validateEvent } from '../domain/timeline'
+import { calendarDay, eventDays, validateEvent, type EventDays, type EventEndpoint } from '../domain/timeline'
 
 export function EventsPage({ timeline, calendar, save, yearFilter }: {
   timeline: Timeline
@@ -12,6 +12,7 @@ export function EventsPage({ timeline, calendar, save, yearFilter }: {
   const events = timeline.events ?? []
   const [draft, setDraft] = useState<TimelineEvent | 'new' | null>(null)
   const [deleting, setDeleting] = useState<TimelineEvent | null>(null)
+  const [period, setPeriod] = useState(false)
   const [error, setError] = useState('')
   const characters = timeline.characters ?? []
   const [search, setSearch] = useState('')
@@ -20,10 +21,10 @@ export function EventsPage({ timeline, calendar, save, yearFilter }: {
   const query = search.trim().toLocaleLowerCase('ru')
   const original = draft === 'new' ? null : draft
   const sorted = events
-    .filter(({ year }) => yearFilter === undefined || year === yearFilter)
+    .filter(({ year, end }) => yearFilter === undefined || (year <= yearFilter && (end?.year ?? year) >= yearFilter))
     .filter(({ title, description }) => [title, description].some((text) => text.toLocaleLowerCase('ru').includes(query)))
-    .filter(({ year }) => (!from || year >= Number(from)) && (!to || year <= Number(to)))
-    .sort((left, right) => left.year - right.year)
+    .filter(({ year, end }) => (!from || (end?.year ?? year) >= Number(from)) && (!to || year <= Number(to)))
+    .sort((left, right) => left.year - right.year || (left.date?.first ?? 1) - (right.date?.first ?? 1))
   const initialYear = original?.year ??
     (yearFilter !== undefined && yearFilter >= timeline.startYear && yearFilter <= timeline.endYear
       ? yearFilter
@@ -46,14 +47,30 @@ export function EventsPage({ timeline, calendar, save, yearFilter }: {
     const year = Number(fields.get('year'))
     const title = String(fields.get('title') ?? '').trim()
     const description = String(fields.get('description') ?? '').trim()
-    const issue = validateEvent({ year, title, description }, timeline)
+    function readDays(prefix: string, previous?: EventDays) {
+      const month = String(fields.get(prefix + 'Month') ?? '')
+      const day = String(fields.get(prefix + 'Day') ?? '')
+      if (!month) return day ? null : previous
+      if (month === 'year') return undefined
+      return eventDays(calendar.months, Number(month), day ? Number(day) : undefined)
+    }
+
+    const date = readDays('start', original?.date)
+    const endDate = period ? readDays('end', original?.end?.date) : undefined
+    if (date === null || endDate === null) {
+      setError('Выберите месяц и укажите допустимый день или оставьте день пустым.')
+      return
+    }
+    const end = period ? { year: Number(fields.get('endYear')), date: endDate } : undefined
+    const details = { year, title, description, date, end }
+    const issue = validateEvent(details, timeline)
     if (issue) {
       setError(issue)
       return
     }
 
     const characterIds = fields.getAll('characterIds').map(String)
-    const entry = { id: original?.id ?? crypto.randomUUID(), year, title, description, characterIds }
+    const entry = { id: original?.id ?? crypto.randomUUID(), ...details, characterIds }
     persist(original ? events.map((item) => item.id === original.id ? entry : item) : [...events, entry])
   }
 
@@ -69,7 +86,7 @@ export function EventsPage({ timeline, calendar, save, yearFilter }: {
         <label>По год <input type="number" value={to} onChange={(event) => setTo(event.currentTarget.value)} /></label>
       </fieldset>
       {draft === null && deleting === null && (
-        <button type="button" onClick={() => setDraft('new')}>Добавить событие</button>
+        <button type="button" onClick={() => { setPeriod(false); setDraft('new') }}>Добавить событие</button>
       )}
 
       {draft !== null && (
@@ -83,6 +100,16 @@ export function EventsPage({ timeline, calendar, save, yearFilter }: {
                 max={timeline.endYear} defaultValue={initialYear} required />
             </label>
           </p>
+          <DateFields prefix="start" months={calendar.months} previous={original?.date} />
+          <p><label><input type="checkbox" checked={period} onChange={(event) => setPeriod(event.currentTarget.checked)} /> Указать конец периода</label></p>
+          {period && (
+            <fieldset>
+              <legend>Конец периода</legend>
+              <p><label>Конечный системный год <input name="endYear" type="number" step={1}
+                min={timeline.startYear} max={timeline.endYear} defaultValue={original?.end?.year ?? initialYear} required /></label></p>
+              <DateFields prefix="end" months={calendar.months} previous={original?.end?.date} />
+            </fieldset>
+          )}
           <p><label>Описание<br /><textarea name="description" defaultValue={original?.description} rows={4} /></label></p>
           {characters.length > 0 && (
             <fieldset>
@@ -114,13 +141,16 @@ export function EventsPage({ timeline, calendar, save, yearFilter }: {
         <ul className="event-list">
           {sorted.map((entry) => (
             <li key={entry.id}>
-              <h2>{entry.year} · {entry.title}</h2>
-              <p>{calendar.name} · местный год {String(toCalendarYear(entry.year, calendar.era))}</p>
+              <h2>{entry.year}{entry.end && ` — ${entry.end.year}`} · {entry.title}</h2>
+              <p>
+                {calendar.name} · {formatEndpoint(entry, calendar)}
+                {entry.end && ` → ${formatEndpoint(entry.end, calendar)}`}
+              </p>
               {entry.characterIds && entry.characterIds.length > 0 && (
                 <p>Участники: {characters.filter(({ id }) => entry.characterIds?.includes(id)).map(({ name }) => name).join(', ')}</p>
               )}
               {entry.description && <p>{entry.description}</p>}
-              <button type="button" disabled={draft !== null || deleting !== null} onClick={() => setDraft(entry)}>
+              <button type="button" disabled={draft !== null || deleting !== null} onClick={() => { setPeriod(Boolean(entry.end)); setDraft(entry) }}>
                 Редактировать
               </button>{' '}
               <button type="button" disabled={draft !== null || deleting !== null} onClick={() => setDeleting(entry)}>
@@ -131,5 +161,38 @@ export function EventsPage({ timeline, calendar, save, yearFilter }: {
         </ul>
       )}
     </main>
+  )
+}
+
+function formatEndpoint({ year, date }: EventEndpoint, calendar: TimelineCalendar) {
+  const localYear = String(toCalendarYear(year, calendar.era))
+  if (!date) return `местный год ${localYear}`
+  const first = calendarDay(calendar.months, date.first)
+  const days = date.first === date.last ? first : `${first} — ${calendarDay(calendar.months, date.last)}`
+  return `${days}, местный год ${localYear}`
+}
+
+function DateFields({ prefix, months, previous }: {
+  prefix: 'start' | 'end'
+  months: TimelineCalendar['months']
+  previous?: EventDays
+}) {
+  const [month, setMonth] = useState('')
+  return (
+    <p>
+      <label>
+        Месяц{' '}
+        <select name={prefix + 'Month'} value={month} onChange={(event) => setMonth(event.currentTarget.value)}>
+          <option value="">{previous ? 'Сохранить дату' : 'Весь год'}</option>
+          {previous && <option value="year">Весь год</option>}
+          {months.map(({ name }, index) => <option key={index} value={index + 1}>{name}</option>)}
+        </select>
+      </label>{' '}
+      <label>
+        День{' '}
+        <input name={prefix + 'Day'} type="number" min={1} step={1}
+          max={months[Number(month) - 1]?.days} disabled={!months[Number(month) - 1]} />
+      </label>
+    </p>
   )
 }
