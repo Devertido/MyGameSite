@@ -107,6 +107,9 @@ function parseTimeline(value: unknown): Timeline | null {
       typeof item.startYear === 'number' && (!('endYear' in item) || typeof item.endYear === 'number') &&
       Array.isArray(item.memberIds) && item.memberIds.every((id: unknown) => typeof id === 'string') &&
       (!('emblem' in item) || isStoredImage(item.emblem)) &&
+      (!('description' in item) || typeof item.description === 'string') &&
+      (!('onTimeline' in item) || typeof item.onTimeline === 'boolean') &&
+      (!('locationIds' in item) || isIdList(item.locationIds)) &&
       validateOrganization(item as Organization, timeline) === null
     ) || new Set(organizations.map(({ id }) => id)).size !== organizations.length) return null
     timeline.organizations = organizations
@@ -128,6 +131,9 @@ function parseTimeline(value: unknown): Timeline | null {
     )) return null
     timeline[field] = entries
   }
+
+  const locationIds = new Set(timeline.locations?.map(({ id }) => id))
+  if (timeline.organizations?.some(({ locationIds: linked }) => linked?.some((id) => !locationIds.has(id)))) return null
 
   return timeline
 }

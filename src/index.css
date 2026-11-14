@@ -247,12 +247,12 @@ button:focus-visible {
 .timeline-controls select {
   max-width: min(24rem, 100%);
 }
-.calendar-toolbar button {
+.calendar-toolbar .calendar-action {
   background: #d5ebe5;
   color: #103930;
 }
 
-.calendar-toolbar button:hover {
+.calendar-toolbar .calendar-action:hover {
   background: #bfe0d6;
 }
 
@@ -289,6 +289,36 @@ button:focus-visible {
 .event-character-description {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+
+.timeline-organizations {
+  display: grid;
+  gap: 0.35rem;
+  margin: 2rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.timeline-organizations li {
+  position: relative;
+  height: 1.5rem;
+}
+
+.timeline-organizations a {
+  position: absolute;
+  display: block;
+  box-sizing: border-box;
+  min-width: 2px;
+  overflow: hidden;
+  border-radius: 0.2rem;
+  background: #805423;
+  color: #fff;
+  font-size: 0.8rem;
+  line-height: 1.5rem;
+  text-indent: 0.35rem;
+  text-overflow: ellipsis;
+  text-decoration: none;
+  white-space: nowrap;
 }
 
 .timeline-markers .timeline-period {
@@ -490,6 +520,32 @@ button:focus-visible {
 .character-heading h2 {
   min-width: 0;
   overflow-wrap: anywhere;
+}
+
+.event-side-row,
+.event-side-members li {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.event-side-row {
+  margin-block: 0.75rem;
+}
+
+.event-side-members {
+  flex-basis: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.event-side-members li + li {
+  margin-top: 0.25rem;
+}
+
+.event-side-row button.event-action {
+  padding: 0.5rem 0.75rem;
 }
 
 button.event-action {

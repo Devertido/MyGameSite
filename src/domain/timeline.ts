@@ -135,6 +135,9 @@ export type EventSide = {
 }
 
 export type Organization = {
+  description?: string
+  locationIds?: string[]
+  onTimeline?: boolean
   emblem?: string
   id: string
   name: string

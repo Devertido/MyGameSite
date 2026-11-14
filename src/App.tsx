@@ -337,7 +337,18 @@ function App({ page, eventYear, eventId, characterId, organizationId, entryId }:
       return (
         <ArchivePage key={JSON.stringify([selected.id, page, entryId])}
           timeline={selected.timeline} kind={page} entryId={entryId} entries={selected.timeline[page] ?? []}
-          save={(entries) => saveSelectedContent((timeline) => ({ ...timeline, [page]: entries }))} />
+          save={(entries) => {
+            const ids = new Set(entries.map(({ id }) => id))
+            saveSelectedContent((timeline) => ({
+              ...timeline,
+              [page]: entries,
+              ...(page === 'locations' && timeline.organizations ? {
+                organizations: timeline.organizations.map((organization) => organization.locationIds ? {
+                  ...organization, locationIds: organization.locationIds.filter((id) => ids.has(id)),
+                } : organization),
+              } : {}),
+            }))
+          }} />
       )
     }
 
@@ -389,7 +400,28 @@ function App({ page, eventYear, eventId, characterId, organizationId, entryId }:
 
   return (
     <main className={selected ? 'timeline-library' : 'start-screen'}>
-      <div className="timeline-toolbar">
+      <div className={selected ? "timeline-toolbar calendar-toolbar" : "timeline-toolbar"}>
+        {selected && (
+          <>
+          <label>
+            Календарь{' '}
+            <select value={calendarIndex} onChange={(event) => selectTimeline(selectedId, Number(event.currentTarget.value))}>
+              {selected.timeline.calendars.map((calendar, index) => (
+                <option key={index} value={index}>{index + 1}. {calendar.name}</option>
+              ))}
+            </select>
+          </label>
+          <button className="calendar-action" type="button" onClick={() => openForm(selected, selected.timeline.calendars.length)}>
+            Добавить календарь
+          </button>
+          <button className="calendar-action" type="button" onClick={() => {
+            setEventPickerError('')
+            eventPickerRef.current?.showModal()
+          }}>
+            Добавить событие
+          </button>
+          </>
+        )}
         {selected && (
           <label>
             Таймлайн{' '}
@@ -431,25 +463,6 @@ function App({ page, eventYear, eventId, characterId, organizationId, entryId }:
 
       {selected && (
         <>
-          <div className="timeline-toolbar calendar-toolbar">
-            <label>
-              Календарь{' '}
-              <select value={calendarIndex} onChange={(event) => selectTimeline(selectedId, Number(event.currentTarget.value))}>
-                {selected.timeline.calendars.map((calendar, index) => (
-                  <option key={index} value={index}>{index + 1}. {calendar.name}</option>
-                ))}
-              </select>
-            </label>
-            <button type="button" onClick={() => openForm(selected, selected.timeline.calendars.length)}>
-              Добавить календарь
-            </button>
-            <button type="button" onClick={() => {
-              setEventPickerError('')
-              eventPickerRef.current?.showModal()
-            }}>
-              Добавить событие
-            </button>
-          </div>
           <TimelineScale
             key={selected.id}
             timeline={selected.timeline}

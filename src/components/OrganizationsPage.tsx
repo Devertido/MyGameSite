@@ -27,7 +27,10 @@ export function OrganizationsPage({ timeline, save, organizationId }: {
       type: String(fields.get('type') ?? '').trim(),
       startYear: Number(fields.get('startYear')),
       ...(end ? { endYear: Number(end) } : {}),
-      emblem: String(fields.get('emblem') ?? '') || undefined,
+      ...(fields.get('emblem') ? { emblem: String(fields.get('emblem')) } : {}),
+      description: String(fields.get('description') ?? '').trim(),
+      locationIds: fields.getAll('locations').map(String),
+      onTimeline: fields.has('onTimeline'),
       memberIds: fields.getAll('members').map(String),
     }
     const issue = validateOrganization(organization, timeline)
@@ -62,9 +65,19 @@ export function OrganizationsPage({ timeline, save, organizationId }: {
             <label>Тип организации <input name="type" list="organization-types" defaultValue={original?.type} required /></label>
             <datalist id="organization-types">{types.map((type) => <option key={type} value={type} />)}</datalist>
           </p>
+          <p><label>Описание<br /><textarea name="description" rows={4} defaultValue={original?.description} /></label></p>
           <p><label>Системный год основания <input name="startYear" type="number" step="1" defaultValue={original?.startYear} required /></label></p>
           <p><label>Системный год окончания <input name="endYear" type="number" step="1" defaultValue={original?.endYear} /></label></p>
           <p>Оставьте год окончания пустым, если организация существует или дата её окончания неизвестна.</p>
+          <p><label><input type="checkbox" name="onTimeline" defaultChecked={original?.onTimeline} /> Показать годы существования под таймлайном</label></p>
+          <fieldset>
+            <legend>Локации фракции</legend>
+            {timeline.locations?.length ? timeline.locations.map(({ id, title }) => (
+              <label className="event-participant" key={id}>
+                <input type="checkbox" name="locations" value={id} defaultChecked={original?.locationIds?.includes(id)} /> {title}
+              </label>
+            )) : <p>Добавьте записи во вкладке «Локации».</p>}
+          </fieldset>
           <fieldset>
             <legend>Члены организации</legend>
             {timeline.characters?.length ? timeline.characters.map(({ id, name }) => (
@@ -87,6 +100,15 @@ export function OrganizationsPage({ timeline, save, organizationId }: {
               ? <a href={`#organizations?organization=${encodeURIComponent(organization.id)}`}>{organization.name}</a>
               : organization.name}</h2>
             <p>{organization.type} · {organization.startYear} — {organization.endYear ?? 'год окончания не указан'}</p>
+            {organization.description && <p>{organization.description}</p>}
+            {!!organization.locationIds?.length && (
+              <section>
+                <h3>Локации фракции</h3>
+                <ul>{timeline.locations?.filter(({ id }) => organization.locationIds?.includes(id)).map(({ id, title }) => (
+                  <li key={id}><a href={'#locations?entry=' + encodeURIComponent(id)}>{title}</a></li>
+                ))}</ul>
+              </section>
+            )}
             {organization.memberIds.length > 0 && (
               <ul>
                 {timeline.characters?.filter(({ id }) => organization.memberIds.includes(id)).map(({ id, name }) => (
