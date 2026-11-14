@@ -752,6 +752,10 @@ button.event-action:hover:enabled {
   padding-inline: 0.5rem;
 }
 
+.backup-status {
+  margin-inline: clamp(1rem, 4vw, 3rem);
+}
+
 .site-backup-tools {
   display: contents;
 }
