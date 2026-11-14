@@ -1,0 +1,35 @@
+:root {
+  font-family: system-ui, sans-serif;
+  color: #16201f;
+  background: #f8faf9;
+}
+
+body {
+  margin: 0;
+}
+
+.start-screen {
+  display: grid;
+  min-height: 100svh;
+  place-items: center;
+}
+
+.start-screen button {
+  padding: 0.75rem 1.25rem;
+  border: 0;
+  border-radius: 0.5rem;
+  background: #174b43;
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.start-screen button:hover {
+  background: #103930;
+}
+
+.start-screen button:focus-visible {
+  outline: 2px solid #174b43;
+  outline-offset: 4px;
+}
