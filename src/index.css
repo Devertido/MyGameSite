@@ -174,16 +174,20 @@ button:focus-visible {
 }
 
 .timeline-markers a {
-  display: grid;
-  place-items: center;
-  width: 2rem;
-  min-height: 1.5rem;
+  display: block;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: 9rem;
+  padding: 0.4rem 0.65rem;
   overflow: hidden;
-  border-radius: 1rem;
+  border-radius: 0.2rem;
   background: #174b43;
   color: #fff;
-  font-size: 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.2;
   text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .event-list {
@@ -243,4 +247,35 @@ button:focus-visible {
 
 .event-picker-empty {
   color: #596461;
+}
+
+.event-sides {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(12rem, 100%), 1fr));
+  gap: 0.75rem;
+}
+
+.event-sides section {
+  padding: 0.75rem;
+  border: 1px solid #b9cbc6;
+  border-radius: 0.5rem;
+}
+
+.event-sides h3 {
+  margin-top: 0;
+}
+
+.event-list .event-people {
+  padding: 0;
+  list-style: none;
+}
+
+.event-list .event-people li {
+  padding: 0.25rem 0;
+  border: 0;
+}
+
+.event-character-description {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }

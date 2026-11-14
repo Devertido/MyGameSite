@@ -225,7 +225,14 @@ function App({ page, eventYear }: { page: 'timeline' | 'events' | 'characters'; 
       ...timeline,
       characters,
       events: timeline.events?.map((event) => event.characterIds
-        ? { ...event, characterIds: event.characterIds.filter((id) => ids.has(id)) }
+        ? {
+          ...event,
+          characterIds: event.characterIds.filter((id) => ids.has(id)),
+          sides: event.sides?.map((side) => ({
+            ...side,
+            characterIds: side.characterIds.filter((id) => ids.has(id)),
+          })),
+        }
         : event),
     }))
   }

@@ -1,6 +1,7 @@
-import { useState, type FormEvent } from 'react'
+import { useRef, useState, type FormEvent } from 'react'
+import { EventParticipants } from './EventParticipants'
 import { toCalendarYear } from '../domain/calendarYear'
-import type { Timeline, TimelineCalendar, TimelineEvent } from '../domain/timeline'
+import type { Timeline, TimelineCalendar, TimelineCharacter, TimelineEvent } from '../domain/timeline'
 import { calendarDay, eventDays, validateEvent, type EventDays, type EventEndpoint } from '../domain/timeline'
 
 export function EventsPage({ timeline, calendar, save, yearFilter }: {
@@ -9,6 +10,8 @@ export function EventsPage({ timeline, calendar, save, yearFilter }: {
   yearFilter?: number
   save: (events: TimelineEvent[]) => void
 }) {
+  const characterDialog = useRef<HTMLDialogElement>(null)
+  const [activeCharacter, setActiveCharacter] = useState<TimelineCharacter | null>(null)
   const events = timeline.events ?? []
   const [draft, setDraft] = useState<TimelineEvent | 'new' | null>(null)
   const [deleting, setDeleting] = useState<TimelineEvent | null>(null)
@@ -69,9 +72,40 @@ export function EventsPage({ timeline, calendar, save, yearFilter }: {
       return
     }
 
-    const characterIds = fields.getAll('characterIds').map(String)
-    const entry = { id: original?.id ?? crypto.randomUUID(), ...details, characterIds, onTimeline: original ? original.onTimeline !== false : false }
+    const assignments = characters.map(({ id }) => ({ id, side: String(fields.get('participant-' + id) ?? '') }))
+    const characterIds = assignments.filter(({ side }) => side).map(({ id }) => id)
+    const sides = fields.getAll('sideId').map(String).map((id) => ({
+      id,
+      name: String(fields.get('side-name-' + id) ?? '').trim(),
+      characterIds: assignments.filter(({ side }) => side === id).map(({ id: characterId }) => characterId),
+    }))
+    if (sides.some(({ name }) => !name)) {
+      setError('Введите название каждой стороны.')
+      return
+    }
+    const entry = { id: original?.id ?? crypto.randomUUID(), ...details, characterIds, sides, onTimeline: original ? original.onTimeline !== false : false }
     persist(original ? events.map((item) => item.id === original.id ? entry : item) : [...events, entry])
+  }
+
+  function renderParticipants(ids: string[], unassigned = false) {
+    const participants = characters.filter(({ id }) => ids.includes(id))
+    if (!participants.length) return null
+
+    return (
+      <>
+        {unassigned && <h3>Участники без стороны</h3>}
+        <ul className="event-people">
+          {participants.map((character) => (
+            <li key={character.id}>
+              <button type="button" onClick={() => {
+                setActiveCharacter(character)
+                characterDialog.current?.showModal()
+              }}>{character.name}</button>
+            </li>
+          ))}
+        </ul>
+      </>
+    )
   }
 
   return (
@@ -111,18 +145,7 @@ export function EventsPage({ timeline, calendar, save, yearFilter }: {
             </fieldset>
           )}
           <p><label>Описание<br /><textarea name="description" defaultValue={original?.description} rows={4} /></label></p>
-          {characters.length > 0 && (
-            <fieldset>
-              <legend>Участники</legend>
-              {characters.map((character) => (
-                <label key={character.id} className="event-participant">
-                  <input type="checkbox" name="characterIds" value={character.id}
-                    defaultChecked={original?.characterIds?.includes(character.id)} />{' '}
-                  {character.name}
-                </label>
-              ))}
-            </fieldset>
-          )}
+          <EventParticipants characters={characters} original={original} />
           <button type="submit">Сохранить</button>{' '}
           <button type="button" onClick={() => { setDraft(null); setError('') }}>Отмена</button>
         </form>
@@ -146,9 +169,19 @@ export function EventsPage({ timeline, calendar, save, yearFilter }: {
                 {calendar.name} · {formatEndpoint(entry, calendar)}
                 {entry.end && ` → ${formatEndpoint(entry.end, calendar)}`}
               </p>
-              {entry.characterIds && entry.characterIds.length > 0 && (
-                <p>Участники: {characters.filter(({ id }) => entry.characterIds?.includes(id)).map(({ name }) => name).join(', ')}</p>
+              {(entry.sides?.length ?? 0) > 0 && (
+                <div className="event-sides" aria-label="Стороны события">
+                  {entry.sides?.map((side) => (
+                    <section key={side.id}>
+                      <h3>{side.name}</h3>
+                      {side.characterIds.length ? renderParticipants(side.characterIds) : <p>Нет участников.</p>}
+                    </section>
+                  ))}
+                </div>
               )}
+              {renderParticipants((entry.characterIds ?? []).filter((id) =>
+                !entry.sides?.some((side) => side.characterIds.includes(id))
+              ), true)}
               {entry.description && <p>{entry.description}</p>}
               <button type="button" disabled={draft !== null || deleting !== null} onClick={() => { setPeriod(Boolean(entry.end)); setDraft(entry) }}>
                 Редактировать
@@ -160,6 +193,11 @@ export function EventsPage({ timeline, calendar, save, yearFilter }: {
           ))}
         </ul>
       )}
+      <dialog ref={characterDialog} aria-labelledby="event-character-name">
+        <h2 id="event-character-name">{activeCharacter?.name}</h2>
+        <p className="event-character-description">{activeCharacter?.description || 'Описание пока не добавлено.'}</p>
+        <button type="button" onClick={() => characterDialog.current?.close()}>Закрыть</button>
+      </dialog>
     </main>
   )
 }

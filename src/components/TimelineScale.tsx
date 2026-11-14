@@ -49,21 +49,18 @@ export function TimelineScale({ timeline, calendar }: { timeline: Timeline; cale
   })
 
   const visibleEvents = (timeline.events ?? []).filter((event) => event.onTimeline !== false)
-  const eventsByYear = new Map<number, number>()
-  for (const { year } of visibleEvents) {
-    eventsByYear.set(year, (eventsByYear.get(year) ?? 0) + 1)
-  }
-
-  // Расстояние рассчитано по минимальной ширине шкалы без внутренних отступов.
+  // Минимальная ширина оси учитывает внутренние отступы шкалы.
   const axisMinWidth = 36 * zoom - 11
   const rowEnds: number[] = []
-  const markers = [...eventsByYear].sort(([left], [right]) => left - right).map(([year, count]) => {
-    const position = positionOf(BigInt(year))
+  const markers = [...visibleEvents].sort((left, right) =>
+    left.year - right.year || (left.date?.first ?? 1) - (right.date?.first ?? 1)
+  ).map((event) => {
+    const position = positionOf(BigInt(event.year))
     const offset = position * axisMinWidth / 100
-    const freeRow = rowEnds.findIndex((end) => offset - end >= 2.5)
+    const freeRow = rowEnds.findIndex((end) => offset - end >= 9.5)
     const row = freeRow === -1 ? rowEnds.length : freeRow
     rowEnds[row] = offset
-    return { year, count, position, row }
+    return { ...event, position, row }
   })
   const highlightedYear = target?.year
 
@@ -116,6 +113,18 @@ export function TimelineScale({ timeline, calendar }: { timeline: Timeline; cale
 
       <div ref={scrollRef} className="timeline-scroll" tabIndex={0} role="region" aria-label="Шкала системных лет">
         <div className="timeline-track" style={{ width: `${100 * zoom}%`, minWidth: `${36 * zoom}rem` }}>
+          {markers.length > 0 && (
+            <ul className="timeline-markers" style={{ height: `${rowEnds.length * 2.5}rem` }} aria-label="События на шкале">
+              {markers.map(({ id, year, title, position, row }) => (
+                <li key={id} style={{ left: `${position}%`, bottom: `${row * 2.5 + 0.4}rem` }}>
+                  <a href={`#events?year=${year}`} data-highlighted={year === highlightedYear}
+                    aria-label={`${title}, системный год ${year}`} title={`${title} · ${year}`}>
+                    {title}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          )}
           <ol ref={axisRef} className="timeline-axis">
             {ticks.map(({ year, position }) => (
               <li key={String(year)} style={{ left: `${position}%` }}>{String(year)}</li>
@@ -126,18 +135,7 @@ export function TimelineScale({ timeline, calendar }: { timeline: Timeline; cale
               <span style={{ left: `${positionOf(BigInt(highlightedYear))}%` }} />
             </div>
           )}
-          {markers.length > 0 && (
-            <ul className="timeline-markers" style={{ marginTop: `${rowEnds.length * 2}rem` }} aria-label="Годы с событиями">
-              {markers.map(({ year, count, position, row }) => (
-                <li key={year} style={{ left: `${position}%`, bottom: `${(rowEnds.length - row - 1) * 2}rem` }}>
-                  <a href={`#events?year=${year}`} data-highlighted={year === highlightedYear}
-                    aria-label={`Год ${year}, событий: ${count}`} title={`Год ${year}, событий: ${count}`}>
-                    {count}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          )}
+
         </div>
       </div>
     </section>

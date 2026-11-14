@@ -10,6 +10,25 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
 }
 
+function validEventSides(sides: unknown, participants: unknown): boolean {
+  if (!Array.isArray(sides)) return false
+  const allowed = new Set(Array.isArray(participants) ? participants : [])
+  const assigned = new Set<string>()
+  const ids = new Set<string>()
+
+  for (const side of sides as unknown[]) {
+    if (!isRecord(side) || typeof side.id !== 'string' || !side.id.trim() ||
+        side.id === 'unassigned' || ids.has(side.id) ||
+        typeof side.name !== 'string' || !side.name.trim() || !Array.isArray(side.characterIds)) return false
+    ids.add(side.id)
+    for (const id of side.characterIds as unknown[]) {
+      if (typeof id !== 'string' || !allowed.has(id) || assigned.has(id)) return false
+      assigned.add(id)
+    }
+  }
+  return true
+}
+
 function parseTimeline(value: unknown): Timeline | null {
   if (!isRecord(value)) return null
   const { name, startYear, endYear, daysPerYear } = value
@@ -55,6 +74,7 @@ function parseTimeline(value: unknown): Timeline | null {
       (!('characterIds' in event) || (Array.isArray(event.characterIds) &&
         new Set(event.characterIds).size === event.characterIds.length &&
         event.characterIds.every((id: unknown) => typeof id === 'string' && characterIds.has(id)))) &&
+      (!('sides' in event) || validEventSides(event.sides, event.characterIds)) &&
       validateEvent({ year: event.year, title: event.title, description: event.description,
         date: event.date as TimelineEvent['date'], end: event.end as TimelineEvent['end'] }, timeline) === null
     )) return null
