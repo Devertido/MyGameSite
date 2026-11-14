@@ -34,6 +34,7 @@ export default function SiteNavigation() {
   const [largeText, setLargeText] = useState(() => readPreference('large-text') === 'true')
   const languageDialog = useRef<HTMLDialogElement>(null)
   const settingsDialog = useRef<HTMLDialogElement>(null)
+  const helpDialog = useRef<HTMLDialogElement>(null)
   const english = language === 'en'
 
   useEffect(() => {
@@ -65,6 +66,10 @@ export default function SiteNavigation() {
             title={english ? 'Language' : 'Язык'} onClick={() => languageDialog.current?.showModal()}>
             <span aria-hidden="true">🌐</span>
           </button>
+          <button type="button" aria-label={english ? 'Help' : 'Справка'}
+            title={english ? 'Help' : 'Справка'} onClick={() => helpDialog.current?.showModal()}>
+            <span aria-hidden="true">?</span>
+          </button>
           <button type="button" aria-label={english ? 'Settings' : 'Настройки'}
             title={english ? 'Settings' : 'Настройки'} onClick={() => settingsDialog.current?.showModal()}>
             <span aria-hidden="true">⚙</span>
@@ -90,6 +95,22 @@ export default function SiteNavigation() {
           ))}
         </div>
         <button type="button" onClick={() => languageDialog.current?.close()}>{english ? 'Close' : 'Закрыть'}</button>
+      </dialog>
+
+      <dialog ref={helpDialog} lang={language} aria-labelledby="atlas-help-title">
+        <h2 id="atlas-help-title">{english ? 'Atlas help' : 'Справка по Атласу'}</h2>
+        <ul>
+          <li>{english
+            ? 'Create or choose a timeline to open its events, characters, and other records.'
+            : 'Создайте или выберите таймлайн, чтобы открыть его события, персонажей и другие записи.'}</li>
+          <li>{english
+            ? 'Create an event in Events, then use Add event on the timeline to place it on the scale.'
+            : 'Создайте запись во вкладке «События», затем добавьте её на шкалу через кнопку «Добавить событие».'}</li>
+          <li>{english
+            ? 'Your data is stored in this browser. Use Export JSON to save a backup.'
+            : 'Данные хранятся в этом браузере. Для резервной копии используйте «Экспорт JSON».'}</li>
+        </ul>
+        <button type="button" onClick={() => helpDialog.current?.close()}>{english ? 'Close' : 'Закрыть'}</button>
       </dialog>
 
       <dialog ref={settingsDialog} lang={language} aria-labelledby="atlas-settings-title">
