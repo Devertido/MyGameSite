@@ -1,3 +1,4 @@
+import { TimelineDays } from './TimelineDays'
 import { useLayoutEffect, useRef, useState, type FormEvent } from 'react'
 import { toCalendarYear } from '../domain/calendarYear'
 import type { Timeline, TimelineCalendar } from '../domain/timeline'
@@ -84,16 +85,19 @@ export function TimelineScale({ timeline, calendar }: { timeline: Timeline; cale
           {' — '}{String(toCalendarYear(timeline.endYear, calendar.era))}
         </p>
         <div className="timeline-zoom" role="group" aria-label="Масштаб шкалы">
-          <button type="button" disabled={zoomIndex === 0} onClick={() => setZoomIndex(zoomIndex - 1)}>
-            Уменьшить
+          <button className="timeline-zoom-icon" type="button" aria-label="Уменьшить" title="Уменьшить" disabled={zoomIndex === 0} onClick={() => setZoomIndex(zoomIndex - 1)}>
+            <ZoomIcon />
           </button>
           <output aria-live="polite">{zoom}×</output>
           <button
             type="button"
+            className="timeline-zoom-icon"
+            aria-label="Увеличить"
+            title="Увеличить"
             disabled={zoomIndex === zoomLevels.length - 1}
             onClick={() => setZoomIndex(zoomIndex + 1)}
           >
-            Увеличить
+            <ZoomIcon plus />
           </button>
         </div>
         <form onSubmit={jumpToYear}>
@@ -147,6 +151,10 @@ export function TimelineScale({ timeline, calendar }: { timeline: Timeline; cale
 
         </div>
       </div>
+      {zoomIndex === zoomLevels.length - 1 && (
+        <TimelineDays key={JSON.stringify(target)} timeline={timeline} calendar={calendar}
+          initialYear={target?.year ?? timeline.startYear} initialDay={target?.day ?? 0} />
+      )}
     </section>
   )
 }
@@ -158,4 +166,8 @@ function markerTextColor(color: string) {
   })
   const luminance = channels[0]! * 0.2126 + channels[1]! * 0.7152 + channels[2]! * 0.0722
   return luminance > 0.179 ? '#000' : '#fff'
+}
+
+function ZoomIcon({ plus = false }: { plus?: boolean }) {
+  return <span className="zoom-lens" aria-hidden="true">{plus ? '+' : '−'}</span>
 }

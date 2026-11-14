@@ -683,3 +683,57 @@ button.event-action:hover:enabled {
   margin: 0;
   flex-shrink: 0;
 }
+
+.timeline-zoom-icon {
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  place-items: center;
+}
+
+.zoom-lens {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 0.95rem;
+  height: 0.95rem;
+  margin: 0 0.2rem 0.2rem 0;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  font-size: 0.8rem;
+  line-height: 1;
+}
+
+.zoom-lens::after {
+  position: absolute;
+  top: 100%;
+  left: 90%;
+  width: 0.45rem;
+  height: 2px;
+  background: currentColor;
+  transform: rotate(45deg);
+  transform-origin: left center;
+  content: '';
+}
+
+.timeline-day-ticks {
+  display: flex;
+  width: max-content;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.timeline-day-ticks li {
+  display: grid;
+  justify-items: center;
+  min-width: 4rem;
+  padding: 0.4rem;
+  border-inline-start: 1px solid #b9cbc6;
+}
+
+.timeline-day-ticks span {
+  font-size: 0.75rem;
+}
