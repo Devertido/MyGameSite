@@ -14,7 +14,7 @@ body {
   place-items: center;
 }
 
-.start-screen button {
+button {
   padding: 0.75rem 1.25rem;
   border: 0;
   border-radius: 0.5rem;
@@ -25,11 +25,94 @@ body {
   cursor: pointer;
 }
 
-.start-screen button:hover {
+button:hover {
   background: #103930;
 }
 
-.start-screen button:focus-visible {
+button:focus-visible {
   outline: 2px solid #174b43;
   outline-offset: 4px;
+}
+
+.timeline-view {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  padding: clamp(1rem, 4vw, 3rem);
+  overflow-wrap: anywhere;
+}
+
+.timeline-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-block: 1rem;
+}
+
+.timeline-controls button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.timeline-scroll {
+  overflow-x: auto;
+  border: 1px solid #b9cbc6;
+  border-radius: 0.5rem;
+}
+
+.timeline-scroll:focus-visible {
+  outline: 2px solid #174b43;
+  outline-offset: 4px;
+}
+
+.timeline-track {
+  box-sizing: border-box;
+  padding: 2rem 5.5rem 3rem;
+}
+
+.timeline-axis {
+  position: relative;
+  margin: 0;
+  padding: 0;
+  border-top: 2px solid #174b43;
+  list-style: none;
+}
+
+.timeline-axis li {
+  position: absolute;
+  transform: translateX(-50%);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.timeline-axis li::before {
+  display: block;
+  width: 1px;
+  height: 0.6rem;
+  margin: 0 auto 0.3rem;
+  background: #174b43;
+  content: '';
+}
+
+.timeline-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  max-width: 100%;
+}
+
+.timeline-library .timeline-toolbar {
+  padding: 1rem clamp(1rem, 4vw, 3rem);
+}
+
+.timeline-toolbar label {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.timeline-toolbar select {
+  max-width: 100%;
+  font: inherit;
 }
