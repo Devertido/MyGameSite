@@ -9,6 +9,8 @@ export type Timeline = {
   events?: TimelineEvent[]
   characters?: TimelineCharacter[]
   organizations?: Organization[]
+  chronicles?: ArchiveEntry[]
+  items?: ArchiveEntry[]
   calendars: [TimelineCalendar, ...TimelineCalendar[]]
 }
 
@@ -106,6 +108,7 @@ export type TimelineCharacter = {
 }
 
 export type EventSide = {
+  organizationId?: string
   id: string
   name: string
   characterIds: string[]
@@ -136,4 +139,13 @@ export function validateOrganization(organization: Organization, timeline: Timel
   if (new Set(organization.memberIds).size !== organization.memberIds.length ||
       organization.memberIds.some((id) => !ids.has(id))) return 'Проверьте список членов организации.'
   return null
+}
+
+export type ArchiveEntry = {
+  id: string
+  title: string
+  summary: string
+  body: string
+  type?: string
+  rarity?: string
 }

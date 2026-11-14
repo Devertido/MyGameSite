@@ -3,8 +3,9 @@ import { validateOrganization, type Organization, type Timeline } from '../domai
 
 const types = ['Государство', 'Банда', 'Орден', 'Клан', 'Гильдия', 'Союз', 'Фракция']
 
-export function OrganizationsPage({ timeline, save }: {
+export function OrganizationsPage({ timeline, save, organizationId }: {
   timeline: Timeline
+  organizationId?: string
   save: (organizations: Organization[]) => void
 }) {
   const organizations = timeline.organizations ?? []
@@ -44,7 +45,9 @@ export function OrganizationsPage({ timeline, save }: {
     <main className="section-page">
       <h1>Фракции и организации</h1>
       <p>{timeline.name}</p>
-      {draft === null && <button type="button" onClick={() => setDraft('new')}>Создать организацию</button>}
+      {organizationId !== undefined && <p><a href="#organizations">Все организации</a></p>}
+      {organizationId !== undefined && !organizations.some(({ id }) => id === organizationId) && <p>Организация не найдена.</p>}
+      {organizationId === undefined && draft === null && <button type="button" onClick={() => setDraft('new')}>Создать организацию</button>}
       {draft !== null && (
         <form onSubmit={submit} onInput={() => setError('')}>
           <h2>{original ? 'Редактировать организацию' : 'Новая организация'}</h2>
@@ -71,9 +74,11 @@ export function OrganizationsPage({ timeline, save }: {
       )}
       {organizations.length === 0 && draft === null && <p>В этом таймлайне пока нет организаций.</p>}
       <ul className="event-list">
-        {organizations.map((organization) => (
+        {organizations.filter(({ id }) => organizationId === undefined || id === organizationId).map((organization) => (
           <li key={organization.id}>
-            <h2>{organization.name}</h2>
+            <h2>{organizationId === undefined
+              ? <a href={`#organizations?organization=${encodeURIComponent(organization.id)}`}>{organization.name}</a>
+              : organization.name}</h2>
             <p>{organization.type} · {organization.startYear} — {organization.endYear ?? 'год окончания не указан'}</p>
             {organization.memberIds.length > 0 && (
               <ul>

@@ -1,5 +1,6 @@
 import { useRef, useState, type FormEvent } from 'react'
 import { standardYear, validateMonths, validateWeek } from './domain/calendar'
+import { ArchivePage } from './components/ArchivePage'
 import { OrganizationsPage } from './components/OrganizationsPage'
 import { CharactersPage } from './components/CharactersPage'
 import { EventsPage } from './components/EventsPage'
@@ -8,11 +9,11 @@ import { validateCalendarEra } from './domain/calendarYear'
 import { calendarDay, validateEvent, validateTimelineBounds, type Timeline, type TimelineCalendar, type TimelineEvent, type TimelineCharacter } from './domain/timeline'
 import { deleteTimeline, exportAtlas, exportTimeline, previewBackup, saveTimelineCopies, loadTimelines, rememberSelection, restoreSelection, saveTimeline } from './data/timelineStorage'
 
-function timelineSnapshot({ name, startYear, endYear, daysPerYear, calendars, events, characters, organizations }: Timeline) {
-  return JSON.stringify([name, startYear, endYear, daysPerYear, calendars, events, characters, organizations])
+function timelineSnapshot({ name, startYear, endYear, daysPerYear, calendars, events, characters, organizations, chronicles, items }: Timeline) {
+  return JSON.stringify([name, startYear, endYear, daysPerYear, calendars, events, characters, organizations, chronicles, items])
 }
 
-function App({ page, eventYear, eventId, characterId }: { page: 'timeline' | 'events' | 'characters' | 'organizations'; eventYear?: number; eventId?: string; characterId?: string }) {
+function App({ page, eventYear, eventId, characterId, organizationId, entryId }: { page: 'timeline' | 'events' | 'characters' | 'organizations' | 'chronicles' | 'items'; eventYear?: number; eventId?: string; characterId?: string; organizationId?: string; entryId?: string }) {
   const [backupMessage, setBackupMessage] = useState('')
   const [backupPreview, setBackupPreview] = useState<Timeline[] | null>(null)
   const backupDialogRef = useRef<HTMLDialogElement>(null)
@@ -318,15 +319,23 @@ function App({ page, eventYear, eventId, characterId }: { page: 'timeline' | 'ev
     if (!selected) {
       return (
         <main className="section-page">
-          <h1>{page === 'events' ? 'События' : page === 'organizations' ? 'Фракции и организации' : 'Персонажи'}</h1>
+          <h1>{page === 'chronicles' ? 'Летописи' : page === 'items' ? 'Предметы' : page === 'events' ? 'События' : page === 'organizations' ? 'Фракции и организации' : 'Персонажи'}</h1>
           <p>Сначала создайте или импортируйте таймлайн.</p>
           <a href="#timeline">К таймлайну</a>
         </main>
       )
     }
 
+    if (page === 'chronicles' || page === 'items') {
+      return (
+        <ArchivePage key={JSON.stringify([selected.id, page, entryId])}
+          kind={page} entryId={entryId} entries={selected.timeline[page] ?? []}
+          save={(entries) => saveSelectedContent((timeline) => ({ ...timeline, [page]: entries }))} />
+      )
+    }
+
     if (page === 'organizations') {
-      return <OrganizationsPage key={selected.id} timeline={selected.timeline}
+      return <OrganizationsPage key={JSON.stringify([selected.id, organizationId])} organizationId={organizationId} timeline={selected.timeline}
         save={(organizations) => saveSelectedContent((timeline) => ({ ...timeline, organizations }))} />
     }
 
@@ -427,7 +436,8 @@ function App({ page, eventYear, eventId, characterId }: { page: 'timeline' | 'ev
               <strong>{timeline.name}</strong> · {timeline.startYear} — {timeline.endYear}
               <br />
               Календари: {timeline.calendars.length}, события: {timeline.events?.length ?? 0},
-              персонажи: {timeline.characters?.length ?? 0}, организации: {timeline.organizations?.length ?? 0}
+              персонажи: {timeline.characters?.length ?? 0}, организации: {timeline.organizations?.length ?? 0},
+              летописи: {timeline.chronicles?.length ?? 0}, предметы: {timeline.items?.length ?? 0}
             </li>
           ))}
         </ul>

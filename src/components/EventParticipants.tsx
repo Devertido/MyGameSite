@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import type { TimelineCharacter, TimelineEvent } from '../domain/timeline'
+import type { Organization, TimelineCharacter, TimelineEvent } from '../domain/timeline'
 
-export function EventParticipants({ characters, original }: {
+export function EventParticipants({ characters, organizations, original }: {
   characters: TimelineCharacter[]
+  organizations: Organization[]
   original: TimelineEvent | null
 }) {
   const [sides, setSides] = useState(original?.sides ?? [])
@@ -25,8 +26,22 @@ export function EventParticipants({ characters, original }: {
       {sides.map((side, index) => (
         <p key={side.id}>
           <input type="hidden" name="sideId" value={side.id} />
+          {organizations.length > 0 && (
+            <label>Организация стороны {index + 1}{' '}
+              <select name={'side-organization-' + side.id} value={side.organizationId ?? ''}
+                onChange={(event) => {
+                  const organization = organizations.find(({ id }) => id === event.currentTarget.value)
+                  setSides((current) => current.map((item) => item.id === side.id
+                    ? { ...item, organizationId: organization?.id, name: organization?.name ?? item.name }
+                    : item))
+                }}>
+                <option value="">Своя сторона</option>
+                {organizations.map(({ id, name, type }) => <option key={id} value={id}>{name} · {type}</option>)}
+              </select>
+            </label>
+          )}{' '}
           <label>Название стороны {index + 1}{' '}
-            <input name={'side-name-' + side.id} value={side.name} required onChange={(event) => {
+            <input name={'side-name-' + side.id} value={organizations.find(({ id }) => id === side.organizationId)?.name ?? side.name} readOnly={Boolean(side.organizationId)} required onChange={(event) => {
               const name = event.currentTarget.value
               setSides((current) => current.map((item) => item.id === side.id ? { ...item, name } : item))
             }} />
@@ -48,7 +63,7 @@ export function EventParticipants({ characters, original }: {
               }}>
               <option value="">Не участвует</option>
               <option value="unassigned">Участвует без стороны</option>
-              {sides.map((side, index) => <option key={side.id} value={side.id}>{side.name.trim() || 'Сторона ' + (index + 1)}</option>)}
+              {sides.map((side, index) => <option key={side.id} value={side.id}>{organizations.find(({ id }) => id === side.organizationId)?.name || side.name.trim() || 'Сторона ' + (index + 1)}</option>)}
             </select>
           </label>
         </p>

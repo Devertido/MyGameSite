@@ -19,6 +19,8 @@ function currentPage() {
 
   return {
     ...page,
+    entryId: params.get('entry') ?? undefined,
+    organizationId: page.id === 'organizations' ? params.get('organization') ?? undefined : undefined,
     characterId: page.id === 'characters' ? params.get('character') ?? undefined : undefined,
     eventId: page.id === 'events' ? params.get('event') ?? undefined : undefined,
     year: page.id === 'events' && Number.isSafeInteger(year) ? year : undefined,
@@ -49,14 +51,8 @@ export default function SiteNavigation() {
         </nav>
       </header>
 
-      {page.id === 'chronicles' || page.id === 'items' ? (
-        <main className="section-page">
-          <h1>{page.title}</h1>
-          <p>{page.id === 'chronicles' ? 'Здесь пока нет летописей.' : 'Здесь пока нет предметов.'}</p>
-        </main>
-      ) : (
-        <App page={page.id} eventYear={page.year} eventId={page.eventId} characterId={page.characterId} />
-      )}
+      <App page={page.id} eventYear={page.year} eventId={page.eventId} characterId={page.characterId}
+        organizationId={page.organizationId} entryId={page.entryId} />
     </>
   )
 }

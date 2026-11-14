@@ -1,3 +1,4 @@
+import { EventSideLink } from './EventSideLink'
 import { useState, type FormEvent } from 'react'
 import type { Timeline, TimelineCharacter } from '../domain/timeline'
 
@@ -92,14 +93,17 @@ export function CharactersPage({ timeline, save, characterId }: {
               {characterId !== undefined && events.length > 0 && (
                 <>
                   <h3>Участие в событиях</h3>
-                  <ol>{events.sort((a, b) => a.year - b.year || (a.date?.first ?? 1) - (b.date?.first ?? 1)).map((event) => (
+                  <ol>{events.sort((a, b) => a.year - b.year || (a.date?.first ?? 1) - (b.date?.first ?? 1)).map((event) => {
+                    const side = event.sides?.find((item) => item.characterIds.includes(character.id))
+                    return (
                     <li key={event.id}>
                       <a href={`#events?event=${encodeURIComponent(event.id)}`}>
                         {event.year}{event.end && ` — ${event.end.year}`} · {event.title}
                       </a>
-                      {' · '}{event.sides?.find((side) => side.characterIds.includes(character.id))?.name ?? 'Без стороны'}
+                      {' · '}{side ? <EventSideLink side={side} organizations={timeline.organizations} /> : 'Без стороны'}
                     </li>
-                  ))}</ol>
+                    )
+                  })}</ol>
                 </>
               )}
               <button type="button" disabled={busy} onClick={() => setDraft(character)}>Редактировать</button>{' '}

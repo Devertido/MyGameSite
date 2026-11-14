@@ -1,4 +1,5 @@
 import { useRef, useState, type FormEvent } from 'react'
+import { EventSideLink } from './EventSideLink'
 import { EventParticipants } from './EventParticipants'
 import { toCalendarYear } from '../domain/calendarYear'
 import type { Timeline, TimelineCalendar, TimelineCharacter, TimelineEvent } from '../domain/timeline'
@@ -78,6 +79,9 @@ export function EventsPage({ timeline, calendar, save, yearFilter, eventId }: {
     const characterIds = assignments.filter(({ side }) => side).map(({ id }) => id)
     const sides = fields.getAll('sideId').map(String).map((id) => ({
       id,
+      organizationId: timeline.organizations?.find((organization) =>
+        organization.id === fields.get('side-organization-' + id)
+      )?.id,
       name: String(fields.get('side-name-' + id) ?? '').trim(),
       characterIds: assignments.filter(({ side }) => side === id).map(({ id: characterId }) => characterId),
     }))
@@ -148,7 +152,7 @@ export function EventsPage({ timeline, calendar, save, yearFilter, eventId }: {
           )}
           <p><label>Описание<br /><textarea name="description" defaultValue={original?.description} rows={4} /></label></p>
           <p><label>Цвет события <input name="color" type="color" defaultValue={original?.color ?? '#174b43'} /></label></p>
-          <EventParticipants characters={characters} original={original} />
+          <EventParticipants characters={characters} organizations={timeline.organizations ?? []} original={original} />
           <button type="submit">Сохранить</button>{' '}
           <button type="button" onClick={() => { setDraft(null); setError('') }}>Отмена</button>
         </form>
@@ -176,7 +180,7 @@ export function EventsPage({ timeline, calendar, save, yearFilter, eventId }: {
                 <div className="event-sides" aria-label="Стороны события">
                   {entry.sides?.map((side) => (
                     <section key={side.id}>
-                      <h3>{side.name}</h3>
+                      <h3><EventSideLink side={side} organizations={timeline.organizations} /></h3>
                       {side.characterIds.length ? renderParticipants(side.characterIds) : <p>Нет участников.</p>}
                     </section>
                   ))}

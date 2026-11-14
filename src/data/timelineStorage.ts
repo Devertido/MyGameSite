@@ -1,6 +1,6 @@
 import { validateMonths, validateWeek } from '../domain/calendar.ts'
 import { validateCalendarEra } from '../domain/calendarYear.ts'
-import { isAtlasColor, validateOrganization, validateEvent, type Organization, type Timeline, type TimelineCalendar, type TimelineCharacter, type TimelineEvent } from '../domain/timeline.ts'
+import { isAtlasColor, validateOrganization, validateEvent, type Organization, type ArchiveEntry, type Timeline, type TimelineCalendar, type TimelineCharacter, type TimelineEvent } from '../domain/timeline.ts'
 
 const keyPrefix = 'arena-atlas:timeline:v1:'
 
@@ -20,6 +20,7 @@ function validEventSides(sides: unknown, participants: unknown): boolean {
     if (!isRecord(side) || typeof side.id !== 'string' || !side.id.trim() ||
         side.id === 'unassigned' || ids.has(side.id) ||
         typeof side.name !== 'string' || !side.name.trim() || !Array.isArray(side.characterIds)) return false
+    if ('organizationId' in side && (typeof side.organizationId !== 'string' || !side.organizationId.trim())) return false
     ids.add(side.id)
     for (const id of side.characterIds as unknown[]) {
       if (typeof id !== 'string' || !allowed.has(id) || assigned.has(id)) return false
@@ -97,7 +98,29 @@ function parseTimeline(value: unknown): Timeline | null {
     ) || new Set(organizations.map(({ id }) => id)).size !== organizations.length) return null
     timeline.organizations = organizations
   }
+  const organizationIds = new Set(timeline.organizations?.map(({ id }) => id))
+  if (timeline.events?.some((event) => event.sides?.some((side) =>
+    side.organizationId !== undefined && !organizationIds.has(side.organizationId)
+  ))) return null
+
+  for (const field of ['chronicles', 'items'] as const) {
+    if (!(field in value)) continue
+    const entries = value[field]
+    if (!Array.isArray(entries) || !entries.every(isArchiveEntry) ||
+        new Set(entries.map(({ id }) => id)).size !== entries.length) return null
+    timeline[field] = entries
+  }
+
   return timeline
+}
+
+function isArchiveEntry(entry: unknown): entry is ArchiveEntry {
+  return isRecord(entry) &&
+    typeof entry.id === 'string' && Boolean(entry.id.trim()) &&
+    typeof entry.title === 'string' && Boolean(entry.title.trim()) &&
+    typeof entry.summary === 'string' && typeof entry.body === 'string' &&
+    (!('type' in entry) || typeof entry.type === 'string') &&
+    (!('rarity' in entry) || typeof entry.rarity === 'string')
 }
 
 function isCalendar(calendar: unknown, daysPerYear: number): calendar is TimelineCalendar {
