@@ -128,7 +128,7 @@ export function CharactersPage({ timeline, save, characterId }: {
       )}
       {error && <p role="alert">{error}</p>}
       {characters.length === 0 && <p>В этом таймлайне пока нет персонажей.</p>}
-      <div className="characters-layout">
+      <div className="directory-layout">
         <ul className="event-list">
           {(selected ? [selected] : []).map((character) => {
             const fullName = [character.name, character.surname].filter(Boolean).join(' ')
@@ -207,9 +207,9 @@ export function CharactersPage({ timeline, save, characterId }: {
           })}
         </ul>
         {characters.length > 0 && (
-          <section className="character-directory" aria-labelledby="character-directory-title">
+          <section className="directory-table" aria-labelledby="character-directory-title">
             <h2 id="character-directory-title">Все персонажи</h2>
-            <div className="character-table-scroll">
+            <div className="directory-table-scroll">
               <table>
                 <thead>
                   <tr>{columns.map(({ key, title }) => (

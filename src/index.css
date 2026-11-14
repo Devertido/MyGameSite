@@ -478,56 +478,56 @@ button:focus-visible {
   border-radius: 0.5rem;
 }
 
-.characters-layout {
+.directory-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 1.25rem;
   margin-top: 1rem;
 }
 
-.characters-layout > .event-list {
+.directory-layout > .event-list {
   margin: 0;
 }
 
-.character-directory {
+.directory-table {
   min-width: 0;
   padding-inline-start: 1.25rem;
   border-inline-start: 1px solid #a73d3d;
 }
 
-.character-table-scroll {
+.directory-table-scroll {
   overflow-x: auto;
 }
 
-.character-directory table {
+.directory-table table {
   width: 100%;
   border-collapse: collapse;
   text-align: start;
 }
 
-.character-directory th,
-.character-directory td {
+.directory-table th,
+.directory-table td {
   padding: 0.55rem;
   border-bottom: 1px solid #b9cbc6;
   text-align: start;
   overflow-wrap: anywhere;
 }
 
-.character-directory th button {
+.directory-table th button {
   padding: 0.35rem 0.5rem;
   white-space: nowrap;
 }
 
-.character-directory tr[data-selected='true'] {
+.directory-table tr[data-selected='true'] {
   background: #d5ebe5;
 }
 
 @media (max-width: 55rem) {
-  .characters-layout {
+  .directory-layout {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .character-directory {
+  .directory-table {
     border-inline-start: 0;
     border-top: 1px solid #a73d3d;
     padding-inline-start: 0;

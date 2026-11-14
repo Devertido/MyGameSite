@@ -12,6 +12,7 @@ export function OrganizationsPage({ timeline, save, organizationId }: {
   save: (organizations: Organization[]) => void
 }) {
   const organizations = timeline.organizations ?? []
+  const selected = organizationId === undefined ? organizations[0] : organizations.find(({ id }) => id === organizationId)
   const [draft, setDraft] = useState<Organization | 'new' | null>(null)
   const [deleting, setDeleting] = useState<Organization | null>(null)
   const [error, setError] = useState('')
@@ -54,9 +55,8 @@ export function OrganizationsPage({ timeline, save, organizationId }: {
     <main className="section-page">
       <h1>Фракции и организации</h1>
       <p>{timeline.name}</p>
-      {organizationId !== undefined && <p><a href="#organizations">Все организации</a></p>}
-      {organizationId !== undefined && !organizations.some(({ id }) => id === organizationId) && <p>Организация не найдена.</p>}
-      {organizationId === undefined && draft === null && <button type="button" onClick={() => setDraft('new')}>Создать организацию</button>}
+      {organizationId !== undefined && !selected && <p>Организация не найдена.</p>}
+      {draft === null && !deleting && <button type="button" onClick={() => setDraft('new')}>Создать организацию</button>}
       {draft !== null && (
         <form onSubmit={submit} onInput={() => setError('')}>
           <h2>{original ? 'Редактировать организацию' : 'Новая организация'}</h2>
@@ -95,46 +95,71 @@ export function OrganizationsPage({ timeline, save, organizationId }: {
         </form>
       )}
       {organizations.length === 0 && draft === null && <p>В этом таймлайне пока нет организаций.</p>}
-      <ul className="event-list">
-        {organizations.filter(({ id }) => organizationId === undefined || id === organizationId).map((organization) => (
-          <li key={organization.id}>
-            {organization.emblem && <img className="atlas-entry-image organization-emblem" src={organization.emblem} alt={'Эмблема · ' + organization.name} />}
-            <h2><span className="atlas-color" style={{ backgroundColor: organization.color ?? defaultOrganizationColor }} aria-hidden="true" />{organizationId === undefined
-              ? <a href={`#organizations?organization=${encodeURIComponent(organization.id)}`}>{organization.name}</a>
-              : organization.name}</h2>
-            <p>{organization.type} · {organization.startYear} — {organization.endYear ?? 'год окончания не указан'}</p>
-            {organization.description && <p>{organization.description}</p>}
-            {!!organization.locationIds?.length && (
-              <section>
-                <h3>Локации фракции</h3>
-                <ul>{timeline.locations?.filter(({ id }) => organization.locationIds?.includes(id)).map(({ id, title }) => (
-                  <li key={id}><a href={'#locations?entry=' + encodeURIComponent(id)}>{title}</a></li>
-                ))}</ul>
-              </section>
-            )}
-            {organization.memberIds.length > 0 && (
-              <ul>
-                {timeline.characters?.filter(({ id }) => organization.memberIds.includes(id)).map(({ id, name }) => (
-                  <li key={id}><a href={`#characters?character=${encodeURIComponent(id)}`}>{name}</a></li>
-                ))}
-              </ul>
-            )}
-            {organizationId !== undefined && (
-              <section>
-                <h3>Участие в событиях</h3>
-                <ul>{(timeline.events ?? []).filter((event) =>
-                  event.sides?.some((side) => side.organizationId === organization.id)
-                ).sort((left, right) => left.year - right.year).map(({ id, year, title }) => (
-                  <li key={id}><a href={'#events?event=' + encodeURIComponent(id)}>{year} · {title}</a></li>
-                ))}</ul>
-              </section>
-            )}
-            <button type="button" disabled={draft !== null} onClick={() => setDraft(organization)} aria-label="Редактировать" title="Редактировать"><EditIcon /></button>{' '}
-            <button type="button" disabled={draft !== null} aria-label="Удалить организацию" title="Удалить организацию"
-              onClick={() => { setError(''); setDeleting(organization) }}><TrashIcon /></button>
-          </li>
-        ))}
-      </ul>
+      <div className="directory-layout">
+        <section aria-label="Выбранная организация">
+          {selected && (
+            <article>
+              {selected.emblem && <img className="atlas-entry-image organization-emblem" src={selected.emblem} alt={'Эмблема · ' + selected.name} />}
+              <h2><span className="atlas-color" style={{ backgroundColor: selected.color ?? defaultOrganizationColor }} aria-hidden="true" />{selected.name}</h2>
+              <p>{selected.type} · {selected.startYear} — {selected.endYear ?? 'год окончания не указан'}</p>
+              {selected.description && <p>{selected.description}</p>}
+              {!!selected.locationIds?.length && (
+                <section>
+                  <h3>Локации фракции</h3>
+                  <ul>{timeline.locations?.filter(({ id }) => selected.locationIds?.includes(id)).map(({ id, title }) => (
+                    <li key={id}><a href={'#locations?entry=' + encodeURIComponent(id)}>{title}</a></li>
+                  ))}</ul>
+                </section>
+              )}
+              {selected.memberIds.length > 0 && (
+                <ul>
+                  {timeline.characters?.filter(({ id }) => selected.memberIds.includes(id)).map(({ id, name }) => (
+                    <li key={id}><a href={`#characters?character=${encodeURIComponent(id)}`}>{name}</a></li>
+                  ))}
+                </ul>
+              )}
+              {timeline.events?.some(({ sides }) => sides?.some((side) => side.organizationId === selected.id)) && (
+                <section>
+                  <h3>Участие в событиях</h3>
+                  <ul>{(timeline.events ?? []).filter((event) =>
+                    event.sides?.some((side) => side.organizationId === selected.id)
+                  ).sort((left, right) => left.year - right.year).map(({ id, year, title }) => (
+                    <li key={id}><a href={'#events?event=' + encodeURIComponent(id)}>{year} · {title}</a></li>
+                  ))}</ul>
+                </section>
+              )}
+              <button type="button" disabled={draft !== null} onClick={() => setDraft(selected)} aria-label="Редактировать" title="Редактировать"><EditIcon /></button>{' '}
+              <button type="button" disabled={draft !== null} aria-label="Удалить организацию" title="Удалить организацию"
+                onClick={() => { setError(''); setDeleting(selected) }}><TrashIcon /></button>
+            </article>
+          )}
+        </section>
+        {organizations.length > 0 && (
+          <section className="directory-table" aria-labelledby="organization-directory-title">
+            <h2 id="organization-directory-title">Все организации</h2>
+            <div className="directory-table-scroll">
+              <table>
+                <thead>
+                  <tr><th scope="col">Название</th><th scope="col">Тип</th><th scope="col">Годы существования</th></tr>
+                </thead>
+                <tbody>
+                  {organizations.map(({ id, name, type, startYear, endYear, color }) => (
+                    <tr key={id} data-selected={id === selected?.id}>
+                      <td>
+                        <span className="atlas-color" style={{ backgroundColor: color ?? defaultOrganizationColor }} aria-hidden="true" />
+                        <a href={'#organizations?organization=' + encodeURIComponent(id)}
+                          aria-current={id === selected?.id ? 'true' : undefined}>{name}</a>
+                      </td>
+                      <td>{type}</td>
+                      <td>{startYear} — {endYear ?? '…'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
+      </div>
       {deleting && (
         <dialog open className="card-delete-dialog" aria-labelledby="card-delete-title">
           <h2 id="card-delete-title">Удалить организацию «{deleting.name}»?</h2>
