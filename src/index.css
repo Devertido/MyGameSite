@@ -718,12 +718,6 @@ button.event-action:hover:enabled {
 }
 
 
-.timeline-axis .timeline-calendar-tick {
-  width: 6rem;
-  overflow: hidden;
-  text-align: center;
-  text-overflow: ellipsis;
-}
 
 .trash-icon {
   display: inline-block;
