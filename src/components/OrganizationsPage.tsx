@@ -1,3 +1,4 @@
+import { EditIcon } from './EditIcon'
 import { ImageField } from './ImageField'
 import { useState, type FormEvent } from 'react'
 import { validateOrganization, type Organization, type Timeline } from '../domain/timeline'
@@ -101,7 +102,7 @@ export function OrganizationsPage({ timeline, save, organizationId }: {
                 ))}</ul>
               </section>
             )}
-            <button type="button" disabled={draft !== null} onClick={() => setDraft(organization)}>Редактировать</button>
+            <button type="button" disabled={draft !== null} onClick={() => setDraft(organization)} aria-label="Редактировать" title="Редактировать"><EditIcon /></button>
           </li>
         ))}
       </ul>

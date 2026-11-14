@@ -104,7 +104,7 @@ function parseTimeline(value: unknown): Timeline | null {
     side.organizationId !== undefined && !organizationIds.has(side.organizationId)
   ))) return null
 
-  for (const field of ['chronicles', 'items'] as const) {
+  for (const field of ['chronicles', 'items', 'locations'] as const) {
     if (!(field in value)) continue
     const entries = value[field]
     if (!Array.isArray(entries) || !entries.every(isArchiveEntry) ||

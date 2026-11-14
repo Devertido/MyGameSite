@@ -11,6 +11,7 @@ export type Timeline = {
   organizations?: Organization[]
   chronicles?: ArchiveEntry[]
   items?: ArchiveEntry[]
+  locations?: ArchiveEntry[]
   calendars: [TimelineCalendar, ...TimelineCalendar[]]
 }
 

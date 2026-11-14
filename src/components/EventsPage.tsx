@@ -1,3 +1,4 @@
+import { EditIcon } from './EditIcon'
 import { useRef, useState, type FormEvent } from 'react'
 import { EventSideLink } from './EventSideLink'
 import { EventParticipants } from './EventParticipants'
@@ -198,9 +199,7 @@ export function EventsPage({ timeline, calendar, save, yearFilter, eventId }: {
                   ))}</ul>
                 </section>
               )}
-              <button className="event-action" type="button" disabled={draft !== null || deleting !== null} onClick={() => { setPeriod(Boolean(entry.end)); setDraft(entry) }}>
-                Редактировать
-              </button>{' '}
+              <button className="event-action" type="button" disabled={draft !== null || deleting !== null} onClick={() => { setPeriod(Boolean(entry.end)); setDraft(entry) }} aria-label="Редактировать" title="Редактировать"><EditIcon /></button>{' '}
               <button className="event-action" type="button" disabled={draft !== null || deleting !== null} onClick={() => setDeleting(entry)}>
                 Удалить событие
               </button>

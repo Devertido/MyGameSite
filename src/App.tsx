@@ -9,11 +9,11 @@ import { validateCalendarEra } from './domain/calendarYear'
 import { calendarDay, validateEvent, validateTimelineBounds, type Timeline, type TimelineCalendar, type TimelineEvent, type TimelineCharacter } from './domain/timeline'
 import { deleteTimeline, exportAtlas, exportTimeline, previewBackup, saveTimelineCopies, loadTimelines, rememberSelection, restoreSelection, saveTimeline } from './data/timelineStorage'
 
-function timelineSnapshot({ name, startYear, endYear, daysPerYear, calendars, events, characters, organizations, chronicles, items }: Timeline) {
-  return JSON.stringify([name, startYear, endYear, daysPerYear, calendars, events, characters, organizations, chronicles, items])
+function timelineSnapshot({ name, startYear, endYear, daysPerYear, calendars, events, characters, organizations, chronicles, items, locations }: Timeline) {
+  return JSON.stringify([name, startYear, endYear, daysPerYear, calendars, events, characters, organizations, chronicles, items, locations])
 }
 
-function App({ page, eventYear, eventId, characterId, organizationId, entryId }: { page: 'timeline' | 'events' | 'characters' | 'organizations' | 'chronicles' | 'items'; eventYear?: number; eventId?: string; characterId?: string; organizationId?: string; entryId?: string }) {
+function App({ page, eventYear, eventId, characterId, organizationId, entryId }: { page: 'timeline' | 'events' | 'characters' | 'organizations' | 'chronicles' | 'items' | 'locations'; eventYear?: number; eventId?: string; characterId?: string; organizationId?: string; entryId?: string }) {
   const [backupMessage, setBackupMessage] = useState('')
   const [backupPreview, setBackupPreview] = useState<Timeline[] | null>(null)
   const backupDialogRef = useRef<HTMLDialogElement>(null)
@@ -326,14 +326,14 @@ function App({ page, eventYear, eventId, characterId, organizationId, entryId }:
     if (!selected) {
       return (
         <main className="section-page">
-          <h1>{page === 'chronicles' ? 'Летописи' : page === 'items' ? 'Предметы' : page === 'events' ? 'События' : page === 'organizations' ? 'Фракции и организации' : 'Персонажи'}</h1>
+          <h1>{page === 'locations' ? 'Локации' : page === 'chronicles' ? 'Летописи' : page === 'items' ? 'Предметы' : page === 'events' ? 'События' : page === 'organizations' ? 'Фракции и организации' : 'Персонажи'}</h1>
           <p>Сначала создайте или импортируйте таймлайн.</p>
           <a href="#timeline">К таймлайну</a>
         </main>
       )
     }
 
-    if (page === 'chronicles' || page === 'items') {
+    if (page === 'chronicles' || page === 'items' || page === 'locations') {
       return (
         <ArchivePage key={JSON.stringify([selected.id, page, entryId])}
           timeline={selected.timeline} kind={page} entryId={entryId} entries={selected.timeline[page] ?? []}

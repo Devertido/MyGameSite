@@ -1,3 +1,4 @@
+import { EditIcon } from './EditIcon'
 import { ImageField } from './ImageField'
 import { useState, type CSSProperties, type FormEvent } from 'react'
 import type { ArchiveEntry, Timeline } from '../domain/timeline'
@@ -5,14 +6,15 @@ import type { ArchiveEntry, Timeline } from '../domain/timeline'
 const rarities = ['Обычный', 'Необычный', 'Редкий', 'Эпический', 'Легендарный']
 
 export function ArchivePage({ kind, entries, entryId, timeline, save }: {
-  kind: 'chronicles' | 'items'
+  kind: 'chronicles' | 'items' | 'locations'
   entries: ArchiveEntry[]
   timeline: Timeline
   entryId?: string
   save: (entries: ArchiveEntry[]) => void
 }) {
   const chronicle = kind === 'chronicles'
-  const title = chronicle ? 'Летописи' : 'Предметы'
+  const location = kind === 'locations'
+  const title = location ? 'Локации' : chronicle ? 'Летописи' : 'Предметы'
   const [draft, setDraft] = useState<ArchiveEntry | 'new' | null>(null)
   const [error, setError] = useState('')
   const [query, setQuery] = useState('')
@@ -38,6 +40,7 @@ export function ArchivePage({ kind, entries, entryId, timeline, save }: {
         body: read('body'),
         ...(chronicle
           ? { eventIds: fields.getAll('events').map(String), characterIds: fields.getAll('characters').map(String) }
+          : location ? { type: read('type'), image: read('image') || undefined }
           : { type: read('type'), rarity: read('rarity'), ownerId: read('ownerId') || undefined, image: read('image') || undefined }),
       }
       save(original ? entries.map((item) => item.id === original.id ? entry : item) : [...entries, entry])
@@ -52,28 +55,28 @@ export function ArchivePage({ kind, entries, entryId, timeline, save }: {
   return (
     <main className="section-page">
       <h1>{title}</h1>
-      {entryId !== undefined && <p><a href={'#' + kind}>{chronicle ? 'Все летописи' : 'Все предметы'}</a></p>}
+      {entryId !== undefined && <p><a href={'#' + kind}>{location ? 'Все локации' : chronicle ? 'Все летописи' : 'Все предметы'}</a></p>}
       {draft === null && (
         <div className="timeline-controls">
-          <button type="button" onClick={() => setDraft('new')}>{chronicle ? 'Создать летопись' : 'Добавить предмет'}</button>
+          <button type="button" onClick={() => setDraft('new')}>{location ? 'Добавить локацию' : chronicle ? 'Создать летопись' : 'Добавить предмет'}</button>
           {entryId === undefined && entries.length > 0 && <label>Поиск <input type="search" value={query} onChange={(event) => setQuery(event.currentTarget.value)} /></label>}
         </div>
       )}
       {draft !== null && (
         <form className={chronicle ? 'archive-form parchment' : 'archive-form'} onSubmit={submit} onInput={() => setError('')}>
-          <h2>{original ? 'Редактировать' : chronicle ? 'Новая летопись' : 'Новый предмет'}</h2>
+          <h2>{original ? 'Редактировать' : location ? 'Новая локация' : chronicle ? 'Новая летопись' : 'Новый предмет'}</h2>
           <label>Название<input name="title" defaultValue={original?.title} required /></label>
           {!chronicle && (
             <>
-              <ImageField name="image" label="Изображение предмета" initial={original?.image} />
-              <label>Тип<input name="type" defaultValue={original?.type} placeholder="Оружие, броня, артефакт" /></label>
-              <label>Редкость<select name="rarity" defaultValue={original?.rarity ?? rarities[0]}>
+              <ImageField name="image" label={location ? "Изображение локации" : "Изображение предмета"} initial={original?.image} />
+              <label>Тип<input name="type" defaultValue={original?.type} placeholder={location ? "Город, крепость, регион" : "Оружие, броня, артефакт"} /></label>
+              {!location && <label>Редкость<select name="rarity" defaultValue={original?.rarity ?? rarities[0]}>
                 {rarities.map((rarity) => <option key={rarity}>{rarity}</option>)}
-              </select></label>
+              </select></label>}
             </>
           )}
           <label>{chronicle ? 'Краткая справка' : 'Краткое описание'}<textarea name="summary" rows={3} defaultValue={original?.summary} /></label>
-          <label>{chronicle ? 'Текст летописи' : 'Свойства и история'}<textarea name="body" rows={8} defaultValue={original?.body} /></label>
+          <label>{location ? 'История локации' : chronicle ? 'Текст летописи' : 'Свойства и история'}<textarea name="body" rows={8} defaultValue={original?.body} /></label>
           {chronicle ? (
             <>
               <fieldset>
@@ -93,7 +96,7 @@ export function ArchivePage({ kind, entries, entryId, timeline, save }: {
                 {!timeline.characters?.length && <p>В таймлайне пока нет персонажей.</p>}
               </fieldset>
             </>
-          ) : (
+          ) : !location && (
             <label>Владелец<select name="ownerId" defaultValue={original?.ownerId ?? ''}>
               <option value="">Не указан</option>
               {(timeline.characters ?? []).map(({ id, name }) => <option key={id} value={id}>{name}</option>)}
@@ -112,7 +115,7 @@ export function ArchivePage({ kind, entries, entryId, timeline, save }: {
           {selected.summary && <p className="archive-copy">{selected.summary}</p>}
           {selected.body && (
             <section className="archive-body">
-              <h3>{chronicle ? 'Хроника' : 'Свойства и история'}</h3>
+              <h3>{location ? 'История локации' : chronicle ? 'Хроника' : 'Свойства и история'}</h3>
               <p className="archive-copy">{selected.body}</p>
             </section>
           )}
@@ -133,7 +136,7 @@ export function ArchivePage({ kind, entries, entryId, timeline, save }: {
               ))}</ul>
             </section>
           ) : null}
-          <button type="button" onClick={() => setDraft(selected)}>Редактировать</button>
+          <button type="button" onClick={() => setDraft(selected)} aria-label="Редактировать" title="Редактировать"><EditIcon /></button>
         </article>
       )}
       {draft === null && entryId !== undefined && !selected && <p>Запись не найдена в выбранном таймлайне.</p>}
@@ -149,7 +152,7 @@ export function ArchivePage({ kind, entries, entryId, timeline, save }: {
               </li>
             ))}
           </ul>
-        ) : <p>{entries.length ? 'По этому запросу ничего не найдено.' : chronicle ? 'Здесь пока нет летописей.' : 'Здесь пока нет предметов.'}</p>
+        ) : <p>{entries.length ? 'По этому запросу ничего не найдено.' : location ? 'Здесь пока нет локаций.' : chronicle ? 'Здесь пока нет летописей.' : 'Здесь пока нет предметов.'}</p>
       )}
     </main>
   )
