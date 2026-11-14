@@ -565,3 +565,41 @@ button.event-action:hover:enabled {
   outline-color: #fff;
   outline-offset: -2px;
 }
+
+.site-header {
+  min-height: 2.5rem;
+  padding-block: 0.625rem;
+}
+
+.site-header::before,
+.site-header::after {
+  position: absolute;
+  inset-inline: 0;
+  height: 0.625rem;
+  background: url('./header-braid.svg') left center / 2.5rem 100% repeat-x;
+  pointer-events: none;
+  content: '';
+}
+
+.site-header::before {
+  top: 0;
+}
+
+.site-header::after {
+  bottom: 0;
+}
+
+.site-tools button {
+  box-sizing: border-box;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 1px solid #f49a48;
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+@media (max-width: 40rem) {
+  .site-header nav {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

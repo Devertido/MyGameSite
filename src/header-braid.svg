@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="40" height="10" viewBox="0 0 40 10" fill="none">
+  <defs>
+    <path id="strand" d="M-20 5C-13 0-7 0 0 5S13 10 20 5 33 0 40 5 53 10 60 5"/>
+  </defs>
+  <g stroke="#f49a48" stroke-width="2.2">
+    <use href="#strand"/>
+    <use href="#strand" transform="translate(0 10) scale(1 -1)"/>
+  </g>
+  <path d="M16 7.2Q20 5 24 2.8" stroke="#103930" stroke-width="4.5"/>
+  <path d="M16 7.2Q20 5 24 2.8" stroke="#f49a48" stroke-width="2.2"/>
+</svg>
