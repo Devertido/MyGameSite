@@ -408,3 +408,12 @@ button:focus-visible {
   padding: 0.45rem;
   font: inherit;
 }
+
+button.event-action {
+  background: #d9edf8;
+  color: #14374a;
+}
+
+button.event-action:hover:enabled {
+  background: #c3e3f4;
+}

@@ -51,10 +51,10 @@ export function ArchivePage({ kind, entries, entryId, save }: {
     <main className="section-page">
       <h1>{title}</h1>
       {entryId !== undefined && <p><a href={'#' + kind}>{chronicle ? 'Все летописи' : 'Все предметы'}</a></p>}
-      {entryId === undefined && draft === null && (
+      {draft === null && (
         <div className="timeline-controls">
           <button type="button" onClick={() => setDraft('new')}>{chronicle ? 'Создать летопись' : 'Добавить предмет'}</button>
-          {entries.length > 0 && <label>Поиск <input type="search" value={query} onChange={(event) => setQuery(event.currentTarget.value)} /></label>}
+          {entryId === undefined && entries.length > 0 && <label>Поиск <input type="search" value={query} onChange={(event) => setQuery(event.currentTarget.value)} /></label>}
         </div>
       )}
       {draft !== null && (

@@ -190,10 +190,10 @@ export function EventsPage({ timeline, calendar, save, yearFilter, eventId }: {
                 !entry.sides?.some((side) => side.characterIds.includes(id))
               ), true)}
               {entry.description && <p>{entry.description}</p>}
-              <button type="button" disabled={draft !== null || deleting !== null} onClick={() => { setPeriod(Boolean(entry.end)); setDraft(entry) }}>
+              <button className="event-action" type="button" disabled={draft !== null || deleting !== null} onClick={() => { setPeriod(Boolean(entry.end)); setDraft(entry) }}>
                 Редактировать
               </button>{' '}
-              <button type="button" disabled={draft !== null || deleting !== null} onClick={() => setDeleting(entry)}>
+              <button className="event-action" type="button" disabled={draft !== null || deleting !== null} onClick={() => setDeleting(entry)}>
                 Удалить событие
               </button>
             </li>
