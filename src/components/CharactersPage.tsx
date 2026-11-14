@@ -1,7 +1,8 @@
 import { useState, type FormEvent } from 'react'
 import type { Timeline, TimelineCharacter } from '../domain/timeline'
 
-export function CharactersPage({ timeline, save }: {
+export function CharactersPage({ timeline, save, characterId }: {
+  characterId?: string
   timeline: Timeline
   save: (characters: TimelineCharacter[]) => void
 }) {
@@ -37,7 +38,8 @@ export function CharactersPage({ timeline, save }: {
     }
 
     const description = String(fields.get('description') ?? '').trim()
-    const entry = { id: original?.id ?? crypto.randomUUID(), name, description }
+    const biography = String(fields.get('biography') ?? '').trim()
+    const entry = { id: original?.id ?? crypto.randomUUID(), name, description, biography, color: String(fields.get('color')) }
     persist(original ? characters.map((item) => item.id === original.id ? entry : item) : [...characters, entry])
   }
 
@@ -45,12 +47,16 @@ export function CharactersPage({ timeline, save }: {
     <main className="section-page">
       <h1>Персонажи</h1>
       <p>{timeline.name}</p>
-      {!busy && <button type="button" onClick={() => setDraft('new')}>Добавить персонажа</button>}
+      {characterId !== undefined && <p><a href="#characters">Все персонажи</a></p>}
+      {characterId !== undefined && !characters.some(({ id }) => id === characterId) && <p>Персонаж не найден.</p>}
+      {characterId === undefined && !busy && <button type="button" onClick={() => setDraft('new')}>Добавить персонажа</button>}
       {draft !== null && (
         <form onSubmit={submit} onInput={() => setError('')}>
           <h2>{original ? 'Редактировать персонажа' : 'Новый персонаж'}</h2>
           <p><label>Имя<br /><input name="name" defaultValue={original?.name} required /></label></p>
           <p><label>Описание<br /><textarea name="description" rows={4} defaultValue={original?.description} /></label></p>
+          <p><label>Биография<br /><textarea name="biography" rows={8} defaultValue={original?.biography} /></label></p>
+          <p><label>Цвет персонажа <input name="color" type="color" defaultValue={original?.color ?? '#174b43'} /></label></p>
           <button type="submit">Сохранить</button>{' '}
           <button type="button" onClick={cancel}>Отмена</button>
         </form>
@@ -68,18 +74,32 @@ export function CharactersPage({ timeline, save }: {
       {error && <p role="alert">{error}</p>}
       {characters.length === 0 && <p>В этом таймлайне пока нет персонажей.</p>}
       <ul className="event-list">
-        {characters.map((character) => {
+        {characters.filter(({ id }) => characterId === undefined || id === characterId).map((character) => {
           const events = (timeline.events ?? []).filter(({ characterIds }) => characterIds?.includes(character.id))
           return (
             <li key={character.id}>
-              <h2>{character.name}</h2>
+              <h2>{character.color && <span className="atlas-color" style={{ backgroundColor: character.color }} aria-hidden="true" />}{characterId === undefined
+                ? <a href={`#characters?character=${encodeURIComponent(character.id)}`}>{character.name}</a>
+                : character.name}</h2>
               {character.description && <p>{character.description}</p>}
-              {events.length > 0 && (
+              {characterId !== undefined && (
+                <>
+                  <h3>Биография</h3>
+                  <p>{character.biography || 'Биография пока не добавлена.'}</p>
+                </>
+              )}
+              {characterId !== undefined && events.length === 0 && <p>Участие в событиях пока не указано.</p>}
+              {characterId !== undefined && events.length > 0 && (
                 <>
                   <h3>Участие в событиях</h3>
-                  <ul>{events.map((event) => (
-                    <li key={event.id}><a href={`#events?year=${event.year}`}>{event.year} · {event.title}</a></li>
-                  ))}</ul>
+                  <ol>{events.sort((a, b) => a.year - b.year || (a.date?.first ?? 1) - (b.date?.first ?? 1)).map((event) => (
+                    <li key={event.id}>
+                      <a href={`#events?event=${encodeURIComponent(event.id)}`}>
+                        {event.year}{event.end && ` — ${event.end.year}`} · {event.title}
+                      </a>
+                      {' · '}{event.sides?.find((side) => side.characterIds.includes(character.id))?.name ?? 'Без стороны'}
+                    </li>
+                  ))}</ol>
                 </>
               )}
               <button type="button" disabled={busy} onClick={() => setDraft(character)}>Редактировать</button>{' '}

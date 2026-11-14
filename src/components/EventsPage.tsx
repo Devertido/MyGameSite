@@ -4,10 +4,11 @@ import { toCalendarYear } from '../domain/calendarYear'
 import type { Timeline, TimelineCalendar, TimelineCharacter, TimelineEvent } from '../domain/timeline'
 import { calendarDay, eventDays, validateEvent, type EventDays, type EventEndpoint } from '../domain/timeline'
 
-export function EventsPage({ timeline, calendar, save, yearFilter }: {
+export function EventsPage({ timeline, calendar, save, yearFilter, eventId }: {
   timeline: Timeline
   calendar: TimelineCalendar
   yearFilter?: number
+  eventId?: string
   save: (events: TimelineEvent[]) => void
 }) {
   const characterDialog = useRef<HTMLDialogElement>(null)
@@ -24,6 +25,7 @@ export function EventsPage({ timeline, calendar, save, yearFilter }: {
   const query = search.trim().toLocaleLowerCase('ru')
   const original = draft === 'new' ? null : draft
   const sorted = events
+    .filter(({ id }) => eventId === undefined || id === eventId)
     .filter(({ year, end }) => yearFilter === undefined || (year <= yearFilter && (end?.year ?? year) >= yearFilter))
     .filter(({ title, description }) => [title, description].some((text) => text.toLocaleLowerCase('ru').includes(query)))
     .filter(({ year, end }) => (!from || (end?.year ?? year) >= Number(from)) && (!to || year <= Number(to)))
@@ -65,7 +67,7 @@ export function EventsPage({ timeline, calendar, save, yearFilter }: {
       return
     }
     const end = period ? { year: Number(fields.get('endYear')), date: endDate } : undefined
-    const details = { year, title, description, date, end }
+    const details = { year, title, description, date, end, color: String(fields.get('color')) }
     const issue = validateEvent(details, timeline)
     if (issue) {
       setError(issue)
@@ -111,15 +113,15 @@ export function EventsPage({ timeline, calendar, save, yearFilter }: {
   return (
     <main className="section-page">
       <h1>{yearFilter === undefined ? 'События' : `События за системный год ${yearFilter}`}</h1>
-      {yearFilter !== undefined && <p><a href="#events">Все события</a></p>}
+      {(yearFilter !== undefined || eventId !== undefined) && <p><a href="#events">Все события</a></p>}
       <p>{timeline.name} · системные годы {timeline.startYear} — {timeline.endYear}</p>
-      <fieldset className="catalog-filters">
+      {eventId === undefined && <fieldset className="catalog-filters">
         <legend>Фильтры событий</legend>
         <label>Поиск <input type="search" value={search} onChange={(event) => setSearch(event.currentTarget.value)} /></label>
         <label>С года <input type="number" value={from} onChange={(event) => setFrom(event.currentTarget.value)} /></label>
         <label>По год <input type="number" value={to} onChange={(event) => setTo(event.currentTarget.value)} /></label>
-      </fieldset>
-      {draft === null && deleting === null && (
+      </fieldset>}
+      {eventId === undefined && draft === null && deleting === null && (
         <button type="button" onClick={() => { setPeriod(false); setDraft('new') }}>Добавить событие</button>
       )}
 
@@ -145,6 +147,7 @@ export function EventsPage({ timeline, calendar, save, yearFilter }: {
             </fieldset>
           )}
           <p><label>Описание<br /><textarea name="description" defaultValue={original?.description} rows={4} /></label></p>
+          <p><label>Цвет события <input name="color" type="color" defaultValue={original?.color ?? '#174b43'} /></label></p>
           <EventParticipants characters={characters} original={original} />
           <button type="submit">Сохранить</button>{' '}
           <button type="button" onClick={() => { setDraft(null); setError('') }}>Отмена</button>
@@ -160,11 +163,11 @@ export function EventsPage({ timeline, calendar, save, yearFilter }: {
       )}
 
       {error && <p role="alert">{error}</p>}
-      {sorted.length === 0 ? <p>{events.length ? 'События по этим условиям не найдены.' : 'В этом таймлайне пока нет событий.'}</p> : (
+      {sorted.length === 0 ? <p>{eventId !== undefined ? 'Событие не найдено в выбранном таймлайне.' : events.length ? 'События по этим условиям не найдены.' : 'В этом таймлайне пока нет событий.'}</p> : (
         <ul className="event-list">
           {sorted.map((entry) => (
             <li key={entry.id}>
-              <h2>{entry.year}{entry.end && ` — ${entry.end.year}`} · {entry.title}</h2>
+              <h2>{entry.color && <span className="atlas-color" style={{ backgroundColor: entry.color }} aria-hidden="true" />}{entry.year}{entry.end && ` — ${entry.end.year}`} · {entry.title}</h2>
               <p>
                 {calendar.name} · {formatEndpoint(entry, calendar)}
                 {entry.end && ` → ${formatEndpoint(entry.end, calendar)}`}
@@ -196,6 +199,7 @@ export function EventsPage({ timeline, calendar, save, yearFilter }: {
       <dialog ref={characterDialog} aria-labelledby="event-character-name">
         <h2 id="event-character-name">{activeCharacter?.name}</h2>
         <p className="event-character-description">{activeCharacter?.description || 'Описание пока не добавлено.'}</p>
+        {activeCharacter && <p><a href={`#characters?character=${encodeURIComponent(activeCharacter.id)}`}>Открыть карточку персонажа</a></p>}
         <button type="button" onClick={() => characterDialog.current?.close()}>Закрыть</button>
       </dialog>
     </main>

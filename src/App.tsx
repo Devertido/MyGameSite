@@ -1,18 +1,21 @@
 import { useRef, useState, type FormEvent } from 'react'
 import { standardYear, validateMonths, validateWeek } from './domain/calendar'
+import { OrganizationsPage } from './components/OrganizationsPage'
 import { CharactersPage } from './components/CharactersPage'
 import { EventsPage } from './components/EventsPage'
 import { TimelineScale } from './components/TimelineScale'
 import { validateCalendarEra } from './domain/calendarYear'
 import { calendarDay, validateEvent, validateTimelineBounds, type Timeline, type TimelineCalendar, type TimelineEvent, type TimelineCharacter } from './domain/timeline'
-import { deleteTimeline, exportTimeline, importTimeline, loadTimelines, rememberSelection, restoreSelection, saveTimeline } from './data/timelineStorage'
+import { deleteTimeline, exportAtlas, exportTimeline, previewBackup, saveTimelineCopies, loadTimelines, rememberSelection, restoreSelection, saveTimeline } from './data/timelineStorage'
 
-function timelineSnapshot({ name, startYear, endYear, daysPerYear, calendars, events, characters }: Timeline) {
-  return JSON.stringify([name, startYear, endYear, daysPerYear, calendars, events, characters])
+function timelineSnapshot({ name, startYear, endYear, daysPerYear, calendars, events, characters, organizations }: Timeline) {
+  return JSON.stringify([name, startYear, endYear, daysPerYear, calendars, events, characters, organizations])
 }
 
-function App({ page, eventYear }: { page: 'timeline' | 'events' | 'characters'; eventYear?: number }) {
+function App({ page, eventYear, eventId, characterId }: { page: 'timeline' | 'events' | 'characters' | 'organizations'; eventYear?: number; eventId?: string; characterId?: string }) {
   const [backupMessage, setBackupMessage] = useState('')
+  const [backupPreview, setBackupPreview] = useState<Timeline[] | null>(null)
+  const backupDialogRef = useRef<HTMLDialogElement>(null)
   const [importing, setImporting] = useState(false)
   const [deleteError, setDeleteError] = useState('')
   const eventPickerRef = useRef<HTMLDialogElement>(null)
@@ -224,6 +227,10 @@ function App({ page, eventYear }: { page: 'timeline' | 'events' | 'characters'; 
     saveSelectedContent((timeline) => ({
       ...timeline,
       characters,
+      organizations: timeline.organizations?.map((organization) => ({
+        ...organization,
+        memberIds: organization.memberIds.filter((id) => ids.has(id)),
+      })),
       events: timeline.events?.map((event) => event.characterIds
         ? {
           ...event,
@@ -237,12 +244,14 @@ function App({ page, eventYear }: { page: 'timeline' | 'events' | 'characters'; 
     }))
   }
 
-  function downloadBackup() {
-    if (!selected) return
-    const url = URL.createObjectURL(new Blob([exportTimeline(selected.timeline)], { type: 'application/json' }))
+  function downloadBackup(all = false) {
+    if (!all && !selected) return
+    const json = all ? exportAtlas(library.entries.map(({ timeline }) => timeline))
+      : exportTimeline(selected!.timeline)
+    const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }))
     const link = document.createElement('a')
     link.href = url
-    link.download = 'atlas-timeline.json'
+    link.download = all ? 'arena-atlas.json' : 'atlas-timeline.json'
     link.click()
     window.setTimeout(() => URL.revokeObjectURL(url), 1000)
   }
@@ -253,21 +262,31 @@ function App({ page, eventYear }: { page: 'timeline' | 'events' | 'characters'; 
     setImporting(true)
     setBackupMessage('')
     try {
-      const timeline = importTimeline(await file.text())
-      const copy = { ...timeline, name: timeline.name + ' (копия)' }
-      const id = crypto.randomUUID()
-      saveTimeline(id, copy)
-      setLibrary((current) => ({ ...current, entries: [...current.entries, { id, timeline: copy }] }))
-      selectTimeline(id)
-      setBackupMessage('Копия таймлайна импортирована.')
+      const preview = previewBackup(await file.text())
+      setBackupPreview(preview)
+      backupDialogRef.current?.showModal()
     } catch {
-      setBackupMessage('Не удалось импортировать таймлайн. Проверьте JSON-файл и доступность хранилища.')
+      setBackupMessage('Не удалось прочитать копию. Проверьте JSON-файл.')
     } finally {
       input.value = ''
       setImporting(false)
     }
   }
 
+
+  function confirmBackup() {
+    if (!backupPreview) return
+    try {
+      const entries = saveTimelineCopies(backupPreview)
+      setLibrary((current) => ({ ...current, entries: [...current.entries, ...entries] }))
+      if (entries[0]) selectTimeline(entries[0].id)
+      setBackupMessage(`Импортировано копий: ${entries.length}.`)
+    } catch {
+      setBackupMessage('Не удалось сохранить копии. Проверьте доступное место в хранилище браузера.')
+    }
+    backupDialogRef.current?.close()
+    setBackupPreview(null)
+  }
 
   function addMonth() {
     const id = nextId.current++
@@ -299,21 +318,27 @@ function App({ page, eventYear }: { page: 'timeline' | 'events' | 'characters'; 
     if (!selected) {
       return (
         <main className="section-page">
-          <h1>{page === 'events' ? 'События' : 'Персонажи'}</h1>
+          <h1>{page === 'events' ? 'События' : page === 'organizations' ? 'Фракции и организации' : 'Персонажи'}</h1>
           <p>Сначала создайте или импортируйте таймлайн.</p>
           <a href="#timeline">К таймлайну</a>
         </main>
       )
     }
 
+    if (page === 'organizations') {
+      return <OrganizationsPage key={selected.id} timeline={selected.timeline}
+        save={(organizations) => saveSelectedContent((timeline) => ({ ...timeline, organizations }))} />
+    }
+
     if (page === 'characters') {
-      return <CharactersPage key={selected.id} timeline={selected.timeline} save={saveCharacters} />
+      return <CharactersPage key={JSON.stringify([selected.id, characterId])} characterId={characterId} timeline={selected.timeline} save={saveCharacters} />
     }
 
     return (
       <EventsPage
-        key={JSON.stringify([selected.id, eventYear])}
+        key={JSON.stringify([selected.id, eventYear, eventId])}
         yearFilter={eventYear}
+        eventId={eventId}
         timeline={selected.timeline}
         calendar={selected.timeline.calendars[calendarIndex] ?? selected.timeline.calendars[0]}
         save={(events: TimelineEvent[]) => saveSelectedContent((timeline) => ({ ...timeline, events }))}
@@ -353,7 +378,8 @@ function App({ page, eventYear }: { page: 'timeline' | 'events' | 'characters'; 
             Удалить таймлайн
           </button>
         )}
-        {selected && <button type="button" onClick={downloadBackup}>Экспорт JSON</button>}
+        {selected && <button type="button" onClick={() => downloadBackup()}>Экспорт JSON</button>}
+        {selected && <button type="button" onClick={() => downloadBackup(true)}>Экспорт всего атласа</button>}
         <button type="button" disabled={importing} onClick={() => importInputRef.current?.click()}>
           {importing ? 'Импортируем…' : 'Импорт JSON'}
         </button>
@@ -391,6 +417,23 @@ function App({ page, eventYear }: { page: 'timeline' | 'events' | 'characters'; 
           />
         </>
       )}
+
+      <dialog ref={backupDialogRef} aria-labelledby="backup-preview-title" onClose={() => setBackupPreview(null)}>
+        <h2 id="backup-preview-title">Предпросмотр импорта</h2>
+        <p>Таймлайны будут добавлены как отдельные копии.</p>
+        <ul>
+          {backupPreview?.map((timeline, index) => (
+            <li key={index}>
+              <strong>{timeline.name}</strong> · {timeline.startYear} — {timeline.endYear}
+              <br />
+              Календари: {timeline.calendars.length}, события: {timeline.events?.length ?? 0},
+              персонажи: {timeline.characters?.length ?? 0}, организации: {timeline.organizations?.length ?? 0}
+            </li>
+          ))}
+        </ul>
+        <button type="button" autoFocus onClick={() => backupDialogRef.current?.close()}>Отмена</button>{' '}
+        <button type="button" onClick={confirmBackup}>Импортировать копии</button>
+      </dialog>
 
       <dialog ref={eventPickerRef} aria-labelledby="event-picker-title">
         <h2 id="event-picker-title">События таймлайна</h2>

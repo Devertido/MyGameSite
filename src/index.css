@@ -128,7 +128,7 @@ button:focus-visible {
 
 .site-header nav {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   height: 100%;
   max-width: 44rem;
   margin-inline: auto;
@@ -278,4 +278,29 @@ button:focus-visible {
 .event-character-description {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+
+.timeline-markers .timeline-period {
+  transform: none;
+  min-width: 2rem;
+}
+
+.timeline-markers .timeline-period a {
+  width: 100%;
+  max-width: none;
+  background: #24665b;
+}
+
+.site-header a {
+  text-align: center;
+  line-height: 1.1;
+}
+
+.atlas-color {
+  display: inline-block;
+  width: 0.75em;
+  height: 0.75em;
+  margin-inline-end: 0.4em;
+  border: 1px solid #64736d;
+  border-radius: 50%;
 }

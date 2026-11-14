@@ -1,6 +1,6 @@
 import { validateMonths, validateWeek } from '../domain/calendar.ts'
 import { validateCalendarEra } from '../domain/calendarYear.ts'
-import { validateEvent, type Timeline, type TimelineCalendar, type TimelineCharacter, type TimelineEvent } from '../domain/timeline.ts'
+import { isAtlasColor, validateOrganization, validateEvent, type Organization, type Timeline, type TimelineCalendar, type TimelineCharacter, type TimelineEvent } from '../domain/timeline.ts'
 
 const keyPrefix = 'arena-atlas:timeline:v1:'
 
@@ -57,9 +57,13 @@ function parseTimeline(value: unknown): Timeline | null {
     for (const character of characters as unknown[]) {
       if (!isRecord(character) || typeof character.id !== 'string' || !character.id.trim() ||
           characterIds.has(character.id) || typeof character.name !== 'string' || !character.name.trim() ||
-          typeof character.description !== 'string') return null
+          typeof character.description !== 'string' || ('color' in character && !isAtlasColor(character.color)) ||
+          ('biography' in character && typeof character.biography !== 'string')) return null
       characterIds.add(character.id)
-      parsed.push({ id: character.id, name: character.name, description: character.description })
+      parsed.push({ id: character.id, name: character.name, description: character.description,
+        ...(isAtlasColor(character.color) ? { color: character.color } : {}),
+        ...(typeof character.biography === 'string' ? { biography: character.biography } : {}),
+      })
     }
     timeline.characters = parsed
   }
@@ -69,7 +73,7 @@ function parseTimeline(value: unknown): Timeline | null {
     if (!Array.isArray(events) || !events.every((event: unknown): event is TimelineEvent =>
       isRecord(event) && typeof event.id === 'string' && Boolean(event.id.trim()) &&
       typeof event.year === 'number' && typeof event.title === 'string' &&
-      typeof event.description === 'string' &&
+      typeof event.description === 'string' && (!('color' in event) || isAtlasColor(event.color)) &&
       (!('onTimeline' in event) || typeof event.onTimeline === 'boolean') &&
       (!('characterIds' in event) || (Array.isArray(event.characterIds) &&
         new Set(event.characterIds).size === event.characterIds.length &&
@@ -81,6 +85,17 @@ function parseTimeline(value: unknown): Timeline | null {
 
     if (new Set(events.map(({ id }) => id)).size !== events.length) return null
     timeline.events = events
+  }
+  if ('organizations' in value) {
+    const organizations = value.organizations
+    if (!Array.isArray(organizations) || !organizations.every((item: unknown): item is Organization =>
+      isRecord(item) && typeof item.id === 'string' && Boolean(item.id.trim()) &&
+      typeof item.name === 'string' && typeof item.type === 'string' &&
+      typeof item.startYear === 'number' && (!('endYear' in item) || typeof item.endYear === 'number') &&
+      Array.isArray(item.memberIds) && item.memberIds.every((id: unknown) => typeof id === 'string') &&
+      validateOrganization(item as Organization, timeline) === null
+    ) || new Set(organizations.map(({ id }) => id)).size !== organizations.length) return null
+    timeline.organizations = organizations
   }
   return timeline
 }
@@ -205,4 +220,49 @@ export function importTimeline(json: string): Timeline {
   const timeline = isRecord(backup) && backup.version === 1 ? parseTimeline(backup.timeline) : null
   if (!timeline) throw new Error('Файл не содержит корректной копии таймлайна.')
   return timeline
+}
+
+export function exportAtlas(timelines: readonly Timeline[]): string {
+  return JSON.stringify({ version: 1, kind: 'atlas', timelines }, null, 2)
+}
+
+export function previewBackup(json: string): Timeline[] {
+  const backup: unknown = JSON.parse(json)
+  if (isRecord(backup) && backup.kind === 'atlas' && backup.version === 1 && Array.isArray(backup.timelines)) {
+    if (!backup.timelines.length) throw new Error('В копии нет таймлайнов.')
+    return backup.timelines.map((value: unknown) => {
+      const timeline = parseTimeline(value)
+      if (!timeline) throw new Error('В копии есть некорректный таймлайн.')
+      return timeline
+    })
+  }
+
+  return [importTimeline(json)]
+}
+
+export function saveTimelineCopies(
+  timelines: readonly Timeline[],
+  storage: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'> = window.localStorage,
+): SavedTimeline[] {
+  const entries = timelines.map((timeline) => ({
+    id: crypto.randomUUID(),
+    timeline: { ...timeline, name: timeline.name + ' (копия)' },
+  }))
+  const keys = entries.map(({ id }) => keyPrefix + id)
+  if (new Set(keys).size !== keys.length || keys.some((key) => storage.getItem(key) !== null)) {
+    throw new Error('Не удалось выделить идентификаторы для копий.')
+  }
+
+  const savedKeys: string[] = []
+  try {
+    for (const entry of entries) {
+      saveTimeline(entry.id, entry.timeline, storage)
+      savedKeys.push(keyPrefix + entry.id)
+    }
+  } catch (error) {
+    for (const key of savedKeys) storage.removeItem(key)
+    throw error
+  }
+
+  return entries
 }

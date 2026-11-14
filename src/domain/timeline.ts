@@ -8,6 +8,7 @@ export type Timeline = {
   daysPerYear: number
   events?: TimelineEvent[]
   characters?: TimelineCharacter[]
+  organizations?: Organization[]
   calendars: [TimelineCalendar, ...TimelineCalendar[]]
 }
 
@@ -41,6 +42,7 @@ export function validateTimelineBounds(
 }
 
 export type TimelineEvent = {
+  color?: string
   id: string
   year: number
   title: string
@@ -96,6 +98,8 @@ export function calendarDay(months: readonly CalendarMonth[], offset: number): s
 }
 
 export type TimelineCharacter = {
+  color?: string
+  biography?: string
   id: string
   name: string
   description: string
@@ -105,4 +109,31 @@ export type EventSide = {
   id: string
   name: string
   characterIds: string[]
+}
+
+export type Organization = {
+  id: string
+  name: string
+  type: string
+  startYear: number
+  endYear?: number
+  memberIds: string[]
+}
+
+export function isAtlasColor(value: unknown): value is string {
+  return typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value)
+}
+
+export function validateOrganization(organization: Organization, timeline: Timeline): string | null {
+  if (!organization.name.trim() || !organization.type.trim()) return 'Укажите название и тип организации.'
+  if (!Number.isSafeInteger(organization.startYear) || organization.startYear < timeline.startYear ||
+      organization.startYear > timeline.endYear || (organization.endYear !== undefined &&
+      (!Number.isSafeInteger(organization.endYear) || organization.endYear > timeline.endYear ||
+      organization.endYear < organization.startYear))) {
+    return 'Укажите годы в пределах таймлайна. Окончание должно быть не раньше основания.'
+  }
+  const ids = new Set(timeline.characters?.map(({ id }) => id))
+  if (new Set(organization.memberIds).size !== organization.memberIds.length ||
+      organization.memberIds.some((id) => !ids.has(id))) return 'Проверьте список членов организации.'
+  return null
 }

@@ -5,6 +5,7 @@ const pages = [
   { id: 'timeline', title: 'Таймлайн' },
   { id: 'characters', title: 'Персонажи' },
   { id: 'events', title: 'События' },
+  { id: 'organizations', title: 'Фракции и организации' },
 ] as const
 
 function currentPage() {
@@ -16,6 +17,8 @@ function currentPage() {
 
   return {
     ...page,
+    characterId: page.id === 'characters' ? params.get('character') ?? undefined : undefined,
+    eventId: page.id === 'events' ? params.get('event') ?? undefined : undefined,
     year: page.id === 'events' && Number.isSafeInteger(year) ? year : undefined,
   }
 }
@@ -44,7 +47,7 @@ export default function SiteNavigation() {
         </nav>
       </header>
 
-      <App page={page.id} eventYear={page.year} />
+      <App page={page.id} eventYear={page.year} eventId={page.eventId} characterId={page.characterId} />
     </>
   )
 }

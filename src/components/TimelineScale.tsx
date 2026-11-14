@@ -9,12 +9,15 @@ export function TimelineScale({ timeline, calendar }: { timeline: Timeline; cale
   const [zoomIndex, setZoomIndex] = useState(0)
   const scrollRef = useRef<HTMLDivElement>(null)
   const axisRef = useRef<HTMLOListElement>(null)
-  const [target, setTarget] = useState<{ year: number } | null>(null)
+  const [target, setTarget] = useState<{ year: number; day?: number } | null>(null)
   const zoom = zoomLevels[zoomIndex]!
   const start = BigInt(timeline.startYear)
   const span = BigInt(timeline.endYear) - start
-  function positionOf(year: bigint) {
-    return span === 0n ? 50 : Number(((year - start) * 1_000_000n) / span) / 10_000
+  const daysPerYear = BigInt(timeline.daysPerYear)
+  const totalDays = (span + 1n) * daysPerYear
+  function positionOf(year: bigint, elapsedDays = 0) {
+    const offset = (year - start) * daysPerYear + BigInt(elapsedDays)
+    return Number(offset) / Number(totalDays) * 100
   }
 
   useLayoutEffect(() => {
@@ -22,11 +25,12 @@ export function TimelineScale({ timeline, calendar }: { timeline: Timeline; cale
     const axis = axisRef.current
     if (!target || !scroll || !axis) return
 
-    const fraction = span === 0n ? 0.5 : Number(BigInt(target.year) - start) / Number(span)
+    const offset = (BigInt(target.year) - start) * daysPerYear + BigInt(target.day ?? 0)
+    const fraction = Number(offset) / Number(totalDays)
     const axisBox = axis.getBoundingClientRect()
     const viewportBox = scroll.getBoundingClientRect()
     scroll.scrollLeft += axisBox.left - viewportBox.left + axisBox.width * fraction - scroll.clientWidth / 2
-  }, [target, zoom, start, span])
+  }, [target, zoom, start, daysPerYear, totalDays])
 
   function jumpToYear(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -41,10 +45,10 @@ export function TimelineScale({ timeline, calendar }: { timeline: Timeline; cale
 
   // Число отметок ограничено масштабом даже для очень длинного таймлайна.
   const ticks = Array.from({ length: intervals + 1 }, (_, index) => {
-    if (intervals === 0) return { year: start, position: 50 }
+    if (intervals === 0) return { year: start, position: 0 }
 
     const offset = (span * BigInt(index)) / BigInt(intervals)
-    const position = Number((offset * 1_000_000n) / span) / 10_000
+    const position = positionOf(start + offset)
     return { year: start + offset, position }
   })
 
@@ -55,12 +59,18 @@ export function TimelineScale({ timeline, calendar }: { timeline: Timeline; cale
   const markers = [...visibleEvents].sort((left, right) =>
     left.year - right.year || (left.date?.first ?? 1) - (right.date?.first ?? 1)
   ).map((event) => {
-    const position = positionOf(BigInt(event.year))
+    const position = positionOf(BigInt(event.year), (event.date?.first ?? 1) - 1)
+    const endPosition = event.end
+      ? positionOf(BigInt(event.end.year), event.end.date?.last ?? timeline.daysPerYear)
+      : position
+    const width = endPosition - position
     const offset = position * axisMinWidth / 100
-    const freeRow = rowEnds.findIndex((end) => offset - end >= 9.5)
+    const left = offset - (event.end ? 0 : 4.5)
+    const right = offset + (event.end ? Math.max(width * axisMinWidth / 100, 2) : 4.5)
+    const freeRow = rowEnds.findIndex((end) => left - end >= 0.5)
     const row = freeRow === -1 ? rowEnds.length : freeRow
-    rowEnds[row] = offset
-    return { ...event, position, row }
+    rowEnds[row] = right
+    return { ...event, position, width, row }
   })
   const highlightedYear = target?.year
 
@@ -99,7 +109,7 @@ export function TimelineScale({ timeline, calendar }: { timeline: Timeline; cale
             Перейти к событию{' '}
             <select value="" onChange={(event) => {
               const selected = visibleEvents.find(({ id }) => id === event.currentTarget.value)
-              if (selected) setTarget({ year: selected.year })
+              if (selected) setTarget({ year: selected.year, day: (selected.date?.first ?? 1) - 1 })
             }}>
               <option value="" disabled>Выберите событие</option>
               {[...visibleEvents].sort((left, right) => left.year - right.year).map(({ id, year, title }) => (
@@ -115,9 +125,10 @@ export function TimelineScale({ timeline, calendar }: { timeline: Timeline; cale
         <div className="timeline-track" style={{ width: `${100 * zoom}%`, minWidth: `${36 * zoom}rem` }}>
           {markers.length > 0 && (
             <ul className="timeline-markers" style={{ height: `${rowEnds.length * 2.5}rem` }} aria-label="События на шкале">
-              {markers.map(({ id, year, title, position, row }) => (
-                <li key={id} style={{ left: `${position}%`, bottom: `${row * 2.5 + 0.4}rem` }}>
-                  <a href={`#events?year=${year}`} data-highlighted={year === highlightedYear}
+              {markers.map(({ id, year, title, position, width, row, end, color }) => (
+                <li key={id} className={end ? "timeline-period" : undefined} style={{ width: end ? `${width}%` : undefined, left: `${position}%`, bottom: `${row * 2.5 + 0.4}rem` }}>
+                  <a href={`#events?event=${encodeURIComponent(id)}`} data-highlighted={year === highlightedYear}
+                    style={color ? { backgroundColor: color, color: markerTextColor(color) } : undefined}
                     aria-label={`${title}, системный год ${year}`} title={`${title} · ${year}`}>
                     {title}
                   </a>
@@ -132,7 +143,7 @@ export function TimelineScale({ timeline, calendar }: { timeline: Timeline; cale
           </ol>
           {highlightedYear !== undefined && (
             <div className="timeline-position" aria-hidden="true">
-              <span style={{ left: `${positionOf(BigInt(highlightedYear))}%` }} />
+              <span style={{ left: `${positionOf(BigInt(highlightedYear), target?.day)}%` }} />
             </div>
           )}
 
@@ -140,4 +151,13 @@ export function TimelineScale({ timeline, calendar }: { timeline: Timeline; cale
       </div>
     </section>
   )
+}
+
+function markerTextColor(color: string) {
+  const channels = [1, 3, 5].map((offset) => {
+    const value = Number.parseInt(color.slice(offset, offset + 2), 16) / 255
+    return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4
+  })
+  const luminance = channels[0]! * 0.2126 + channels[1]! * 0.7152 + channels[2]! * 0.0722
+  return luminance > 0.179 ? '#000' : '#fff'
 }
