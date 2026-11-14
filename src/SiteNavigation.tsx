@@ -8,6 +8,7 @@ const pages = [
   { id: 'organizations', title: 'Фракции и организации' },
   { id: 'chronicles', title: 'Летописи' },
   { id: 'items', title: 'Предметы' },
+  { id: 'locations', title: 'Локации' },
 ] as const
 
 function currentPage() {
@@ -51,8 +52,16 @@ export default function SiteNavigation() {
         </nav>
       </header>
 
-      <App page={page.id} eventYear={page.year} eventId={page.eventId} characterId={page.characterId}
-        organizationId={page.organizationId} entryId={page.entryId} />
+      {page.id === 'locations' ? (
+        <main className="section-page">
+          <h1>Локации</h1>
+          <p>Локации пока не добавлены.</p>
+          <a href="#timeline">К таймлайну</a>
+        </main>
+      ) : (
+        <App page={page.id} eventYear={page.year} eventId={page.eventId} characterId={page.characterId}
+          organizationId={page.organizationId} entryId={page.entryId} />
+      )}
     </>
   )
 }

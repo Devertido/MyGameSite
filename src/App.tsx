@@ -441,6 +441,14 @@ function App({ page, eventYear, eventId, characterId, organizationId, entryId }:
             timeline={selected.timeline}
             calendar={selected.timeline.calendars[calendarIndex] ?? selected.timeline.calendars[0]}
           />
+          <div className="timeline-maps">
+            <section className="timeline-map" aria-labelledby="world-map-title">
+              <h2 id="world-map-title">Карта мира</h2>
+            </section>
+            <section className="timeline-map" aria-labelledby="location-map-title">
+              <h2 id="location-map-title">Карта локации</h2>
+            </section>
+          </div>
         </>
       )}
 

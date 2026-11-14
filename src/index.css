@@ -128,7 +128,7 @@ button:focus-visible {
 
 .site-header nav {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   height: 100%;
   max-width: 44rem;
   margin-inline: auto;
@@ -501,4 +501,26 @@ button.event-action:hover:enabled {
   padding-top: 0.65rem;
   border-top-color: #716447;
   color: #f4d28d;
+}
+
+.timeline-maps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 24rem), 1fr));
+  gap: 1rem;
+  padding: 0 clamp(1rem, 4vw, 3rem) clamp(1rem, 4vw, 3rem);
+}
+
+.timeline-map {
+  box-sizing: border-box;
+  min-height: clamp(12rem, 26vw, 26rem);
+  padding: 1rem;
+  border: 1px solid #a2b9b3;
+  border-radius: 0.5rem;
+  background: #eaf2ef;
+}
+
+.timeline-map h2 {
+  margin: 0;
+  font-size: 1rem;
+  color: #174b43;
 }
