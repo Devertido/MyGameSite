@@ -1,3 +1,4 @@
+import { CreationDialog } from './CreationDialog'
 import { EditIcon } from './EditIcon'
 import { TrashIcon } from './TrashIcon'
 import { EventSideLink } from './EventSideLink'
@@ -96,34 +97,37 @@ export function CharactersPage({ timeline, save, characterId }: {
       <h1>Персонажи</h1>
       <p>{timeline.name}</p>
       {characterId !== undefined && !characters.some(({ id }) => id === characterId) && <p>Персонаж не найден.</p>}
-      {!busy && <button type="button" onClick={() => setDraft('new')}>Добавить персонажа</button>}
+      {(!busy || draft === 'new') && <button type="button" onClick={() => setDraft('new')}>Добавить персонажа</button>}
       {draft !== null && (
-        <form onSubmit={submit} onInput={() => setError('')}>
-          <h2>{original ? 'Редактировать персонажа' : 'Новый персонаж'}</h2>
-          <div className="character-name-fields">
-            <label>Имя<br /><input name="name" defaultValue={original?.name} required /></label>
-            <label>Фамилия<br /><input name="surname" defaultValue={original?.surname} /></label>
-          </div>
-          <p><label>Раса<br /><input name="race" defaultValue={original?.race} /></label></p>
-          <p><label>Пол<br />
-            <select name="sex" defaultValue={original?.sex || ''}>
-              <option value="">Не указан</option>
-              <option value="Муж">Муж</option>
-              <option value="Жен">Жен</option>
-              {original?.sex && original.sex !== 'Муж' && original.sex !== 'Жен' && (
-                <option value={original.sex}>{original.sex}</option>
-              )}
-            </select>
-          </label></p>
-          <CharacterDateFields prefix="birth" label="Дата рождения" months={months} initial={original?.birth} />
-          <CharacterDateFields prefix="death" label="Дата смерти" months={months} initial={original?.death} />
-          <ImageField name="portrait" label="Вертикальный портрет" initial={original?.portrait} />
-          <p><label>Описание<br /><textarea name="description" rows={4} defaultValue={original?.description} /></label></p>
-          <p><label>Биография<br /><textarea name="biography" rows={8} defaultValue={original?.biography} /></label></p>
-          <p><label>Цвет персонажа <input name="color" type="color" defaultValue={original?.color ?? '#174b43'} /></label></p>
-          <button type="submit">Сохранить</button>{' '}
-          <button type="button" onClick={cancel}>Отмена</button>
-        </form>
+        <CreationDialog active={draft === 'new'} onCancel={cancel}>
+          <form onSubmit={submit} onInput={() => setError('')}>
+            <h2 id={draft === 'new' ? 'creation-dialog-title' : undefined}>{original ? 'Редактировать персонажа' : 'Новый персонаж'}</h2>
+            <div className="character-name-fields">
+              <label>Имя<br /><input name="name" defaultValue={original?.name} required /></label>
+              <label>Фамилия<br /><input name="surname" defaultValue={original?.surname} /></label>
+            </div>
+            <p><label>Раса<br /><input name="race" defaultValue={original?.race} /></label></p>
+            <p><label>Пол<br />
+              <select name="sex" defaultValue={original?.sex || ''}>
+                <option value="">Не указан</option>
+                <option value="Муж">Муж</option>
+                <option value="Жен">Жен</option>
+                {original?.sex && original.sex !== 'Муж' && original.sex !== 'Жен' && (
+                  <option value={original.sex}>{original.sex}</option>
+                )}
+              </select>
+            </label></p>
+            <CharacterDateFields prefix="birth" label="Дата рождения" months={months} initial={original?.birth} />
+            <CharacterDateFields prefix="death" label="Дата смерти" months={months} initial={original?.death} />
+            <ImageField name="portrait" label="Вертикальный портрет" initial={original?.portrait} />
+            <p><label>Описание<br /><textarea name="description" rows={4} defaultValue={original?.description} /></label></p>
+            <p><label>Биография<br /><textarea name="biography" rows={8} defaultValue={original?.biography} /></label></p>
+            <p><label>Цвет персонажа <input name="color" type="color" defaultValue={original?.color ?? '#174b43'} /></label></p>
+            {error && <p role="alert">{error}</p>}
+            <button type="submit">Сохранить</button>{' '}
+            <button type="button" onClick={cancel}>Отмена</button>
+          </form>
+        </CreationDialog>
       )}
       {deleting && (
         <section aria-labelledby="delete-character-title">
@@ -135,7 +139,7 @@ export function CharactersPage({ timeline, save, characterId }: {
           </button>
         </section>
       )}
-      {error && <p role="alert">{error}</p>}
+      {draft === null && error && <p role="alert">{error}</p>}
       {characters.length === 0 && <p>В этом таймлайне пока нет персонажей.</p>}
       <div className="directory-layout">
         <ul className="event-list">

@@ -1,3 +1,4 @@
+import { CreationDialog } from './CreationDialog'
 import { EditIcon } from './EditIcon'
 import { TrashIcon } from './TrashIcon'
 import { ImageField } from './ImageField'
@@ -60,58 +61,60 @@ export function ArchivePage({ kind, entries, entryId, timeline, save }: {
       {entryId !== undefined && <p><a href={'#' + kind}>{!location && <span aria-hidden="true">← </span>}
         {location ? 'Все локации' : chronicle ? 'Назад к летописям' : 'Назад к предметам'}
       </a></p>}
-      {draft === null && (
+      {(draft === null || draft === 'new') && (
         <div className="timeline-controls">
           <button type="button" onClick={() => setDraft('new')}>{location ? 'Добавить локацию' : chronicle ? 'Создать летопись' : 'Добавить предмет'}</button>
           {entryId === undefined && entries.length > 0 && <label>Поиск <input type="search" value={query} onChange={(event) => setQuery(event.currentTarget.value)} /></label>}
         </div>
       )}
       {draft !== null && (
-        <form className={chronicle ? 'archive-form parchment' : 'archive-form'} onSubmit={submit} onInput={() => setError('')}>
-          <h2>{original ? 'Редактировать' : location ? 'Новая локация' : chronicle ? 'Новая летопись' : 'Новый предмет'}</h2>
-          <label>Название<input name="title" defaultValue={original?.title} required /></label>
-          {!chronicle && (
-            <>
-              <ImageField name="image" label={location ? "Изображение локации" : "Изображение предмета"} initial={original?.image} />
-              <label>Тип<input name="type" defaultValue={original?.type} placeholder={location ? "Город, крепость, регион" : "Оружие, броня, артефакт"} /></label>
-              {!location && <label>Редкость<select name="rarity" defaultValue={original?.rarity ?? rarities[0]}>
-                {rarities.map((rarity) => <option key={rarity}>{rarity}</option>)}
-              </select></label>}
-            </>
-          )}
-          <label>{chronicle ? 'Краткая справка' : 'Краткое описание'}<textarea name="summary" rows={3} defaultValue={original?.summary} /></label>
-          <label>{location ? 'История локации' : chronicle ? 'Текст летописи' : 'Свойства и история'}<textarea name="body" rows={8} defaultValue={original?.body} /></label>
-          {chronicle ? (
-            <>
-              <fieldset>
-                <legend>Связанные события</legend>
-                {(timeline.events ?? []).map(({ id, title, year }) => (
-                  <label key={id}><span><input type="checkbox" name="events" value={id}
-                    defaultChecked={original?.eventIds?.includes(id)} /> {year} · {title}</span></label>
-                ))}
-                {!timeline.events?.length && <p>В таймлайне пока нет событий.</p>}
-              </fieldset>
-              <fieldset>
-                <legend>Связанные персонажи</legend>
-                {(timeline.characters ?? []).map(({ id, name }) => (
-                  <label key={id}><span><input type="checkbox" name="characters" value={id}
-                    defaultChecked={original?.characterIds?.includes(id)} /> {name}</span></label>
-                ))}
-                {!timeline.characters?.length && <p>В таймлайне пока нет персонажей.</p>}
-              </fieldset>
-            </>
-          ) : !location && (
-            <label>Владелец<select name="ownerId" defaultValue={original?.ownerId ?? ''}>
-              <option value="">Не указан</option>
-              {(timeline.characters ?? []).map(({ id, name }) => <option key={id} value={id}>{name}</option>)}
-            </select></label>
-          )}
-          {error && <p role="alert">{error}</p>}
-          <div><button type="submit">Сохранить</button>{' '}
-            <button type="button" onClick={() => { setDraft(null); setError('') }}>Отмена</button></div>
-        </form>
+        <CreationDialog active={draft === 'new'} onCancel={() => { setDraft(null); setError('') }}>
+          <form className={chronicle ? 'archive-form parchment' : 'archive-form'} onSubmit={submit} onInput={() => setError('')}>
+            <h2 id={draft === 'new' ? 'creation-dialog-title' : undefined}>{original ? 'Редактировать' : location ? 'Новая локация' : chronicle ? 'Новая летопись' : 'Новый предмет'}</h2>
+            <label>Название<input name="title" defaultValue={original?.title} required /></label>
+            {!chronicle && (
+              <>
+                <ImageField name="image" label={location ? "Изображение локации" : "Изображение предмета"} initial={original?.image} />
+                <label>Тип<input name="type" defaultValue={original?.type} placeholder={location ? "Город, крепость, регион" : "Оружие, броня, артефакт"} /></label>
+                {!location && <label>Редкость<select name="rarity" defaultValue={original?.rarity ?? rarities[0]}>
+                  {rarities.map((rarity) => <option key={rarity}>{rarity}</option>)}
+                </select></label>}
+              </>
+            )}
+            <label>{chronicle ? 'Краткая справка' : 'Краткое описание'}<textarea name="summary" rows={3} defaultValue={original?.summary} /></label>
+            <label>{location ? 'История локации' : chronicle ? 'Текст летописи' : 'Свойства и история'}<textarea name="body" rows={8} defaultValue={original?.body} /></label>
+            {chronicle ? (
+              <>
+                <fieldset>
+                  <legend>Связанные события</legend>
+                  {(timeline.events ?? []).map(({ id, title, year }) => (
+                    <label key={id}><span><input type="checkbox" name="events" value={id}
+                      defaultChecked={original?.eventIds?.includes(id)} /> {year} · {title}</span></label>
+                  ))}
+                  {!timeline.events?.length && <p>В таймлайне пока нет событий.</p>}
+                </fieldset>
+                <fieldset>
+                  <legend>Связанные персонажи</legend>
+                  {(timeline.characters ?? []).map(({ id, name }) => (
+                    <label key={id}><span><input type="checkbox" name="characters" value={id}
+                      defaultChecked={original?.characterIds?.includes(id)} /> {name}</span></label>
+                  ))}
+                  {!timeline.characters?.length && <p>В таймлайне пока нет персонажей.</p>}
+                </fieldset>
+              </>
+            ) : !location && (
+              <label>Владелец<select name="ownerId" defaultValue={original?.ownerId ?? ''}>
+                <option value="">Не указан</option>
+                {(timeline.characters ?? []).map(({ id, name }) => <option key={id} value={id}>{name}</option>)}
+              </select></label>
+            )}
+            {error && <p role="alert">{error}</p>}
+            <div><button type="submit">Сохранить</button>{' '}
+              <button type="button" onClick={() => { setDraft(null); setError('') }}>Отмена</button></div>
+          </form>
+        </CreationDialog>
       )}
-      {draft === null && selected && (
+      {(draft === null || draft === 'new') && selected && (
         <article className={chronicle ? 'archive-card parchment' : 'archive-card item-card item-tooltip'} style={chronicle ? undefined : itemAccent(selected)}>
           {!chronicle && <ItemImage entry={selected} />}
           <h2>{selected.title}</h2>
@@ -145,8 +148,8 @@ export function ArchivePage({ kind, entries, entryId, timeline, save }: {
             onClick={() => { setError(''); setDeleting(selected) }}><TrashIcon /></button>
         </article>
       )}
-      {draft === null && entryId !== undefined && !selected && <p>Запись не найдена в выбранном таймлайне.</p>}
-      {draft === null && entryId === undefined && (
+      {(draft === null || draft === 'new') && entryId !== undefined && !selected && <p>Запись не найдена в выбранном таймлайне.</p>}
+      {(draft === null || draft === 'new') && entryId === undefined && (
         matches.length ? (
           <ul className="archive-grid">
             {matches.map((entry) => (

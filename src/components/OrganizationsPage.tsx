@@ -1,3 +1,4 @@
+import { CreationDialog } from './CreationDialog'
 import { EditIcon } from './EditIcon'
 import { TrashIcon } from './TrashIcon'
 import { ImageField } from './ImageField'
@@ -56,43 +57,45 @@ export function OrganizationsPage({ timeline, save, organizationId }: {
       <h1>Фракции и организации</h1>
       <p>{timeline.name}</p>
       {organizationId !== undefined && !selected && <p>Организация не найдена.</p>}
-      {draft === null && !deleting && <button type="button" onClick={() => setDraft('new')}>Создать организацию</button>}
+      {(draft === null || draft === 'new') && !deleting && <button type="button" onClick={() => setDraft('new')}>Создать организацию</button>}
       {draft !== null && (
-        <form onSubmit={submit} onInput={() => setError('')}>
-          <h2>{original ? 'Редактировать организацию' : 'Новая организация'}</h2>
-          <ImageField name="emblem" label="Эмблема" initial={original?.emblem} />
-          <p><label>Название <input name="name" defaultValue={original?.name} required /></label></p>
-          <p>
-            <label>Тип организации <input name="type" list="organization-types" defaultValue={original?.type} required /></label>
-            <datalist id="organization-types">{types.map((type) => <option key={type} value={type} />)}</datalist>
-          </p>
-          <p><label>Описание<br /><textarea name="description" rows={4} defaultValue={original?.description} /></label></p>
-          <p><label>Системный год основания <input name="startYear" type="number" step="1" defaultValue={original?.startYear} required /></label></p>
-          <p><label>Системный год окончания <input name="endYear" type="number" step="1" defaultValue={original?.endYear} /></label></p>
-          <p>Оставьте год окончания пустым, если организация существует или дата её окончания неизвестна.</p>
-          <p><label>Цвет фракции на таймлайне <input type="color" name="color"
-            defaultValue={original?.color ?? defaultOrganizationColor} /></label></p>
-          <p><label><input type="checkbox" name="onTimeline" defaultChecked={original?.onTimeline} /> Показать годы существования под таймлайном</label></p>
-          <fieldset>
-            <legend>Локации фракции</legend>
-            {timeline.locations?.length ? timeline.locations.map(({ id, title }) => (
-              <label className="event-participant" key={id}>
-                <input type="checkbox" name="locations" value={id} defaultChecked={original?.locationIds?.includes(id)} /> {title}
-              </label>
-            )) : <p>Добавьте записи во вкладке «Локации».</p>}
-          </fieldset>
-          <fieldset>
-            <legend>Члены организации</legend>
-            {timeline.characters?.length ? timeline.characters.map(({ id, name }) => (
-              <label className="event-participant" key={id}>
-                <input type="checkbox" name="members" value={id} defaultChecked={original?.memberIds.includes(id)} /> {name}
-              </label>
-            )) : <p>Добавьте персонажей во вкладке «Персонажи».</p>}
-          </fieldset>
-          {error && <p role="alert">{error}</p>}
-          <button type="submit">Сохранить</button>{' '}
-          <button type="button" onClick={() => { setDraft(null); setError('') }}>Отмена</button>
-        </form>
+        <CreationDialog active={draft === 'new'} onCancel={() => { setDraft(null); setError('') }}>
+          <form onSubmit={submit} onInput={() => setError('')}>
+            <h2 id={draft === 'new' ? 'creation-dialog-title' : undefined}>{original ? 'Редактировать организацию' : 'Новая организация'}</h2>
+            <ImageField name="emblem" label="Эмблема" initial={original?.emblem} />
+            <p><label>Название <input name="name" defaultValue={original?.name} required /></label></p>
+            <p>
+              <label>Тип организации <input name="type" list="organization-types" defaultValue={original?.type} required /></label>
+              <datalist id="organization-types">{types.map((type) => <option key={type} value={type} />)}</datalist>
+            </p>
+            <p><label>Описание<br /><textarea name="description" rows={4} defaultValue={original?.description} /></label></p>
+            <p><label>Системный год основания <input name="startYear" type="number" step="1" defaultValue={original?.startYear} required /></label></p>
+            <p><label>Системный год окончания <input name="endYear" type="number" step="1" defaultValue={original?.endYear} /></label></p>
+            <p>Оставьте год окончания пустым, если организация существует или дата её окончания неизвестна.</p>
+            <p><label>Цвет фракции на таймлайне <input type="color" name="color"
+              defaultValue={original?.color ?? defaultOrganizationColor} /></label></p>
+            <p><label><input type="checkbox" name="onTimeline" defaultChecked={original?.onTimeline} /> Показать годы существования под таймлайном</label></p>
+            <fieldset>
+              <legend>Локации фракции</legend>
+              {timeline.locations?.length ? timeline.locations.map(({ id, title }) => (
+                <label className="event-participant" key={id}>
+                  <input type="checkbox" name="locations" value={id} defaultChecked={original?.locationIds?.includes(id)} /> {title}
+                </label>
+              )) : <p>Добавьте записи во вкладке «Локации».</p>}
+            </fieldset>
+            <fieldset>
+              <legend>Члены организации</legend>
+              {timeline.characters?.length ? timeline.characters.map(({ id, name }) => (
+                <label className="event-participant" key={id}>
+                  <input type="checkbox" name="members" value={id} defaultChecked={original?.memberIds.includes(id)} /> {name}
+                </label>
+              )) : <p>Добавьте персонажей во вкладке «Персонажи».</p>}
+            </fieldset>
+            {error && <p role="alert">{error}</p>}
+            <button type="submit">Сохранить</button>{' '}
+            <button type="button" onClick={() => { setDraft(null); setError('') }}>Отмена</button>
+          </form>
+        </CreationDialog>
       )}
       {organizations.length === 0 && draft === null && <p>В этом таймлайне пока нет организаций.</p>}
       <div className="directory-layout">

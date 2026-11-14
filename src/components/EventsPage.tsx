@@ -1,3 +1,4 @@
+import { CreationDialog } from './CreationDialog'
 import { EditIcon } from './EditIcon'
 import { TrashIcon } from './TrashIcon'
 import { useRef, useState, type FormEvent } from 'react'
@@ -127,37 +128,40 @@ export function EventsPage({ timeline, calendar, save, yearFilter, eventId }: {
         <label>С года <input type="number" value={from} onChange={(event) => setFrom(event.currentTarget.value)} /></label>
         <label>По год <input type="number" value={to} onChange={(event) => setTo(event.currentTarget.value)} /></label>
       </fieldset>}
-      {eventId === undefined && draft === null && deleting === null && (
+      {eventId === undefined && (draft === null || draft === 'new') && deleting === null && (
         <button type="button" onClick={() => { setPeriod(false); setDraft('new') }}>Добавить событие</button>
       )}
 
       {draft !== null && (
-        <form onSubmit={submit} onInput={() => setError('')}>
-          <h2>{original ? 'Редактировать событие' : 'Новое событие'}</h2>
-          <p><label>Название<br /><input name="title" defaultValue={original?.title} required /></label></p>
-          <p>
-            <label>
-              Системный год<br />
-              <input name="year" type="number" step={1} min={timeline.startYear}
-                max={timeline.endYear} defaultValue={initialYear} required />
-            </label>
-          </p>
-          <DateFields prefix="start" months={calendar.months} previous={original?.date} />
-          <p><label><input type="checkbox" checked={period} onChange={(event) => setPeriod(event.currentTarget.checked)} /> Указать конец периода</label></p>
-          {period && (
-            <fieldset>
-              <legend>Конец периода</legend>
-              <p><label>Конечный системный год <input name="endYear" type="number" step={1}
-                min={timeline.startYear} max={timeline.endYear} defaultValue={original?.end?.year ?? initialYear} required /></label></p>
-              <DateFields prefix="end" months={calendar.months} previous={original?.end?.date} />
-            </fieldset>
-          )}
-          <p><label>Описание<br /><textarea name="description" defaultValue={original?.description} rows={4} /></label></p>
-          <p><label>Цвет события <input name="color" type="color" defaultValue={original?.color ?? '#174b43'} /></label></p>
-          <EventParticipants characters={characters} organizations={timeline.organizations ?? []} original={original} />
-          <button type="submit">Сохранить</button>{' '}
-          <button type="button" onClick={() => { setDraft(null); setError('') }}>Отмена</button>
-        </form>
+        <CreationDialog active={draft === 'new'} onCancel={() => { setDraft(null); setError('') }}>
+          <form onSubmit={submit} onInput={() => setError('')}>
+            <h2 id={draft === 'new' ? 'creation-dialog-title' : undefined}>{original ? 'Редактировать событие' : 'Новое событие'}</h2>
+            <p><label>Название<br /><input name="title" defaultValue={original?.title} required /></label></p>
+            <p>
+              <label>
+                Системный год<br />
+                <input name="year" type="number" step={1} min={timeline.startYear}
+                  max={timeline.endYear} defaultValue={initialYear} required />
+              </label>
+            </p>
+            <DateFields prefix="start" months={calendar.months} previous={original?.date} />
+            <p><label><input type="checkbox" checked={period} onChange={(event) => setPeriod(event.currentTarget.checked)} /> Указать конец периода</label></p>
+            {period && (
+              <fieldset>
+                <legend>Конец периода</legend>
+                <p><label>Конечный системный год <input name="endYear" type="number" step={1}
+                  min={timeline.startYear} max={timeline.endYear} defaultValue={original?.end?.year ?? initialYear} required /></label></p>
+                <DateFields prefix="end" months={calendar.months} previous={original?.end?.date} />
+              </fieldset>
+            )}
+            <p><label>Описание<br /><textarea name="description" defaultValue={original?.description} rows={4} /></label></p>
+            <p><label>Цвет события <input name="color" type="color" defaultValue={original?.color ?? '#174b43'} /></label></p>
+            <EventParticipants characters={characters} organizations={timeline.organizations ?? []} original={original} />
+            {error && <p role="alert">{error}</p>}
+            <button type="submit">Сохранить</button>{' '}
+            <button type="button" onClick={() => { setDraft(null); setError('') }}>Отмена</button>
+          </form>
+        </CreationDialog>
       )}
 
       {deleting && (
@@ -168,7 +172,7 @@ export function EventsPage({ timeline, calendar, save, yearFilter, eventId }: {
         </section>
       )}
 
-      {error && <p role="alert">{error}</p>}
+      {draft === null && error && <p role="alert">{error}</p>}
       {sorted.length === 0 ? <p>{eventId !== undefined ? 'Событие не найдено в выбранном таймлайне.' : events.length ? 'События по этим условиям не найдены.' : 'В этом таймлайне пока нет событий.'}</p> : (
         <ul className="event-list">
           {sorted.map((entry) => (
