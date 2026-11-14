@@ -107,6 +107,19 @@ button:focus-visible {
   padding: 1rem clamp(1rem, 4vw, 3rem);
 }
 
+.timeline-toolbar .timeline-select {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.timeline-delete {
+  display: grid;
+  place-items: center;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  padding: 0.5rem;
+}
+
 .timeline-toolbar label {
   min-width: 0;
   max-width: 100%;
@@ -467,6 +480,62 @@ button:focus-visible {
   border-radius: 0.5rem;
 }
 
+.characters-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1.25rem;
+  margin-top: 1rem;
+}
+
+.characters-layout > .event-list {
+  margin: 0;
+}
+
+.character-directory {
+  min-width: 0;
+  padding-inline-start: 1.25rem;
+  border-inline-start: 1px solid #a73d3d;
+}
+
+.character-table-scroll {
+  overflow-x: auto;
+}
+
+.character-directory table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: start;
+}
+
+.character-directory th,
+.character-directory td {
+  padding: 0.55rem;
+  border-bottom: 1px solid #b9cbc6;
+  text-align: start;
+  overflow-wrap: anywhere;
+}
+
+.character-directory th button {
+  padding: 0.35rem 0.5rem;
+  white-space: nowrap;
+}
+
+.character-directory tr[data-selected='true'] {
+  background: #d5ebe5;
+}
+
+@media (max-width: 55rem) {
+  .characters-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .character-directory {
+    border-inline-start: 0;
+    border-top: 1px solid #a73d3d;
+    padding-inline-start: 0;
+  }
+}
+
 .character-overview {
   display: flex;
   align-items: flex-start;
@@ -683,6 +752,19 @@ button.event-action:hover:enabled {
   align-items: center;
   gap: 0.25rem;
   padding-inline: 0.5rem;
+}
+
+.site-backup-tools {
+  display: contents;
+}
+
+@media (max-width: 40rem) {
+  .site-tools {
+    flex-wrap: wrap;
+    align-content: center;
+    width: 7.25rem;
+    flex-shrink: 0;
+  }
 }
 
 .site-tools button {

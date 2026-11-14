@@ -5,6 +5,15 @@ import { useState, type FormEvent } from 'react'
 import { calendarDay, eventDays, isCharacterDate, isCharacterLifeOrderValid, type CharacterDate, type Timeline, type TimelineCalendar, type TimelineCharacter } from '../domain/timeline'
 import { ImageField } from './ImageField'
 
+const columns = [
+  { key: 'name', title: 'Имя' },
+  { key: 'surname', title: 'Фамилия' },
+  { key: 'race', title: 'Раса' },
+  { key: 'sex', title: 'Пол' },
+] as const
+
+const characterCollator = new Intl.Collator('ru', { sensitivity: 'base', numeric: true })
+
 export function CharactersPage({ timeline, save, characterId }: {
   characterId?: string
   timeline: Timeline
@@ -14,6 +23,17 @@ export function CharactersPage({ timeline, save, characterId }: {
   const [draft, setDraft] = useState<TimelineCharacter | 'new' | null>(null)
   const [deleting, setDeleting] = useState<TimelineCharacter | null>(null)
   const [error, setError] = useState('')
+  const [sort, setSort] = useState<{ key: typeof columns[number]['key']; descending: boolean }>({
+    key: 'name', descending: false,
+  })
+  const sortedCharacters = [...characters].sort((left, right) => {
+    const a = left[sort.key] ?? ''
+    const b = right[sort.key] ?? ''
+    if (!a || !b) return Number(!a) - Number(!b)
+    return characterCollator.compare(a, b) * (sort.descending ? -1 : 1)
+  })
+  const selected = characters.find(({ id }) => id === characterId) ??
+    (characterId === undefined ? characters[0] : undefined)
   const original = draft === 'new' ? null : draft
   const months = timeline.calendars[0].months
   const busy = draft !== null || deleting !== null
@@ -46,6 +66,7 @@ export function CharactersPage({ timeline, save, characterId }: {
     const biography = String(fields.get('biography') ?? '').trim()
     const surname = String(fields.get('surname') ?? '').trim()
     const race = String(fields.get('race') ?? '').trim()
+    const sex = String(fields.get('sex') ?? '').trim()
     const portrait = String(fields.get('portrait') ?? '')
     const birth = readDate(fields, 'birth', months, timeline.daysPerYear)
     const death = readDate(fields, 'death', months, timeline.daysPerYear)
@@ -62,6 +83,7 @@ export function CharactersPage({ timeline, save, characterId }: {
       id: original?.id ?? crypto.randomUUID(), name, description, biography, color: String(fields.get('color')),
       ...(surname ? { surname } : {}),
       ...(race ? { race } : {}),
+      ...(sex ? { sex } : {}),
       ...(portrait ? { portrait } : {}),
       ...(birth ? { birth } : {}),
       ...(death ? { death } : {}),
@@ -73,9 +95,8 @@ export function CharactersPage({ timeline, save, characterId }: {
     <main className="section-page">
       <h1>Персонажи</h1>
       <p>{timeline.name}</p>
-      {characterId !== undefined && <p><a href="#characters">Все персонажи</a></p>}
       {characterId !== undefined && !characters.some(({ id }) => id === characterId) && <p>Персонаж не найден.</p>}
-      {characterId === undefined && !busy && <button type="button" onClick={() => setDraft('new')}>Добавить персонажа</button>}
+      {!busy && <button type="button" onClick={() => setDraft('new')}>Добавить персонажа</button>}
       {draft !== null && (
         <form onSubmit={submit} onInput={() => setError('')}>
           <h2>{original ? 'Редактировать персонажа' : 'Новый персонаж'}</h2>
@@ -84,6 +105,7 @@ export function CharactersPage({ timeline, save, characterId }: {
             <label>Фамилия<br /><input name="surname" defaultValue={original?.surname} /></label>
           </div>
           <p><label>Раса<br /><input name="race" defaultValue={original?.race} /></label></p>
+          <p><label>Пол<br /><input name="sex" defaultValue={original?.sex} /></label></p>
           <CharacterDateFields prefix="birth" label="Дата рождения" months={months} initial={original?.birth} />
           <CharacterDateFields prefix="death" label="Дата смерти" months={months} initial={original?.death} />
           <ImageField name="portrait" label="Вертикальный портрет" initial={original?.portrait} />
@@ -106,84 +128,122 @@ export function CharactersPage({ timeline, save, characterId }: {
       )}
       {error && <p role="alert">{error}</p>}
       {characters.length === 0 && <p>В этом таймлайне пока нет персонажей.</p>}
-      <ul className="event-list">
-        {characters.filter(({ id }) => characterId === undefined || id === characterId).map((character) => {
-          const fullName = [character.name, character.surname].filter(Boolean).join(' ')
-          const events = (timeline.events ?? []).filter(({ characterIds }) => characterIds?.includes(character.id))
-          return (
-            <li key={character.id}>
-              <div className="character-overview">
-                {character.portrait && (
-                  <img className="character-portrait" src={character.portrait} alt={fullName} loading="lazy" />
-                )}
-                <div className="character-summary">
-                  <div className="character-heading">
-                    {character.color && <span className="atlas-color" style={{ backgroundColor: character.color }} aria-hidden="true" />}
-                    <button className="event-action" type="button" disabled={busy} onClick={() => setDraft(character)} aria-label="Редактировать" title="Редактировать"><EditIcon /></button>
-                    <button className="event-action" type="button" disabled={busy} onClick={() => setDeleting(character)} aria-label="Удалить персонажа" title="Удалить персонажа"><TrashIcon /></button>
-                    <h2>{characterId === undefined
-                      ? <a href={`#characters?character=${encodeURIComponent(character.id)}`}>{fullName}</a>
-                      : fullName}</h2>
-                  </div>
-                  {(character.birth || character.death) && (
-                    <p>Годы жизни · {character.birth?.year ?? '?'} — {character.death?.year ?? '…'}</p>
+      <div className="characters-layout">
+        <ul className="event-list">
+          {(selected ? [selected] : []).map((character) => {
+            const fullName = [character.name, character.surname].filter(Boolean).join(' ')
+            const events = (timeline.events ?? []).filter(({ characterIds }) => characterIds?.includes(character.id))
+            return (
+              <li key={character.id}>
+                <div className="character-overview">
+                  {character.portrait && (
+                    <img className="character-portrait" src={character.portrait} alt={fullName} loading="lazy" />
                   )}
-                  {character.description && <p>{character.description}</p>}
-                  {character.race && <p>Раса · {character.race}</p>}
+                  <div className="character-summary">
+                    <div className="character-heading">
+                      {character.color && <span className="atlas-color" style={{ backgroundColor: character.color }} aria-hidden="true" />}
+                      <button className="event-action" type="button" disabled={busy} onClick={() => setDraft(character)} aria-label="Редактировать" title="Редактировать"><EditIcon /></button>
+                      <button className="event-action" type="button" disabled={busy} onClick={() => setDeleting(character)} aria-label="Удалить персонажа" title="Удалить персонажа"><TrashIcon /></button>
+                      <h2>{fullName}</h2>
+                    </div>
+                    {(character.birth || character.death) && (
+                      <p>Годы жизни · {character.birth?.year ?? '?'} — {character.death?.year ?? '…'}</p>
+                    )}
+                    {character.description && <p>{character.description}</p>}
+                    {character.race && <p>Раса · {character.race}</p>}
+                    {character.sex && <p>Пол · {character.sex}</p>}
+                  </div>
                 </div>
-              </div>
-              {characterId !== undefined && character.birth && (
-                <p>Дата рождения · {calendarDay(months, character.birth.dayOfYear)} · {character.birth.year} г. системы</p>
-              )}
-              {characterId !== undefined && character.death && (
-                <p>Дата смерти · {calendarDay(months, character.death.dayOfYear)} · {character.death.year} г. системы</p>
-              )}
-              {characterId !== undefined && (
-                <>
-                  <h3>Биография</h3>
-                  <p>{character.biography || 'Биография пока не добавлена.'}</p>
-                </>
-              )}
-              {characterId !== undefined && (
-                <>
-                  {[
-                    { heading: 'Организации', route: 'organizations?organization=', links: (timeline.organizations ?? [])
-                      .filter(({ memberIds }) => memberIds.includes(character.id)).map(({ id, name }) => ({ id, title: name })) },
-                    { heading: 'Летописи', route: 'chronicles?entry=', links: (timeline.chronicles ?? [])
-                      .filter(({ characterIds }) => characterIds?.includes(character.id)) },
-                    { heading: 'Предметы', route: 'items?entry=', links: (timeline.items ?? [])
-                      .filter(({ ownerId }) => ownerId === character.id) },
-                  ].filter(({ links }) => links.length > 0).map(({ heading, route, links }) => (
-                    <section key={route}>
-                      <h3>{heading}</h3>
-                      <ul>{links.map(({ id, title }) => (
-                        <li key={id}><a href={'#' + route + encodeURIComponent(id)}>{title}</a></li>
-                      ))}</ul>
-                    </section>
+                {character.birth && (
+                  <p>Дата рождения · {calendarDay(months, character.birth.dayOfYear)} · {character.birth.year} г. системы</p>
+                )}
+                {character.death && (
+                  <p>Дата смерти · {calendarDay(months, character.death.dayOfYear)} · {character.death.year} г. системы</p>
+                )}
+                {(
+                  <>
+                    <h3>Биография</h3>
+                    <p>{character.biography || 'Биография пока не добавлена.'}</p>
+                  </>
+                )}
+                {(
+                  <>
+                    {[
+                      { heading: 'Организации', route: 'organizations?organization=', links: (timeline.organizations ?? [])
+                        .filter(({ memberIds }) => memberIds.includes(character.id)).map(({ id, name }) => ({ id, title: name })) },
+                      { heading: 'Летописи', route: 'chronicles?entry=', links: (timeline.chronicles ?? [])
+                        .filter(({ characterIds }) => characterIds?.includes(character.id)) },
+                      { heading: 'Предметы', route: 'items?entry=', links: (timeline.items ?? [])
+                        .filter(({ ownerId }) => ownerId === character.id) },
+                    ].filter(({ links }) => links.length > 0).map(({ heading, route, links }) => (
+                      <section key={route}>
+                        <h3>{heading}</h3>
+                        <ul>{links.map(({ id, title }) => (
+                          <li key={id}><a href={'#' + route + encodeURIComponent(id)}>{title}</a></li>
+                        ))}</ul>
+                      </section>
+                    ))}
+                  </>
+                )}
+                {events.length === 0 && <p>Участие в событиях пока не указано.</p>}
+                {events.length > 0 && (
+                  <>
+                    <h3>Участие в событиях</h3>
+                    <ol>{events.sort((a, b) => a.year - b.year || (a.date?.first ?? 1) - (b.date?.first ?? 1)).map((event) => {
+                      const side = event.sides?.find((item) => item.characterIds.includes(character.id))
+                      return (
+                      <li key={event.id}>
+                        <a href={`#events?event=${encodeURIComponent(event.id)}`}>
+                          {event.year}{event.end && ` — ${event.end.year}`} · {event.title}
+                        </a>
+                        {' · '}{side ? <EventSideLink side={side} organizations={timeline.organizations} /> : 'Без стороны'}
+                      </li>
+                      )
+                    })}</ol>
+                  </>
+                )}
+              </li>
+            )
+          })}
+        </ul>
+        {characters.length > 0 && (
+          <section className="character-directory" aria-labelledby="character-directory-title">
+            <h2 id="character-directory-title">Все персонажи</h2>
+            <div className="character-table-scroll">
+              <table>
+                <thead>
+                  <tr>{columns.map(({ key, title }) => (
+                    <th key={key} scope="col" aria-sort={sort.key === key
+                      ? sort.descending ? 'descending' : 'ascending'
+                      : undefined}>
+                      <button type="button" onClick={() => setSort({
+                        key, descending: sort.key === key && !sort.descending,
+                      })}>
+                        {title}{sort.key === key && <span aria-hidden="true">{sort.descending ? ' ↓' : ' ↑'}</span>}
+                      </button>
+                    </th>
+                  ))}</tr>
+                </thead>
+                <tbody>
+                  {sortedCharacters.map((character) => (
+                    <tr key={character.id} data-selected={character.id === selected?.id}>
+                      <td>
+                        <a href={'#characters?character=' + encodeURIComponent(character.id)}
+                          aria-current={character.id === selected?.id ? 'true' : undefined} onClick={cancel}>
+                          {character.name}
+                        </a>
+                      </td>
+                      <td>{character.surname || '—'}</td>
+                      <td>{character.race || '—'}</td>
+                      <td>{character.sex || '—'}</td>
+                    </tr>
                   ))}
-                </>
-              )}
-              {characterId !== undefined && events.length === 0 && <p>Участие в событиях пока не указано.</p>}
-              {characterId !== undefined && events.length > 0 && (
-                <>
-                  <h3>Участие в событиях</h3>
-                  <ol>{events.sort((a, b) => a.year - b.year || (a.date?.first ?? 1) - (b.date?.first ?? 1)).map((event) => {
-                    const side = event.sides?.find((item) => item.characterIds.includes(character.id))
-                    return (
-                    <li key={event.id}>
-                      <a href={`#events?event=${encodeURIComponent(event.id)}`}>
-                        {event.year}{event.end && ` — ${event.end.year}`} · {event.title}
-                      </a>
-                      {' · '}{side ? <EventSideLink side={side} organizations={timeline.organizations} /> : 'Без стороны'}
-                    </li>
-                    )
-                  })}</ol>
-                </>
-              )}
-            </li>
-          )
-        })}
-      </ul>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
+      </div>
     </main>
   )
 }

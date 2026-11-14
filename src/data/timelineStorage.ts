@@ -60,9 +60,10 @@ function parseTimeline(value: unknown): Timeline | null {
           characterIds.has(character.id) || typeof character.name !== 'string' || !character.name.trim() ||
           typeof character.description !== 'string' || ('color' in character && !isAtlasColor(character.color)) ||
           ('biography' in character && typeof character.biography !== 'string')) return null
-      const { surname, race, birth, death, portrait } = character
+      const { surname, race, sex, birth, death, portrait } = character
       if ((surname !== undefined && typeof surname !== 'string') ||
           (race !== undefined && typeof race !== 'string') ||
+          (sex !== undefined && typeof sex !== 'string') ||
           (birth !== undefined && !isCharacterDate(birth, daysPerYear)) ||
           (death !== undefined && !isCharacterDate(death, daysPerYear)) ||
           (portrait !== undefined && !isStoredImage(portrait)) ||
@@ -71,6 +72,7 @@ function parseTimeline(value: unknown): Timeline | null {
       parsed.push({ id: character.id, name: character.name, description: character.description,
         ...(surname !== undefined ? { surname } : {}),
         ...(race !== undefined ? { race } : {}),
+        ...(sex !== undefined ? { sex } : {}),
         ...(birth !== undefined ? { birth } : {}),
         ...(death !== undefined ? { death } : {}),
         ...(portrait !== undefined ? { portrait } : {}),

@@ -1,4 +1,6 @@
 import { useRef, useState, type FormEvent } from 'react'
+import { createPortal } from 'react-dom'
+import { TrashIcon } from './components/TrashIcon'
 import { standardYear, validateMonths, validateWeek } from './domain/calendar'
 import { ArchivePage } from './components/ArchivePage'
 import { OrganizationsPage } from './components/OrganizationsPage'
@@ -13,7 +15,7 @@ function timelineSnapshot({ name, startYear, endYear, daysPerYear, calendars, ev
   return JSON.stringify([name, startYear, endYear, daysPerYear, calendars, events, characters, organizations, chronicles, items, locations])
 }
 
-function App({ page, eventYear, eventId, characterId, organizationId, entryId }: { page: 'timeline' | 'events' | 'characters' | 'organizations' | 'chronicles' | 'items' | 'locations'; eventYear?: number; eventId?: string; characterId?: string; organizationId?: string; entryId?: string }) {
+function App({ backupTools, english, page, eventYear, eventId, characterId, organizationId, entryId }: { backupTools: HTMLDivElement | null; english: boolean; page: 'timeline' | 'events' | 'characters' | 'organizations' | 'chronicles' | 'items' | 'locations'; eventYear?: number; eventId?: string; characterId?: string; organizationId?: string; entryId?: string }) {
   const [backupMessage, setBackupMessage] = useState('')
   const [backupPreview, setBackupPreview] = useState<Timeline[] | null>(null)
   const backupDialogRef = useRef<HTMLDialogElement>(null)
@@ -372,7 +374,7 @@ function App({ page, eventYear, eventId, characterId, organizationId, entryId }:
     }
 
     if (page === 'characters') {
-      return <CharactersPage key={JSON.stringify([selected.id, characterId])} characterId={characterId} timeline={selected.timeline} save={saveCharacters} />
+      return <CharactersPage key={selected.id} characterId={characterId} timeline={selected.timeline} save={saveCharacters} />
     }
 
     return (
@@ -400,21 +402,34 @@ function App({ page, eventYear, eventId, characterId, organizationId, entryId }:
 
   return (
     <main className={selected ? 'timeline-library' : 'start-screen'}>
+      {backupTools && createPortal(
+        <>
+          {selected && (
+            <>
+              <BackupButton icon="⇩" label={english ? 'Export current timeline to JSON' : 'Экспорт текущего таймлайна в JSON'} onClick={() => downloadBackup()} />
+              <BackupButton icon="▤" label={english ? 'Export all timelines to JSON' : 'Сохранить весь атлас в JSON'} onClick={() => downloadBackup(true)} />
+            </>
+          )}
+          <BackupButton icon="⇧" label={english ? 'Import JSON backup' : 'Импорт резервной копии JSON'}
+            disabled={importing} onClick={() => importInputRef.current?.click()} />
+        </>,
+        backupTools,
+      )}
       <div className={selected ? "timeline-toolbar calendar-toolbar" : "timeline-toolbar"}>
         {selected && (
           <>
-          <label>
-            Календарь{' '}
+          <label className="timeline-select">
+            <span>Календарь</span>
             <select value={calendarIndex} onChange={(event) => selectTimeline(selectedId, Number(event.currentTarget.value))}>
               {selected.timeline.calendars.map((calendar, index) => (
                 <option key={index} value={index}>{index + 1}. {calendar.name}</option>
               ))}
             </select>
           </label>
-          <button className="calendar-action" type="button" onClick={() => openForm(selected, selected.timeline.calendars.length)}>
+          <button className="calendar-action" type="button" title="Создать календарь в текущем таймлайне" onClick={() => openForm(selected, selected.timeline.calendars.length)}>
             Добавить календарь
           </button>
-          <button className="calendar-action" type="button" onClick={() => {
+          <button className="calendar-action" type="button" title="Выбрать событие для шкалы" onClick={() => {
             setEventPickerError('')
             eventPickerRef.current?.showModal()
           }}>
@@ -423,8 +438,8 @@ function App({ page, eventYear, eventId, characterId, organizationId, entryId }:
           </>
         )}
         {selected && (
-          <label>
-            Таймлайн{' '}
+          <label className="timeline-select">
+            <span>Таймлайн</span>
             <select value={selectedId} onChange={(event) => selectTimeline(event.currentTarget.value)}>
               {library.entries.map(({ id, timeline }) => (
                 <option key={id} value={id}>
@@ -434,27 +449,22 @@ function App({ page, eventYear, eventId, characterId, organizationId, entryId }:
             </select>
           </label>
         )}
-        <button ref={createButtonRef} type="button" onClick={() => openForm()}>
+        <button ref={createButtonRef} type="button" title="Создать новый таймлайн" onClick={() => openForm()}>
           Создать таймлайн
         </button>
         {selected && (
-          <button type="button" onClick={() => openForm(selected)}>
+          <button type="button" title="Изменить настройки текущего таймлайна" onClick={() => openForm(selected)}>
             Настройки таймлайна
           </button>
         )}
         {selected && (
-          <button type="button" onClick={() => {
+          <button className="timeline-delete" type="button" aria-label="Удалить текущий таймлайн" title="Удалить текущий таймлайн" onClick={() => {
             setDeleteError('')
             deleteDialogRef.current?.showModal()
           }}>
-            Удалить таймлайн
+            <TrashIcon />
           </button>
         )}
-        {selected && <button type="button" onClick={() => downloadBackup()}>Экспорт JSON</button>}
-        {selected && <button type="button" onClick={() => downloadBackup(true)}>Экспорт всего атласа</button>}
-        <button type="button" disabled={importing} onClick={() => importInputRef.current?.click()}>
-          {importing ? 'Импортируем…' : 'Импорт JSON'}
-        </button>
         <input ref={importInputRef} hidden type="file" accept=".json,application/json" disabled={importing}
           onChange={(event) => void uploadBackup(event.currentTarget)} />
         {backupMessage && <p role="status">{backupMessage}</p>}
@@ -686,3 +696,16 @@ function App({ page, eventYear, eventId, characterId, organizationId, entryId }:
 }
 
 export default App
+
+function BackupButton({ icon, label, onClick, disabled }: {
+  icon: string
+  label: string
+  onClick: () => void
+  disabled?: boolean
+}) {
+  return (
+    <button type="button" aria-label={label} title={label} onClick={onClick} disabled={disabled}>
+      <span aria-hidden="true">{icon}</span>
+    </button>
+  )
+}

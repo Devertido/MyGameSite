@@ -117,6 +117,7 @@ export function isCharacterLifeOrderValid(birth?: CharacterDate, death?: Charact
 export type TimelineCharacter = {
   surname?: string
   race?: string
+  sex?: string
   birth?: CharacterDate
   death?: CharacterDate
   portrait?: string

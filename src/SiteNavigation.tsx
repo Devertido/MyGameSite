@@ -35,6 +35,7 @@ export default function SiteNavigation() {
   const [largeText, setLargeText] = useState(() => readPreference('large-text') === 'true')
   const languageDialog = useRef<HTMLDialogElement>(null)
   const settingsDialog = useRef<HTMLDialogElement>(null)
+  const [backupTools, setBackupTools] = useState<HTMLDivElement | null>(null)
   const helpDialog = useRef<HTMLDialogElement>(null)
   const english = language === 'en'
 
@@ -64,6 +65,7 @@ export default function SiteNavigation() {
           ))}
         </nav>
         <div className="site-tools" lang={language}>
+          <div className="site-backup-tools" ref={setBackupTools} />
           <button type="button" aria-label={english ? 'Help' : 'Справка'}
             title={english ? 'Help' : 'Справка'} onClick={() => helpDialog.current?.showModal()}>
             <span aria-hidden="true">?</span>
@@ -125,7 +127,7 @@ export default function SiteNavigation() {
         <button type="button" onClick={() => settingsDialog.current?.close()}>{english ? 'Close' : 'Закрыть'}</button>
       </dialog>
 
-      <App page={page.id} eventYear={page.year} eventId={page.eventId} characterId={page.characterId}
+      <App backupTools={backupTools} english={english} page={page.id} eventYear={page.year} eventId={page.eventId} characterId={page.characterId}
         organizationId={page.organizationId} entryId={page.entryId} />
     </>
   )
