@@ -725,6 +725,22 @@ button.event-action:hover:enabled {
   background: #eaf2ef;
 }
 
+.world-map-viewport {
+  aspect-ratio: 4 / 3;
+  overflow: auto;
+  scrollbar-width: none;
+  margin-top: 0.75rem;
+  border-radius: 0.25rem;
+  background: #e8dfcf;
+}
+
+.world-map-viewport img {
+  display: block;
+  width: 100%;
+  max-width: none;
+  height: auto;
+}
+
 .timeline-map h2 {
   margin: 0;
   font-size: 1rem;

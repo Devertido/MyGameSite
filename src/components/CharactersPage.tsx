@@ -105,7 +105,16 @@ export function CharactersPage({ timeline, save, characterId }: {
             <label>Фамилия<br /><input name="surname" defaultValue={original?.surname} /></label>
           </div>
           <p><label>Раса<br /><input name="race" defaultValue={original?.race} /></label></p>
-          <p><label>Пол<br /><input name="sex" defaultValue={original?.sex} /></label></p>
+          <p><label>Пол<br />
+            <select name="sex" defaultValue={original?.sex || ''}>
+              <option value="">Не указан</option>
+              <option value="Муж">Муж</option>
+              <option value="Жен">Жен</option>
+              {original?.sex && original.sex !== 'Муж' && original.sex !== 'Жен' && (
+                <option value={original.sex}>{original.sex}</option>
+              )}
+            </select>
+          </label></p>
           <CharacterDateFields prefix="birth" label="Дата рождения" months={months} initial={original?.birth} />
           <CharacterDateFields prefix="death" label="Дата смерти" months={months} initial={original?.death} />
           <ImageField name="portrait" label="Вертикальный портрет" initial={original?.portrait} />

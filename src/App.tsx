@@ -7,6 +7,7 @@ import { OrganizationsPage } from './components/OrganizationsPage'
 import { CharactersPage } from './components/CharactersPage'
 import { EventsPage } from './components/EventsPage'
 import { TimelineScale } from './components/TimelineScale'
+import { WorldMap } from './components/WorldMap'
 import { validateCalendarEra } from './domain/calendarYear'
 import { calendarDay, validateEvent, validateTimelineBounds, type Timeline, type TimelineCalendar, type TimelineEvent, type TimelineCharacter } from './domain/timeline'
 import { deleteTimeline, exportAtlas, exportTimeline, previewBackup, saveTimelineCopies, loadTimelines, rememberSelection, restoreSelection, saveTimeline } from './data/timelineStorage'
@@ -467,6 +468,7 @@ function App({ backupTools, english, page, eventYear, eventId, characterId, orga
             <div className="timeline-maps">
               <section className="timeline-map" aria-labelledby="world-map-title">
                 <h2 id="world-map-title">Карта мира</h2>
+                <WorldMap />
               </section>
               <section className="timeline-map" aria-labelledby="location-map-title">
                 <h2 id="location-map-title">Карта локации</h2>
