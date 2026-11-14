@@ -128,7 +128,7 @@ button:focus-visible {
 
 .site-header nav {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   height: 100%;
   max-width: 44rem;
   margin-inline: auto;
@@ -303,4 +303,19 @@ button:focus-visible {
   margin-inline-end: 0.4em;
   border: 1px solid #64736d;
   border-radius: 50%;
+}
+
+@media (max-width: 40rem) {
+  .site-header {
+    height: auto;
+  }
+
+  .site-header nav {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .site-header a {
+    min-height: 2.5rem;
+    padding-inline: 0.25rem;
+  }
 }
