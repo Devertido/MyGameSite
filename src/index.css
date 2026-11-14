@@ -10,7 +10,7 @@ body {
 
 .start-screen {
   display: grid;
-  min-height: 100svh;
+  min-height: 90dvh;
   place-items: center;
 }
 
@@ -115,4 +115,47 @@ button:focus-visible {
 .timeline-toolbar select {
   max-width: 100%;
   font: inherit;
+}
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  height: 10dvh;
+  background: #103930;
+}
+
+.site-header nav {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  height: 100%;
+  max-width: 44rem;
+  margin-inline: auto;
+}
+
+.site-header a {
+  display: grid;
+  place-items: center;
+  color: #e5f1ed;
+  font-size: clamp(0.8rem, 3.4vw, 1rem);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.site-header a:hover {
+  background: #174b43;
+}
+
+.site-header a[aria-current='page'] {
+  background: #174b43;
+  box-shadow: inset 0 -3px #9ae1ce;
+}
+
+.site-header a:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: -5px;
+}
+
+.section-page {
+  padding: clamp(1rem, 4vw, 3rem);
 }
