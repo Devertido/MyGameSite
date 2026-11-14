@@ -228,6 +228,13 @@ function App({ page, eventYear, eventId, characterId, organizationId, entryId }:
     saveSelectedContent((timeline) => ({
       ...timeline,
       characters,
+      chronicles: timeline.chronicles?.map((entry) => ({
+        ...entry,
+        characterIds: entry.characterIds?.filter((id) => ids.has(id)),
+      })),
+      items: timeline.items?.map((entry) => entry.ownerId && !ids.has(entry.ownerId)
+        ? { ...entry, ownerId: undefined }
+        : entry),
       organizations: timeline.organizations?.map((organization) => ({
         ...organization,
         memberIds: organization.memberIds.filter((id) => ids.has(id)),
@@ -329,7 +336,7 @@ function App({ page, eventYear, eventId, characterId, organizationId, entryId }:
     if (page === 'chronicles' || page === 'items') {
       return (
         <ArchivePage key={JSON.stringify([selected.id, page, entryId])}
-          kind={page} entryId={entryId} entries={selected.timeline[page] ?? []}
+          timeline={selected.timeline} kind={page} entryId={entryId} entries={selected.timeline[page] ?? []}
           save={(entries) => saveSelectedContent((timeline) => ({ ...timeline, [page]: entries }))} />
       )
     }
@@ -350,7 +357,17 @@ function App({ page, eventYear, eventId, characterId, organizationId, entryId }:
         eventId={eventId}
         timeline={selected.timeline}
         calendar={selected.timeline.calendars[calendarIndex] ?? selected.timeline.calendars[0]}
-        save={(events: TimelineEvent[]) => saveSelectedContent((timeline) => ({ ...timeline, events }))}
+        save={(events: TimelineEvent[]) => {
+          const ids = new Set(events.map(({ id }) => id))
+          saveSelectedContent((timeline) => ({
+            ...timeline,
+            events,
+            chronicles: timeline.chronicles?.map((entry) => ({
+              ...entry,
+              eventIds: entry.eventIds?.filter((id) => ids.has(id)),
+            })),
+          }))
+        }}
       />
     )
   }

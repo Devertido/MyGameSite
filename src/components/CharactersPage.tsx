@@ -89,6 +89,25 @@ export function CharactersPage({ timeline, save, characterId }: {
                   <p>{character.biography || 'Биография пока не добавлена.'}</p>
                 </>
               )}
+              {characterId !== undefined && (
+                <>
+                  {[
+                    { heading: 'Организации', route: 'organizations?organization=', links: (timeline.organizations ?? [])
+                      .filter(({ memberIds }) => memberIds.includes(character.id)).map(({ id, name }) => ({ id, title: name })) },
+                    { heading: 'Летописи', route: 'chronicles?entry=', links: (timeline.chronicles ?? [])
+                      .filter(({ characterIds }) => characterIds?.includes(character.id)) },
+                    { heading: 'Предметы', route: 'items?entry=', links: (timeline.items ?? [])
+                      .filter(({ ownerId }) => ownerId === character.id) },
+                  ].filter(({ links }) => links.length > 0).map(({ heading, route, links }) => (
+                    <section key={route}>
+                      <h3>{heading}</h3>
+                      <ul>{links.map(({ id, title }) => (
+                        <li key={id}><a href={'#' + route + encodeURIComponent(id)}>{title}</a></li>
+                      ))}</ul>
+                    </section>
+                  ))}
+                </>
+              )}
               {characterId !== undefined && events.length === 0 && <p>Участие в событиях пока не указано.</p>}
               {characterId !== undefined && events.length > 0 && (
                 <>

@@ -94,6 +94,7 @@ function parseTimeline(value: unknown): Timeline | null {
       typeof item.name === 'string' && typeof item.type === 'string' &&
       typeof item.startYear === 'number' && (!('endYear' in item) || typeof item.endYear === 'number') &&
       Array.isArray(item.memberIds) && item.memberIds.every((id: unknown) => typeof id === 'string') &&
+      (!('emblem' in item) || isStoredImage(item.emblem)) &&
       validateOrganization(item as Organization, timeline) === null
     ) || new Set(organizations.map(({ id }) => id)).size !== organizations.length) return null
     timeline.organizations = organizations
@@ -108,10 +109,25 @@ function parseTimeline(value: unknown): Timeline | null {
     const entries = value[field]
     if (!Array.isArray(entries) || !entries.every(isArchiveEntry) ||
         new Set(entries.map(({ id }) => id)).size !== entries.length) return null
+    if (entries.some((entry) =>
+      entry.characterIds?.some((id) => !characterIds.has(id)) ||
+      (entry.ownerId !== undefined && !characterIds.has(entry.ownerId)) ||
+      entry.eventIds?.some((id) => !timeline.events?.some((event) => event.id === id))
+    )) return null
     timeline[field] = entries
   }
 
   return timeline
+}
+
+function isIdList(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((id: unknown) => typeof id === 'string' && Boolean(id.trim())) &&
+    new Set(value).size === value.length
+}
+
+function isStoredImage(value: unknown): value is string {
+  return typeof value === 'string' && value.length <= 900_000 &&
+    /^data:image\/(webp|png);base64,[A-Za-z0-9+/]+={0,2}$/.test(value)
 }
 
 function isArchiveEntry(entry: unknown): entry is ArchiveEntry {
@@ -119,7 +135,11 @@ function isArchiveEntry(entry: unknown): entry is ArchiveEntry {
     typeof entry.id === 'string' && Boolean(entry.id.trim()) &&
     typeof entry.title === 'string' && Boolean(entry.title.trim()) &&
     typeof entry.summary === 'string' && typeof entry.body === 'string' &&
+    (!('eventIds' in entry) || isIdList(entry.eventIds)) &&
+    (!('characterIds' in entry) || isIdList(entry.characterIds)) &&
+    (!('ownerId' in entry) || typeof entry.ownerId === 'string') &&
     (!('type' in entry) || typeof entry.type === 'string') &&
+    (!('image' in entry) || isStoredImage(entry.image)) &&
     (!('rarity' in entry) || typeof entry.rarity === 'string')
 }
 

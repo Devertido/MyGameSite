@@ -1,3 +1,4 @@
+import { ImageField } from './ImageField'
 import { useState, type FormEvent } from 'react'
 import { validateOrganization, type Organization, type Timeline } from '../domain/timeline'
 
@@ -23,6 +24,7 @@ export function OrganizationsPage({ timeline, save, organizationId }: {
       type: String(fields.get('type') ?? '').trim(),
       startYear: Number(fields.get('startYear')),
       ...(end ? { endYear: Number(end) } : {}),
+      emblem: String(fields.get('emblem') ?? '') || undefined,
       memberIds: fields.getAll('members').map(String),
     }
     const issue = validateOrganization(organization, timeline)
@@ -51,6 +53,7 @@ export function OrganizationsPage({ timeline, save, organizationId }: {
       {draft !== null && (
         <form onSubmit={submit} onInput={() => setError('')}>
           <h2>{original ? 'Редактировать организацию' : 'Новая организация'}</h2>
+          <ImageField name="emblem" label="Эмблема" initial={original?.emblem} />
           <p><label>Название <input name="name" defaultValue={original?.name} required /></label></p>
           <p>
             <label>Тип организации <input name="type" list="organization-types" defaultValue={original?.type} required /></label>
@@ -76,6 +79,7 @@ export function OrganizationsPage({ timeline, save, organizationId }: {
       <ul className="event-list">
         {organizations.filter(({ id }) => organizationId === undefined || id === organizationId).map((organization) => (
           <li key={organization.id}>
+            {organization.emblem && <img className="atlas-entry-image organization-emblem" src={organization.emblem} alt={'Эмблема · ' + organization.name} />}
             <h2>{organizationId === undefined
               ? <a href={`#organizations?organization=${encodeURIComponent(organization.id)}`}>{organization.name}</a>
               : organization.name}</h2>
@@ -86,6 +90,16 @@ export function OrganizationsPage({ timeline, save, organizationId }: {
                   <li key={id}><a href={`#characters?character=${encodeURIComponent(id)}`}>{name}</a></li>
                 ))}
               </ul>
+            )}
+            {organizationId !== undefined && (
+              <section>
+                <h3>Участие в событиях</h3>
+                <ul>{(timeline.events ?? []).filter((event) =>
+                  event.sides?.some((side) => side.organizationId === organization.id)
+                ).sort((left, right) => left.year - right.year).map(({ id, year, title }) => (
+                  <li key={id}><a href={'#events?event=' + encodeURIComponent(id)}>{year} · {title}</a></li>
+                ))}</ul>
+              </section>
             )}
             <button type="button" disabled={draft !== null} onClick={() => setDraft(organization)}>Редактировать</button>
           </li>

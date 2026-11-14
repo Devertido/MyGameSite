@@ -190,6 +190,14 @@ export function EventsPage({ timeline, calendar, save, yearFilter, eventId }: {
                 !entry.sides?.some((side) => side.characterIds.includes(id))
               ), true)}
               {entry.description && <p>{entry.description}</p>}
+              {timeline.chronicles?.some(({ eventIds }) => eventIds?.includes(entry.id)) && (
+                <section>
+                  <h3>Связанные летописи</h3>
+                  <ul>{timeline.chronicles.filter(({ eventIds }) => eventIds?.includes(entry.id)).map(({ id, title }) => (
+                    <li key={id}><a href={'#chronicles?entry=' + encodeURIComponent(id)}>{title}</a></li>
+                  ))}</ul>
+                </section>
+              )}
               <button className="event-action" type="button" disabled={draft !== null || deleting !== null} onClick={() => { setPeriod(Boolean(entry.end)); setDraft(entry) }}>
                 Редактировать
               </button>{' '}

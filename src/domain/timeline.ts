@@ -115,6 +115,7 @@ export type EventSide = {
 }
 
 export type Organization = {
+  emblem?: string
   id: string
   name: string
   type: string
@@ -142,6 +143,10 @@ export function validateOrganization(organization: Organization, timeline: Timel
 }
 
 export type ArchiveEntry = {
+  image?: string
+  eventIds?: string[]
+  characterIds?: string[]
+  ownerId?: string
   id: string
   title: string
   summary: string

@@ -417,3 +417,88 @@ button.event-action {
 button.event-action:hover:enabled {
   background: #c3e3f4;
 }
+
+.archive-form input[type='checkbox'] {
+  width: auto;
+}
+
+.atlas-entry-image {
+  display: block;
+  width: 6rem;
+  height: 6rem;
+  object-fit: contain;
+}
+
+.item-image-frame {
+  display: grid;
+  place-items: center;
+  width: 6rem;
+  height: 6rem;
+  margin-block-end: 0.75rem;
+  border: 2px solid;
+  border-radius: 0.4rem;
+  background: #111a18;
+}
+
+.organization-emblem {
+  margin-block-end: 0.75rem;
+}
+
+.atlas-image-field {
+  min-width: 0;
+}
+
+.atlas-image-field input[type='file'] {
+  max-width: 100%;
+}
+
+.item-image-frame {
+  border-color: var(--item-accent);
+}
+
+.item-tooltip {
+  width: min(100%, 28rem);
+  padding: 1.25rem;
+  color: #f5f1e8;
+  border-color: #998561;
+  background: linear-gradient(160deg, #161c34, #080b17 75%);
+  box-shadow: inset 0 0 0 3px #0a0c16, 0 5px 16px #080b1740;
+}
+
+.item-tooltip .item-image-frame {
+  float: left;
+  width: 3.5rem;
+  height: 3.5rem;
+  margin: 0 0.85rem 0.75rem 0;
+}
+
+.item-tooltip .atlas-entry-image {
+  width: 100%;
+  height: 100%;
+}
+
+.item-tooltip h2 {
+  margin-bottom: 0.25rem;
+  color: var(--item-accent);
+}
+
+.item-tooltip .item-rarity {
+  margin-top: 0;
+  color: #ded5c5;
+}
+
+.item-tooltip .archive-copy {
+  line-height: 1.45;
+}
+
+.item-tooltip > .archive-copy,
+.item-tooltip > section,
+.item-tooltip > button {
+  clear: both;
+}
+
+.item-tooltip .archive-body {
+  padding-top: 0.65rem;
+  border-top-color: #716447;
+  color: #f4d28d;
+}

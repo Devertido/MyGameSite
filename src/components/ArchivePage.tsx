@@ -1,11 +1,13 @@
-import { useState, type FormEvent } from 'react'
-import type { ArchiveEntry } from '../domain/timeline'
+import { ImageField } from './ImageField'
+import { useState, type CSSProperties, type FormEvent } from 'react'
+import type { ArchiveEntry, Timeline } from '../domain/timeline'
 
 const rarities = ['Обычный', 'Необычный', 'Редкий', 'Эпический', 'Легендарный']
 
-export function ArchivePage({ kind, entries, entryId, save }: {
+export function ArchivePage({ kind, entries, entryId, timeline, save }: {
   kind: 'chronicles' | 'items'
   entries: ArchiveEntry[]
+  timeline: Timeline
   entryId?: string
   save: (entries: ArchiveEntry[]) => void
 }) {
@@ -35,8 +37,8 @@ export function ArchivePage({ kind, entries, entryId, save }: {
         summary: read('summary'),
         body: read('body'),
         ...(chronicle
-          ? {}
-          : { type: read('type'), rarity: read('rarity') }),
+          ? { eventIds: fields.getAll('events').map(String), characterIds: fields.getAll('characters').map(String) }
+          : { type: read('type'), rarity: read('rarity'), ownerId: read('ownerId') || undefined, image: read('image') || undefined }),
       }
       save(original ? entries.map((item) => item.id === original.id ? entry : item) : [...entries, entry])
       setDraft(null)
@@ -63,6 +65,7 @@ export function ArchivePage({ kind, entries, entryId, save }: {
           <label>Название<input name="title" defaultValue={original?.title} required /></label>
           {!chronicle && (
             <>
+              <ImageField name="image" label="Изображение предмета" initial={original?.image} />
               <label>Тип<input name="type" defaultValue={original?.type} placeholder="Оружие, броня, артефакт" /></label>
               <label>Редкость<select name="rarity" defaultValue={original?.rarity ?? rarities[0]}>
                 {rarities.map((rarity) => <option key={rarity}>{rarity}</option>)}
@@ -71,13 +74,39 @@ export function ArchivePage({ kind, entries, entryId, save }: {
           )}
           <label>{chronicle ? 'Краткая справка' : 'Краткое описание'}<textarea name="summary" rows={3} defaultValue={original?.summary} /></label>
           <label>{chronicle ? 'Текст летописи' : 'Свойства и история'}<textarea name="body" rows={8} defaultValue={original?.body} /></label>
+          {chronicle ? (
+            <>
+              <fieldset>
+                <legend>Связанные события</legend>
+                {(timeline.events ?? []).map(({ id, title, year }) => (
+                  <label key={id}><span><input type="checkbox" name="events" value={id}
+                    defaultChecked={original?.eventIds?.includes(id)} /> {year} · {title}</span></label>
+                ))}
+                {!timeline.events?.length && <p>В таймлайне пока нет событий.</p>}
+              </fieldset>
+              <fieldset>
+                <legend>Связанные персонажи</legend>
+                {(timeline.characters ?? []).map(({ id, name }) => (
+                  <label key={id}><span><input type="checkbox" name="characters" value={id}
+                    defaultChecked={original?.characterIds?.includes(id)} /> {name}</span></label>
+                ))}
+                {!timeline.characters?.length && <p>В таймлайне пока нет персонажей.</p>}
+              </fieldset>
+            </>
+          ) : (
+            <label>Владелец<select name="ownerId" defaultValue={original?.ownerId ?? ''}>
+              <option value="">Не указан</option>
+              {(timeline.characters ?? []).map(({ id, name }) => <option key={id} value={id}>{name}</option>)}
+            </select></label>
+          )}
           {error && <p role="alert">{error}</p>}
           <div><button type="submit">Сохранить</button>{' '}
             <button type="button" onClick={() => { setDraft(null); setError('') }}>Отмена</button></div>
         </form>
       )}
       {draft === null && selected && (
-        <article className={chronicle ? 'archive-card parchment' : 'archive-card item-card'}>
+        <article className={chronicle ? 'archive-card parchment' : 'archive-card item-card item-tooltip'} style={chronicle ? undefined : itemAccent(selected)}>
+          {!chronicle && <ItemImage entry={selected} />}
           <h2>{selected.title}</h2>
           {!chronicle && <p className="item-rarity">{[selected.type, selected.rarity].filter(Boolean).join(' · ')}</p>}
           {selected.summary && <p className="archive-copy">{selected.summary}</p>}
@@ -87,6 +116,23 @@ export function ArchivePage({ kind, entries, entryId, save }: {
               <p className="archive-copy">{selected.body}</p>
             </section>
           )}
+          {selected.eventIds?.length ? (
+            <section>
+              <h3>Связанные события</h3>
+              <ul>{timeline.events?.filter(({ id }) => selected.eventIds?.includes(id)).map(({ id, title, year }) => (
+                <li key={id}><a href={'#events?event=' + encodeURIComponent(id)}>{year} · {title}</a></li>
+              ))}</ul>
+            </section>
+          ) : null}
+          {selected.characterIds?.length || selected.ownerId ? (
+            <section>
+              <h3>{chronicle ? 'Связанные персонажи' : 'Владелец'}</h3>
+              <ul>{timeline.characters?.filter(({ id }) => chronicle
+                ? selected.characterIds?.includes(id) : selected.ownerId === id).map(({ id, name }) => (
+                <li key={id}><a href={'#characters?character=' + encodeURIComponent(id)}>{name}</a></li>
+              ))}</ul>
+            </section>
+          ) : null}
           <button type="button" onClick={() => setDraft(selected)}>Редактировать</button>
         </article>
       )}
@@ -96,6 +142,7 @@ export function ArchivePage({ kind, entries, entryId, save }: {
           <ul className="archive-grid">
             {matches.map((entry) => (
               <li className={chronicle ? 'archive-card parchment' : 'archive-card item-card'} key={entry.id}>
+                {!chronicle && <ItemImage entry={entry} />}
                 <h2><a href={'#' + kind + '?entry=' + encodeURIComponent(entry.id)}>{entry.title}</a></h2>
                 {!chronicle && <p className="item-rarity">{[entry.type, entry.rarity].filter(Boolean).join(' · ')}</p>}
                 {entry.summary && <p className="archive-copy">{entry.summary}</p>}
@@ -106,4 +153,18 @@ export function ArchivePage({ kind, entries, entryId, save }: {
       )}
     </main>
   )
+}
+
+function ItemImage({ entry }: { entry: ArchiveEntry }) {
+  return (
+    <div className="item-image-frame" style={itemAccent(entry)}>
+      {entry.image && <img className="atlas-entry-image" src={entry.image} alt={entry.title} />}
+    </div>
+  )
+}
+
+function itemAccent(entry: ArchiveEntry): CSSProperties {
+  const colors = ['#acb8bc', '#68bd76', '#68b7ef', '#ba83ef', '#edbb59']
+  const color = colors[rarities.indexOf(entry.rarity ?? '')] ?? colors[0]
+  return { '--item-accent': color } as CSSProperties
 }
