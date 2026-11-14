@@ -46,6 +46,7 @@ export type TimelineEvent = {
   title: string
   description: string
   characterIds?: string[]
+  onTimeline?: boolean
   date?: EventDays
   end?: EventEndpoint
 }

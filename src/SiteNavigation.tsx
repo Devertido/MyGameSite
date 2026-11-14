@@ -17,7 +17,6 @@ function currentPage() {
   return {
     ...page,
     year: page.id === 'events' && Number.isSafeInteger(year) ? year : undefined,
-    newEvent: page.id === 'events' && params.get('new') === '1',
   }
 }
 
@@ -45,7 +44,7 @@ export default function SiteNavigation() {
         </nav>
       </header>
 
-      <App page={page.id} eventYear={page.year} newEvent={page.newEvent} />
+      <App page={page.id} eventYear={page.year} />
     </>
   )
 }

@@ -240,3 +240,7 @@ button:focus-visible {
 .calendar-toolbar button:hover {
   background: #bfe0d6;
 }
+
+.event-picker-empty {
+  color: #596461;
+}

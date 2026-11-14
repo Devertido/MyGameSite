@@ -48,8 +48,9 @@ export function TimelineScale({ timeline, calendar }: { timeline: Timeline; cale
     return { year: start + offset, position }
   })
 
+  const visibleEvents = (timeline.events ?? []).filter((event) => event.onTimeline !== false)
   const eventsByYear = new Map<number, number>()
-  for (const { year } of timeline.events ?? []) {
+  for (const { year } of visibleEvents) {
     eventsByYear.set(year, (eventsByYear.get(year) ?? 0) + 1)
   }
 
@@ -96,15 +97,15 @@ export function TimelineScale({ timeline, calendar }: { timeline: Timeline; cale
           </label>{' '}
           <button type="submit">Перейти к году</button>
         </form>
-        {(timeline.events?.length ?? 0) > 0 && (
+        {visibleEvents.length > 0 && (
           <label>
             Перейти к событию{' '}
             <select value="" onChange={(event) => {
-              const selected = timeline.events?.find(({ id }) => id === event.currentTarget.value)
+              const selected = visibleEvents.find(({ id }) => id === event.currentTarget.value)
               if (selected) setTarget({ year: selected.year })
             }}>
               <option value="" disabled>Выберите событие</option>
-              {[...(timeline.events ?? [])].sort((left, right) => left.year - right.year).map(({ id, year, title }) => (
+              {[...visibleEvents].sort((left, right) => left.year - right.year).map(({ id, year, title }) => (
                 <option key={id} value={id}>{year} · {title}</option>
               ))}
             </select>

@@ -4,17 +4,19 @@ import { CharactersPage } from './components/CharactersPage'
 import { EventsPage } from './components/EventsPage'
 import { TimelineScale } from './components/TimelineScale'
 import { validateCalendarEra } from './domain/calendarYear'
-import { validateEvent, validateTimelineBounds, type Timeline, type TimelineCalendar, type TimelineEvent, type TimelineCharacter } from './domain/timeline'
+import { calendarDay, validateEvent, validateTimelineBounds, type Timeline, type TimelineCalendar, type TimelineEvent, type TimelineCharacter } from './domain/timeline'
 import { deleteTimeline, exportTimeline, importTimeline, loadTimelines, rememberSelection, restoreSelection, saveTimeline } from './data/timelineStorage'
 
 function timelineSnapshot({ name, startYear, endYear, daysPerYear, calendars, events, characters }: Timeline) {
   return JSON.stringify([name, startYear, endYear, daysPerYear, calendars, events, characters])
 }
 
-function App({ page, eventYear, newEvent }: { page: 'timeline' | 'events' | 'characters'; eventYear?: number; newEvent: boolean }) {
+function App({ page, eventYear }: { page: 'timeline' | 'events' | 'characters'; eventYear?: number }) {
   const [backupMessage, setBackupMessage] = useState('')
   const [importing, setImporting] = useState(false)
   const [deleteError, setDeleteError] = useState('')
+  const eventPickerRef = useRef<HTMLDialogElement>(null)
+  const [eventPickerError, setEventPickerError] = useState('')
   const deleteDialogRef = useRef<HTMLDialogElement>(null)
   const importInputRef = useRef<HTMLInputElement>(null)
   const createButtonRef = useRef<HTMLButtonElement>(null)
@@ -205,6 +207,18 @@ function App({ page, eventYear, newEvent }: { page: 'timeline' | 'events' | 'cha
     }))
   }
 
+  function placeEvent(id: string) {
+    try {
+      saveSelectedContent((timeline) => ({
+        ...timeline,
+        events: timeline.events?.map((event) => event.id === id ? { ...event, onTimeline: true } : event),
+      }))
+      setEventPickerError('')
+    } catch (error) {
+      setEventPickerError(error instanceof Error ? error.message : 'Не удалось добавить событие на шкалу.')
+    }
+  }
+
   function saveCharacters(characters: TimelineCharacter[]) {
     const ids = new Set(characters.map(({ id }) => id))
     saveSelectedContent((timeline) => ({
@@ -291,8 +305,7 @@ function App({ page, eventYear, newEvent }: { page: 'timeline' | 'events' | 'cha
 
     return (
       <EventsPage
-        key={JSON.stringify([selected.id, eventYear, newEvent])}
-        startCreating={newEvent}
+        key={JSON.stringify([selected.id, eventYear])}
         yearFilter={eventYear}
         timeline={selected.timeline}
         calendar={selected.timeline.calendars[calendarIndex] ?? selected.timeline.calendars[0]}
@@ -357,7 +370,10 @@ function App({ page, eventYear, newEvent }: { page: 'timeline' | 'events' | 'cha
             <button type="button" onClick={() => openForm(selected, selected.timeline.calendars.length)}>
               Добавить календарь
             </button>
-            <button type="button" onClick={() => { window.location.hash = 'events?new=1' }}>
+            <button type="button" onClick={() => {
+              setEventPickerError('')
+              eventPickerRef.current?.showModal()
+            }}>
               Добавить событие
             </button>
           </div>
@@ -368,6 +384,33 @@ function App({ page, eventYear, newEvent }: { page: 'timeline' | 'events' | 'cha
           />
         </>
       )}
+
+      <dialog ref={eventPickerRef} aria-labelledby="event-picker-title">
+        <h2 id="event-picker-title">События таймлайна</h2>
+        {selected && (selected.timeline.events?.length ? (
+          <ul className="event-list">
+            {[...selected.timeline.events].sort((left, right) =>
+              left.year - right.year || (left.date?.first ?? 1) - (right.date?.first ?? 1)
+            ).map((event) => (
+              <li key={event.id}>
+                <strong>{event.title}</strong>
+                <p>
+                  Системный год {event.year}
+                  {event.date && ` · ${calendarDay(
+                    (selected.timeline.calendars[calendarIndex] ?? selected.timeline.calendars[0]).months,
+                    event.date.first,
+                  )}`}
+                </p>
+                {event.onTimeline === false ? (
+                  <button type="button" onClick={() => placeEvent(event.id)}>Добавить на таймлайн</button>
+                ) : <span>Уже на таймлайне</span>}
+              </li>
+            ))}
+          </ul>
+        ) : <p className="event-picker-empty">Перейдите во вкладку «События».</p>)}
+        {eventPickerError && <p role="alert">{eventPickerError}</p>}
+        <button type="button" onClick={() => eventPickerRef.current?.close()}>Закрыть</button>
+      </dialog>
 
       <dialog ref={deleteDialogRef} aria-labelledby="delete-title" aria-describedby="delete-description">
         <h2 id="delete-title">Удалить таймлайн?</h2>

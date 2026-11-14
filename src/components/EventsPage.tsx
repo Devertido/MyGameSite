@@ -3,15 +3,14 @@ import { toCalendarYear } from '../domain/calendarYear'
 import type { Timeline, TimelineCalendar, TimelineEvent } from '../domain/timeline'
 import { calendarDay, eventDays, validateEvent, type EventDays, type EventEndpoint } from '../domain/timeline'
 
-export function EventsPage({ timeline, calendar, save, yearFilter, startCreating }: {
+export function EventsPage({ timeline, calendar, save, yearFilter }: {
   timeline: Timeline
   calendar: TimelineCalendar
   yearFilter?: number
-  startCreating: boolean
   save: (events: TimelineEvent[]) => void
 }) {
   const events = timeline.events ?? []
-  const [draft, setDraft] = useState<TimelineEvent | 'new' | null>(startCreating ? 'new' : null)
+  const [draft, setDraft] = useState<TimelineEvent | 'new' | null>(null)
   const [deleting, setDeleting] = useState<TimelineEvent | null>(null)
   const [period, setPeriod] = useState(false)
   const [error, setError] = useState('')
@@ -71,7 +70,7 @@ export function EventsPage({ timeline, calendar, save, yearFilter, startCreating
     }
 
     const characterIds = fields.getAll('characterIds').map(String)
-    const entry = { id: original?.id ?? crypto.randomUUID(), ...details, characterIds }
+    const entry = { id: original?.id ?? crypto.randomUUID(), ...details, characterIds, onTimeline: original ? original.onTimeline !== false : false }
     persist(original ? events.map((item) => item.id === original.id ? entry : item) : [...events, entry])
   }
 
