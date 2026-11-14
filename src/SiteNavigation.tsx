@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { version } from '../package.json'
 import App from './App'
+import { MusicSettings } from './components/MusicSettings'
 
 const pages = [
   { id: 'timeline', title: 'Таймлайн' },
@@ -124,6 +125,8 @@ export default function SiteNavigation() {
           setLargeText(enabled)
           writePreference('large-text', String(enabled))
         }} />{' '}{english ? 'Larger text' : 'Увеличенный текст'}</label></p>
+        <MusicSettings english={english} initialVolume={readMusicVolume()}
+          rememberVolume={(volume) => writePreference('music-volume', String(volume))} />
         <button type="button" onClick={() => settingsDialog.current?.close()}>{english ? 'Close' : 'Закрыть'}</button>
       </dialog>
 
@@ -157,4 +160,9 @@ function writePreference(key: string, value: string) {
   } catch {
     // Настройка действует в открытой вкладке.
   }
+}
+function readMusicVolume() {
+  const saved = readPreference('music-volume')
+  const volume = saved === null ? NaN : Number(saved)
+  return Number.isInteger(volume) && volume >= 0 && volume <= 100 ? volume : 5
 }
