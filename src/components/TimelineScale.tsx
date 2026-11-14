@@ -41,16 +41,12 @@ export function TimelineScale({ timeline, calendar }: { timeline: Timeline; cale
     }
   }
 
-  const maxIntervals = zoom >= 32 ? 20 * zoom : baseIntervals * zoom
-  const intervals = span < BigInt(maxIntervals) ? Number(span) : maxIntervals
-
-  // Число отметок ограничено масштабом даже для очень длинного таймлайна.
-  const ticks = Array.from({ length: intervals + 1 }, (_, index) => {
-    if (intervals === 0) return { year: start, position: 0 }
-
-    const offset = (span * BigInt(index)) / BigInt(intervals)
-    const position = positionOf(start + offset)
-    return { year: start + offset, position }
+  const maxIntervals = BigInt(zoom >= 32 ? 20 * zoom : baseIntervals * zoom)
+  // Округляем шаг вверх один раз, чтобы соседние деления всегда были равноудалены.
+  const yearStep = span === 0n ? 1n : (span + maxIntervals - 1n) / maxIntervals
+  const ticks = Array.from({ length: Number(span / yearStep) + 1 }, (_, index) => {
+    const year = start + BigInt(index) * yearStep
+    return { year, position: positionOf(year) }
   })
 
   const visibleEvents = (timeline.events ?? []).filter((event) => event.onTimeline !== false)
