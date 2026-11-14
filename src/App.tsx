@@ -343,7 +343,21 @@ function App({ page, eventYear, eventId, characterId, organizationId, entryId }:
 
     if (page === 'organizations') {
       return <OrganizationsPage key={JSON.stringify([selected.id, organizationId])} organizationId={organizationId} timeline={selected.timeline}
-        save={(organizations) => saveSelectedContent((timeline) => ({ ...timeline, organizations }))} />
+        save={(organizations) => {
+          const remaining = new Set(organizations.map(({ id }) => id))
+          saveSelectedContent((timeline) => ({
+            ...timeline,
+            organizations,
+            events: timeline.events?.map((event) => ({
+              ...event,
+              sides: event.sides?.map((side) => {
+                if (!side.organizationId || remaining.has(side.organizationId)) return side
+                const name = timeline.organizations?.find(({ id }) => id === side.organizationId)?.name ?? side.name
+                return { ...side, name, organizationId: undefined }
+              }),
+            })),
+          }))
+        }} />
     }
 
     if (page === 'characters') {

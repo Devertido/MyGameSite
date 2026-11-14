@@ -1,4 +1,5 @@
 import { EditIcon } from './EditIcon'
+import { TrashIcon } from './TrashIcon'
 import { EventSideLink } from './EventSideLink'
 import { useState, type FormEvent } from 'react'
 import type { Timeline, TimelineCharacter } from '../domain/timeline'
@@ -127,7 +128,7 @@ export function CharactersPage({ timeline, save, characterId }: {
                 </>
               )}
               <button type="button" disabled={busy} onClick={() => setDraft(character)} aria-label="Редактировать" title="Редактировать"><EditIcon /></button>{' '}
-              <button type="button" disabled={busy} onClick={() => setDeleting(character)}>Удалить персонажа</button>
+              <button type="button" disabled={busy} onClick={() => setDeleting(character)} aria-label="Удалить персонажа" title="Удалить персонажа"><TrashIcon /></button>
             </li>
           )
         })}

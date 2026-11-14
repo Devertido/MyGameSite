@@ -724,3 +724,41 @@ button.event-action:hover:enabled {
   text-align: center;
   text-overflow: ellipsis;
 }
+
+.trash-icon {
+  display: inline-block;
+  position: relative;
+  box-sizing: border-box;
+  width: 0.65em;
+  height: 0.75em;
+  margin-top: 0.2em;
+  border: 2px solid currentColor;
+  border-radius: 0 0 2px 2px;
+}
+
+.trash-icon::before,
+.trash-icon::after {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  height: 2px;
+  background: currentColor;
+  content: '';
+}
+
+.trash-icon::before {
+  top: -0.28em;
+  width: 0.83em;
+}
+
+.trash-icon::after {
+  top: -0.42em;
+  width: 0.3em;
+}
+
+.card-delete-dialog {
+  position: fixed;
+  inset: 0;
+  max-width: min(30rem, 85vw);
+  z-index: 3;
+}

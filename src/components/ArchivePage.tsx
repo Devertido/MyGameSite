@@ -1,4 +1,5 @@
 import { EditIcon } from './EditIcon'
+import { TrashIcon } from './TrashIcon'
 import { ImageField } from './ImageField'
 import { useState, type CSSProperties, type FormEvent } from 'react'
 import type { ArchiveEntry, Timeline } from '../domain/timeline'
@@ -16,6 +17,7 @@ export function ArchivePage({ kind, entries, entryId, timeline, save }: {
   const location = kind === 'locations'
   const title = location ? 'Локации' : chronicle ? 'Летописи' : 'Предметы'
   const [draft, setDraft] = useState<ArchiveEntry | 'new' | null>(null)
+  const [deleting, setDeleting] = useState<ArchiveEntry | null>(null)
   const [error, setError] = useState('')
   const [query, setQuery] = useState('')
   const original = draft === 'new' ? null : draft
@@ -136,7 +138,9 @@ export function ArchivePage({ kind, entries, entryId, timeline, save }: {
               ))}</ul>
             </section>
           ) : null}
-          <button type="button" onClick={() => setDraft(selected)} aria-label="Редактировать" title="Редактировать"><EditIcon /></button>
+          <button type="button" onClick={() => setDraft(selected)} aria-label="Редактировать" title="Редактировать"><EditIcon /></button>{' '}
+          <button type="button" aria-label="Удалить запись" title="Удалить запись"
+            onClick={() => { setError(''); setDeleting(selected) }}><TrashIcon /></button>
         </article>
       )}
       {draft === null && entryId !== undefined && !selected && <p>Запись не найдена в выбранном таймлайне.</p>}
@@ -153,6 +157,23 @@ export function ArchivePage({ kind, entries, entryId, timeline, save }: {
             ))}
           </ul>
         ) : <p>{entries.length ? 'По этому запросу ничего не найдено.' : location ? 'Здесь пока нет локаций.' : chronicle ? 'Здесь пока нет летописей.' : 'Здесь пока нет предметов.'}</p>
+      )}
+      {deleting && (
+        <dialog open className="card-delete-dialog" aria-labelledby="card-delete-title">
+          <h2 id="card-delete-title">Удалить запись «{deleting.title}»?</h2>
+          <p>Запись будет удалена из текущего таймлайна.</p>
+          {error && <p role="alert">{error}</p>}
+          <button type="button" autoFocus onClick={() => { setDeleting(null); setError('') }}>Отмена</button>{' '}
+          <button type="button" onClick={() => {
+            try {
+              save(entries.filter(({ id }) => id !== deleting.id))
+              setDeleting(null)
+              window.location.hash = kind
+            } catch (error) {
+              setError(error instanceof Error ? error.message : 'Не удалось удалить запись.')
+            }
+          }}>Удалить</button>
+        </dialog>
       )}
     </main>
   )

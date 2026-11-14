@@ -1,4 +1,5 @@
 import { EditIcon } from './EditIcon'
+import { TrashIcon } from './TrashIcon'
 import { ImageField } from './ImageField'
 import { useState, type FormEvent } from 'react'
 import { validateOrganization, type Organization, type Timeline } from '../domain/timeline'
@@ -12,6 +13,7 @@ export function OrganizationsPage({ timeline, save, organizationId }: {
 }) {
   const organizations = timeline.organizations ?? []
   const [draft, setDraft] = useState<Organization | 'new' | null>(null)
+  const [deleting, setDeleting] = useState<Organization | null>(null)
   const [error, setError] = useState('')
   const original = draft === 'new' ? null : draft
 
@@ -102,10 +104,29 @@ export function OrganizationsPage({ timeline, save, organizationId }: {
                 ))}</ul>
               </section>
             )}
-            <button type="button" disabled={draft !== null} onClick={() => setDraft(organization)} aria-label="Редактировать" title="Редактировать"><EditIcon /></button>
+            <button type="button" disabled={draft !== null} onClick={() => setDraft(organization)} aria-label="Редактировать" title="Редактировать"><EditIcon /></button>{' '}
+            <button type="button" disabled={draft !== null} aria-label="Удалить организацию" title="Удалить организацию"
+              onClick={() => { setError(''); setDeleting(organization) }}><TrashIcon /></button>
           </li>
         ))}
       </ul>
+      {deleting && (
+        <dialog open className="card-delete-dialog" aria-labelledby="card-delete-title">
+          <h2 id="card-delete-title">Удалить организацию «{deleting.name}»?</h2>
+          <p>Запись будет удалена из текущего таймлайна.</p>
+          {error && <p role="alert">{error}</p>}
+          <button type="button" autoFocus onClick={() => { setDeleting(null); setError('') }}>Отмена</button>{' '}
+          <button type="button" onClick={() => {
+            try {
+              save(organizations.filter(({ id }) => id !== deleting.id))
+              setDeleting(null)
+              window.location.hash = 'organizations'
+            } catch (error) {
+              setError(error instanceof Error ? error.message : 'Не удалось удалить запись.')
+            }
+          }}>Удалить</button>
+        </dialog>
+      )}
     </main>
   )
 }

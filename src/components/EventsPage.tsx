@@ -1,4 +1,5 @@
 import { EditIcon } from './EditIcon'
+import { TrashIcon } from './TrashIcon'
 import { useRef, useState, type FormEvent } from 'react'
 import { EventSideLink } from './EventSideLink'
 import { EventParticipants } from './EventParticipants'
@@ -200,8 +201,8 @@ export function EventsPage({ timeline, calendar, save, yearFilter, eventId }: {
                 </section>
               )}
               <button className="event-action" type="button" disabled={draft !== null || deleting !== null} onClick={() => { setPeriod(Boolean(entry.end)); setDraft(entry) }} aria-label="Редактировать" title="Редактировать"><EditIcon /></button>{' '}
-              <button className="event-action" type="button" disabled={draft !== null || deleting !== null} onClick={() => setDeleting(entry)}>
-                Удалить событие
+              <button className="event-action" type="button" disabled={draft !== null || deleting !== null} onClick={() => setDeleting(entry)} aria-label="Удалить событие" title="Удалить событие">
+                <TrashIcon />
               </button>
             </li>
           ))}

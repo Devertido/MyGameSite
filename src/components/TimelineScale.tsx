@@ -61,7 +61,7 @@ export function TimelineScale({ timeline, calendar }: { timeline: Timeline; cale
     }
   }
 
-  const maxIntervals = baseIntervals * zoom
+  const maxIntervals = zoom === 32 ? 20 * zoom : baseIntervals * zoom
   const intervals = span < BigInt(maxIntervals) ? Number(span) : maxIntervals
 
   // Число отметок ограничено масштабом даже для очень длинного таймлайна.
