@@ -2,7 +2,7 @@ import { EditIcon } from './EditIcon'
 import { TrashIcon } from './TrashIcon'
 import { ImageField } from './ImageField'
 import { useState, type FormEvent } from 'react'
-import { validateOrganization, type Organization, type Timeline } from '../domain/timeline'
+import { defaultOrganizationColor, validateOrganization, type Organization, type Timeline } from '../domain/timeline'
 
 const types = ['Государство', 'Банда', 'Орден', 'Клан', 'Гильдия', 'Союз', 'Фракция']
 
@@ -31,6 +31,7 @@ export function OrganizationsPage({ timeline, save, organizationId }: {
       description: String(fields.get('description') ?? '').trim(),
       locationIds: fields.getAll('locations').map(String),
       onTimeline: fields.has('onTimeline'),
+      color: String(fields.get('color') ?? defaultOrganizationColor),
       memberIds: fields.getAll('members').map(String),
     }
     const issue = validateOrganization(organization, timeline)
@@ -69,6 +70,8 @@ export function OrganizationsPage({ timeline, save, organizationId }: {
           <p><label>Системный год основания <input name="startYear" type="number" step="1" defaultValue={original?.startYear} required /></label></p>
           <p><label>Системный год окончания <input name="endYear" type="number" step="1" defaultValue={original?.endYear} /></label></p>
           <p>Оставьте год окончания пустым, если организация существует или дата её окончания неизвестна.</p>
+          <p><label>Цвет фракции на таймлайне <input type="color" name="color"
+            defaultValue={original?.color ?? defaultOrganizationColor} /></label></p>
           <p><label><input type="checkbox" name="onTimeline" defaultChecked={original?.onTimeline} /> Показать годы существования под таймлайном</label></p>
           <fieldset>
             <legend>Локации фракции</legend>
@@ -96,7 +99,7 @@ export function OrganizationsPage({ timeline, save, organizationId }: {
         {organizations.filter(({ id }) => organizationId === undefined || id === organizationId).map((organization) => (
           <li key={organization.id}>
             {organization.emblem && <img className="atlas-entry-image organization-emblem" src={organization.emblem} alt={'Эмблема · ' + organization.name} />}
-            <h2>{organizationId === undefined
+            <h2><span className="atlas-color" style={{ backgroundColor: organization.color ?? defaultOrganizationColor }} aria-hidden="true" />{organizationId === undefined
               ? <a href={`#organizations?organization=${encodeURIComponent(organization.id)}`}>{organization.name}</a>
               : organization.name}</h2>
             <p>{organization.type} · {organization.startYear} — {organization.endYear ?? 'год окончания не указан'}</p>

@@ -135,7 +135,10 @@ export type EventSide = {
   characterIds: string[]
 }
 
+export const defaultOrganizationColor = '#805423'
+
 export type Organization = {
+  color?: string
   description?: string
   locationIds?: string[]
   onTimeline?: boolean
@@ -153,6 +156,7 @@ export function isAtlasColor(value: unknown): value is string {
 }
 
 export function validateOrganization(organization: Organization, timeline: Timeline): string | null {
+  if (organization.color !== undefined && !isAtlasColor(organization.color)) return 'Выберите допустимый цвет организации.'
   if (!organization.name.trim() || !organization.type.trim()) return 'Укажите название и тип организации.'
   if (!Number.isSafeInteger(organization.startYear) || organization.startYear < timeline.startYear ||
       organization.startYear > timeline.endYear || (organization.endYear !== undefined &&

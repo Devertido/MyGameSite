@@ -324,8 +324,6 @@ button:focus-visible {
   min-width: 2px;
   overflow: hidden;
   border-radius: 0.2rem;
-  background: #805423;
-  color: #fff;
   font-size: 0.8rem;
   line-height: 1.5rem;
   text-indent: 0.35rem;

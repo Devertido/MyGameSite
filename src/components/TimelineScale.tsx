@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState, type FormEvent } from 'react'
 import { toCalendarYear } from '../domain/calendarYear'
-import type { Timeline, TimelineCalendar } from '../domain/timeline'
+import { defaultOrganizationColor, type Timeline, type TimelineCalendar } from '../domain/timeline'
 
 const zoomLevels = [1, 2, 4, 8, 16, 32, 64, 128]
 const baseIntervals = 4
@@ -148,14 +148,14 @@ export function TimelineScale({ timeline, calendar }: { timeline: Timeline; cale
           )}
           {organizationPeriods.length > 0 && (
             <ul className="timeline-organizations" aria-label="Периоды существования организаций">
-              {organizationPeriods.map(({ id, name, startYear, endYear }) => {
+              {organizationPeriods.map(({ id, name, startYear, endYear, color = defaultOrganizationColor }) => {
                 const left = positionOf(BigInt(startYear))
                 const right = positionOf(BigInt(endYear ?? timeline.endYear) + 1n)
                 const label = `${name} · ${startYear} — ${endYear ?? '…'}`
                 return (
                   <li key={id}>
                     <a href={'#organizations?organization=' + encodeURIComponent(id)}
-                      style={{ left: `${left}%`, width: `${right - left}%` }}
+                      style={{ left: `${left}%`, width: `${right - left}%`, backgroundColor: color, color: markerTextColor(color) }}
                       aria-label={label} title={label}>{label}</a>
                   </li>
                 )
