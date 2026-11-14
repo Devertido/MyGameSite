@@ -81,9 +81,14 @@ export function CharactersPage({ timeline, save, characterId }: {
           const events = (timeline.events ?? []).filter(({ characterIds }) => characterIds?.includes(character.id))
           return (
             <li key={character.id}>
-              <h2>{character.color && <span className="atlas-color" style={{ backgroundColor: character.color }} aria-hidden="true" />}{characterId === undefined
-                ? <a href={`#characters?character=${encodeURIComponent(character.id)}`}>{character.name}</a>
-                : character.name}</h2>
+              <div className="character-heading">
+                {character.color && <span className="atlas-color" style={{ backgroundColor: character.color }} aria-hidden="true" />}
+                <button className="event-action" type="button" disabled={busy} onClick={() => setDraft(character)} aria-label="Редактировать" title="Редактировать"><EditIcon /></button>
+                <button className="event-action" type="button" disabled={busy} onClick={() => setDeleting(character)} aria-label="Удалить персонажа" title="Удалить персонажа"><TrashIcon /></button>
+                <h2>{characterId === undefined
+                  ? <a href={`#characters?character=${encodeURIComponent(character.id)}`}>{character.name}</a>
+                  : character.name}</h2>
+              </div>
               {character.description && <p>{character.description}</p>}
               {characterId !== undefined && (
                 <>
@@ -127,8 +132,6 @@ export function CharactersPage({ timeline, save, characterId }: {
                   })}</ol>
                 </>
               )}
-              <button className="event-action" type="button" disabled={busy} onClick={() => setDraft(character)} aria-label="Редактировать" title="Редактировать"><EditIcon /></button>{' '}
-              <button className="event-action" type="button" disabled={busy} onClick={() => setDeleting(character)} aria-label="Удалить персонажа" title="Удалить персонажа"><TrashIcon /></button>
             </li>
           )
         })}

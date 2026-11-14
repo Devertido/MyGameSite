@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { version } from '../package.json'
 import App from './App'
 
 const pages = [
@@ -54,6 +55,7 @@ export default function SiteNavigation() {
   return (
     <>
       <header className="site-header">
+        <span className="site-version">{version}</span>
         <nav lang={language} aria-label={english ? "Atlas sections" : "Разделы Атласа"}>
           {pages.map(({ id, title }) => (
             <a key={id} href={'#' + id} aria-current={page.id === id ? 'page' : undefined}>
