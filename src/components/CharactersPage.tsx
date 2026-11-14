@@ -97,11 +97,11 @@ export function CharactersPage({ timeline, save, characterId }: {
       <h1>Персонажи</h1>
       <p>{timeline.name}</p>
       {characterId !== undefined && !characters.some(({ id }) => id === characterId) && <p>Персонаж не найден.</p>}
-      {(!busy || draft === 'new') && <button type="button" onClick={() => setDraft('new')}>Добавить персонажа</button>}
+      {!deleting && <button type="button" onClick={() => setDraft('new')}>Добавить персонажа</button>}
       {draft !== null && (
-        <CreationDialog active={draft === 'new'} onCancel={cancel}>
+        <CreationDialog onCancel={cancel}>
           <form onSubmit={submit} onInput={() => setError('')}>
-            <h2 id={draft === 'new' ? 'creation-dialog-title' : undefined}>{original ? 'Редактировать персонажа' : 'Новый персонаж'}</h2>
+            <h2 id="creation-dialog-title">{original ? 'Редактировать персонажа' : 'Новый персонаж'}</h2>
             <div className="character-name-fields">
               <label>Имя<br /><input name="name" defaultValue={original?.name} required /></label>
               <label>Фамилия<br /><input name="surname" defaultValue={original?.surname} /></label>

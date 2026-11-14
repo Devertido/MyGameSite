@@ -128,14 +128,14 @@ export function EventsPage({ timeline, calendar, save, yearFilter, eventId }: {
         <label>С года <input type="number" value={from} onChange={(event) => setFrom(event.currentTarget.value)} /></label>
         <label>По год <input type="number" value={to} onChange={(event) => setTo(event.currentTarget.value)} /></label>
       </fieldset>}
-      {eventId === undefined && (draft === null || draft === 'new') && deleting === null && (
+      {eventId === undefined && deleting === null && (
         <button type="button" onClick={() => { setPeriod(false); setDraft('new') }}>Добавить событие</button>
       )}
 
       {draft !== null && (
-        <CreationDialog active={draft === 'new'} onCancel={() => { setDraft(null); setError('') }}>
+        <CreationDialog onCancel={() => { setDraft(null); setError('') }}>
           <form onSubmit={submit} onInput={() => setError('')}>
-            <h2 id={draft === 'new' ? 'creation-dialog-title' : undefined}>{original ? 'Редактировать событие' : 'Новое событие'}</h2>
+            <h2 id="creation-dialog-title">{original ? 'Редактировать событие' : 'Новое событие'}</h2>
             <p><label>Название<br /><input name="title" defaultValue={original?.title} required /></label></p>
             <p>
               <label>

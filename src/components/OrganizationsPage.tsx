@@ -57,11 +57,11 @@ export function OrganizationsPage({ timeline, save, organizationId }: {
       <h1>Фракции и организации</h1>
       <p>{timeline.name}</p>
       {organizationId !== undefined && !selected && <p>Организация не найдена.</p>}
-      {(draft === null || draft === 'new') && !deleting && <button type="button" onClick={() => setDraft('new')}>Создать организацию</button>}
+      {!deleting && <button type="button" onClick={() => setDraft('new')}>Создать организацию</button>}
       {draft !== null && (
-        <CreationDialog active={draft === 'new'} onCancel={() => { setDraft(null); setError('') }}>
+        <CreationDialog onCancel={() => { setDraft(null); setError('') }}>
           <form onSubmit={submit} onInput={() => setError('')}>
-            <h2 id={draft === 'new' ? 'creation-dialog-title' : undefined}>{original ? 'Редактировать организацию' : 'Новая организация'}</h2>
+            <h2 id="creation-dialog-title">{original ? 'Редактировать организацию' : 'Новая организация'}</h2>
             <ImageField name="emblem" label="Эмблема" initial={original?.emblem} />
             <p><label>Название <input name="name" defaultValue={original?.name} required /></label></p>
             <p>

@@ -61,16 +61,16 @@ export function ArchivePage({ kind, entries, entryId, timeline, save }: {
       {entryId !== undefined && <p><a href={'#' + kind}>{!location && <span aria-hidden="true">← </span>}
         {location ? 'Все локации' : chronicle ? 'Назад к летописям' : 'Назад к предметам'}
       </a></p>}
-      {(draft === null || draft === 'new') && (
+      {(
         <div className="timeline-controls">
           <button type="button" onClick={() => setDraft('new')}>{location ? 'Добавить локацию' : chronicle ? 'Создать летопись' : 'Добавить предмет'}</button>
           {entryId === undefined && entries.length > 0 && <label>Поиск <input type="search" value={query} onChange={(event) => setQuery(event.currentTarget.value)} /></label>}
         </div>
       )}
       {draft !== null && (
-        <CreationDialog active={draft === 'new'} onCancel={() => { setDraft(null); setError('') }}>
+        <CreationDialog onCancel={() => { setDraft(null); setError('') }}>
           <form className={chronicle ? 'archive-form parchment' : 'archive-form'} onSubmit={submit} onInput={() => setError('')}>
-            <h2 id={draft === 'new' ? 'creation-dialog-title' : undefined}>{original ? 'Редактировать' : location ? 'Новая локация' : chronicle ? 'Новая летопись' : 'Новый предмет'}</h2>
+            <h2 id="creation-dialog-title">{original ? 'Редактировать' : location ? 'Новая локация' : chronicle ? 'Новая летопись' : 'Новый предмет'}</h2>
             <label>Название<input name="title" defaultValue={original?.title} required /></label>
             {!chronicle && (
               <>
@@ -114,7 +114,7 @@ export function ArchivePage({ kind, entries, entryId, timeline, save }: {
           </form>
         </CreationDialog>
       )}
-      {(draft === null || draft === 'new') && selected && (
+      {selected && (
         <article className={chronicle ? 'archive-card parchment' : 'archive-card item-card item-tooltip'} style={chronicle ? undefined : itemAccent(selected)}>
           {!chronicle && <ItemImage entry={selected} />}
           <h2>{selected.title}</h2>
@@ -148,8 +148,8 @@ export function ArchivePage({ kind, entries, entryId, timeline, save }: {
             onClick={() => { setError(''); setDeleting(selected) }}><TrashIcon /></button>
         </article>
       )}
-      {(draft === null || draft === 'new') && entryId !== undefined && !selected && <p>Запись не найдена в выбранном таймлайне.</p>}
-      {(draft === null || draft === 'new') && entryId === undefined && (
+      {entryId !== undefined && !selected && <p>Запись не найдена в выбранном таймлайне.</p>}
+      {entryId === undefined && (
         matches.length ? (
           <ul className="archive-grid">
             {matches.map((entry) => (

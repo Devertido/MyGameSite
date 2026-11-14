@@ -1,7 +1,6 @@
 import { useLayoutEffect, useRef, type ReactNode } from 'react'
 
-export function CreationDialog({ active, onCancel, children }: {
-  active: boolean
+export function CreationDialog({ onCancel, children }: {
   onCancel: () => void
   children: ReactNode
 }) {
@@ -13,9 +12,7 @@ export function CreationDialog({ active, onCancel, children }: {
 
     dialog.showModal()
     return () => dialog.close()
-  }, [active])
-
-  if (!active) return children
+  }, [])
 
   return (
     <dialog ref={dialogRef} className="creation-dialog" aria-labelledby="creation-dialog-title"
