@@ -79,8 +79,10 @@ export function CharactersPage({ timeline, save, characterId }: {
       {draft !== null && (
         <form onSubmit={submit} onInput={() => setError('')}>
           <h2>{original ? 'Редактировать персонажа' : 'Новый персонаж'}</h2>
-          <p><label>Имя<br /><input name="name" defaultValue={original?.name} required /></label></p>
-          <p><label>Фамилия<br /><input name="surname" defaultValue={original?.surname} /></label></p>
+          <div className="character-name-fields">
+            <label>Имя<br /><input name="name" defaultValue={original?.name} required /></label>
+            <label>Фамилия<br /><input name="surname" defaultValue={original?.surname} /></label>
+          </div>
           <p><label>Раса<br /><input name="race" defaultValue={original?.race} /></label></p>
           <CharacterDateFields prefix="birth" label="Дата рождения" months={months} initial={original?.birth} />
           <CharacterDateFields prefix="death" label="Дата смерти" months={months} initial={original?.death} />
@@ -110,21 +112,32 @@ export function CharactersPage({ timeline, save, characterId }: {
           const events = (timeline.events ?? []).filter(({ characterIds }) => characterIds?.includes(character.id))
           return (
             <li key={character.id}>
-              <div className="character-heading">
-                {character.color && <span className="atlas-color" style={{ backgroundColor: character.color }} aria-hidden="true" />}
-                <button className="event-action" type="button" disabled={busy} onClick={() => setDraft(character)} aria-label="Редактировать" title="Редактировать"><EditIcon /></button>
-                <button className="event-action" type="button" disabled={busy} onClick={() => setDeleting(character)} aria-label="Удалить персонажа" title="Удалить персонажа"><TrashIcon /></button>
-                <h2>{characterId === undefined
-                  ? <a href={`#characters?character=${encodeURIComponent(character.id)}`}>{fullName}</a>
-                  : fullName}</h2>
+              <div className="character-overview">
+                {character.portrait && (
+                  <img className="character-portrait" src={character.portrait} alt={fullName} loading="lazy" />
+                )}
+                <div className="character-summary">
+                  <div className="character-heading">
+                    {character.color && <span className="atlas-color" style={{ backgroundColor: character.color }} aria-hidden="true" />}
+                    <button className="event-action" type="button" disabled={busy} onClick={() => setDraft(character)} aria-label="Редактировать" title="Редактировать"><EditIcon /></button>
+                    <button className="event-action" type="button" disabled={busy} onClick={() => setDeleting(character)} aria-label="Удалить персонажа" title="Удалить персонажа"><TrashIcon /></button>
+                    <h2>{characterId === undefined
+                      ? <a href={`#characters?character=${encodeURIComponent(character.id)}`}>{fullName}</a>
+                      : fullName}</h2>
+                  </div>
+                  {(character.birth || character.death) && (
+                    <p>Годы жизни · {character.birth?.year ?? '?'} — {character.death?.year ?? '…'}</p>
+                  )}
+                  {character.description && <p>{character.description}</p>}
+                  {character.race && <p>Раса · {character.race}</p>}
+                </div>
               </div>
-              {characterId !== undefined && character.portrait && (
-                <img className="character-portrait" src={character.portrait} alt={fullName} />
+              {characterId !== undefined && character.birth && (
+                <p>Дата рождения · {calendarDay(months, character.birth.dayOfYear)} · {character.birth.year} г. системы</p>
               )}
-              {character.race && <p>Раса · {character.race}</p>}
-              {character.birth && <p>Дата рождения · {calendarDay(months, character.birth.dayOfYear)} · {character.birth.year} г. системы</p>}
-              {character.death && <p>Дата смерти · {calendarDay(months, character.death.dayOfYear)} · {character.death.year} г. системы</p>}
-              {character.description && <p>{character.description}</p>}
+              {characterId !== undefined && character.death && (
+                <p>Дата смерти · {calendarDay(months, character.death.dayOfYear)} · {character.death.year} г. системы</p>
+              )}
               {characterId !== undefined && (
                 <>
                   <h3>Биография</h3>

@@ -420,6 +420,12 @@ button:focus-visible {
   font: inherit;
 }
 
+.character-name-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+}
+
 .character-portrait,
 .atlas-image-field:has(input[name='portrait']) .atlas-entry-image {
   display: block;
@@ -431,7 +437,27 @@ button:focus-visible {
   border-radius: 0.5rem;
 }
 
-.character-portrait,
+.character-overview {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.character-overview .character-portrait {
+  flex: 0 0 auto;
+  width: clamp(4rem, 22vw, 12rem);
+}
+
+.character-summary {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.character-summary > p:first-of-type {
+  margin-top: 0.5rem;
+}
+
 .character-date {
   margin-block: 0.75rem;
 }
