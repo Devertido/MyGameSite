@@ -57,7 +57,9 @@ export function ArchivePage({ kind, entries, entryId, timeline, save }: {
   return (
     <main className="section-page">
       <h1>{title}</h1>
-      {entryId !== undefined && <p><a href={'#' + kind}>{location ? 'Все локации' : chronicle ? 'Все летописи' : 'Все предметы'}</a></p>}
+      {entryId !== undefined && <p><a href={'#' + kind}>{!location && <span aria-hidden="true">← </span>}
+        {location ? 'Все локации' : chronicle ? 'Назад к летописям' : 'Назад к предметам'}
+      </a></p>}
       {draft === null && (
         <div className="timeline-controls">
           <button type="button" onClick={() => setDraft('new')}>{location ? 'Добавить локацию' : chronicle ? 'Создать летопись' : 'Добавить предмет'}</button>
