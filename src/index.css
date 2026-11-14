@@ -121,7 +121,8 @@ button:focus-visible {
   position: sticky;
   top: 0;
   z-index: 1;
-  height: 10dvh;
+  height: 5dvh;
+  border-top: 5dvh solid #f8faf9;
   background: #103930;
 }
 
