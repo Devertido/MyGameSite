@@ -10,10 +10,15 @@ const pages = [
 function currentPage() {
   const [path, query] = window.location.hash.slice(1).split('?')
   const page = pages.find(({ id }) => path === id) ?? pages[0]
-  const rawYear = new URLSearchParams(query).get('year')
+  const params = new URLSearchParams(query)
+  const rawYear = params.get('year')
   const year = rawYear && /^-?\d+$/.test(rawYear) ? Number(rawYear) : undefined
 
-  return { ...page, year: page.id === 'events' && Number.isSafeInteger(year) ? year : undefined }
+  return {
+    ...page,
+    year: page.id === 'events' && Number.isSafeInteger(year) ? year : undefined,
+    newEvent: page.id === 'events' && params.get('new') === '1',
+  }
 }
 
 export default function SiteNavigation() {
@@ -40,7 +45,7 @@ export default function SiteNavigation() {
         </nav>
       </header>
 
-      <App page={page.id} eventYear={page.year} />
+      <App page={page.id} eventYear={page.year} newEvent={page.newEvent} />
     </>
   )
 }

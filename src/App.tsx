@@ -11,11 +11,12 @@ function timelineSnapshot({ name, startYear, endYear, daysPerYear, calendars, ev
   return JSON.stringify([name, startYear, endYear, daysPerYear, calendars, events, characters])
 }
 
-function App({ page, eventYear }: { page: 'timeline' | 'events' | 'characters'; eventYear?: number }) {
+function App({ page, eventYear, newEvent }: { page: 'timeline' | 'events' | 'characters'; eventYear?: number; newEvent: boolean }) {
   const [backupMessage, setBackupMessage] = useState('')
   const [importing, setImporting] = useState(false)
   const [deleteError, setDeleteError] = useState('')
   const deleteDialogRef = useRef<HTMLDialogElement>(null)
+  const importInputRef = useRef<HTMLInputElement>(null)
   const createButtonRef = useRef<HTMLButtonElement>(null)
   const dialogRef = useRef<HTMLDialogElement>(null)
   const nextId = useRef(2)
@@ -290,7 +291,8 @@ function App({ page, eventYear }: { page: 'timeline' | 'events' | 'characters'; 
 
     return (
       <EventsPage
-        key={JSON.stringify([selected.id, eventYear])}
+        key={JSON.stringify([selected.id, eventYear, newEvent])}
+        startCreating={newEvent}
         yearFilter={eventYear}
         timeline={selected.timeline}
         calendar={selected.timeline.calendars[calendarIndex] ?? selected.timeline.calendars[0]}
@@ -332,18 +334,18 @@ function App({ page, eventYear }: { page: 'timeline' | 'events' | 'characters'; 
           </button>
         )}
         {selected && <button type="button" onClick={downloadBackup}>Экспорт JSON</button>}
-        <label>
-          Импорт JSON{' '}
-          <input className="backup-import" type="file" accept=".json,application/json" disabled={importing}
-            onChange={(event) => void uploadBackup(event.currentTarget)} />
-        </label>
+        <button type="button" disabled={importing} onClick={() => importInputRef.current?.click()}>
+          {importing ? 'Импортируем…' : 'Импорт JSON'}
+        </button>
+        <input ref={importInputRef} hidden type="file" accept=".json,application/json" disabled={importing}
+          onChange={(event) => void uploadBackup(event.currentTarget)} />
         {backupMessage && <p role="status">{backupMessage}</p>}
         {library.warning && <p role="status">{library.warning}</p>}
       </div>
 
       {selected && (
         <>
-          <div className="timeline-toolbar">
+          <div className="timeline-toolbar calendar-toolbar">
             <label>
               Календарь{' '}
               <select value={calendarIndex} onChange={(event) => selectTimeline(selectedId, Number(event.currentTarget.value))}>
@@ -354,6 +356,9 @@ function App({ page, eventYear }: { page: 'timeline' | 'events' | 'characters'; 
             </label>
             <button type="button" onClick={() => openForm(selected, selected.timeline.calendars.length)}>
               Добавить календарь
+            </button>
+            <button type="button" onClick={() => { window.location.hash = 'events?new=1' }}>
+              Добавить событие
             </button>
           </div>
           <TimelineScale

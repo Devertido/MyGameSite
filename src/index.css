@@ -212,11 +212,6 @@ button:focus-visible {
   display: block;
 }
 
-.backup-import {
-  min-width: 0;
-  max-width: 100%;
-}
-
 .timeline-position {
   position: relative;
   pointer-events: none;
@@ -236,4 +231,12 @@ button:focus-visible {
 
 .timeline-controls select {
   max-width: min(24rem, 100%);
+}
+.calendar-toolbar button {
+  background: #d5ebe5;
+  color: #103930;
+}
+
+.calendar-toolbar button:hover {
+  background: #bfe0d6;
 }

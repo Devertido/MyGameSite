@@ -3,14 +3,15 @@ import { toCalendarYear } from '../domain/calendarYear'
 import type { Timeline, TimelineCalendar, TimelineEvent } from '../domain/timeline'
 import { calendarDay, eventDays, validateEvent, type EventDays, type EventEndpoint } from '../domain/timeline'
 
-export function EventsPage({ timeline, calendar, save, yearFilter }: {
+export function EventsPage({ timeline, calendar, save, yearFilter, startCreating }: {
   timeline: Timeline
   calendar: TimelineCalendar
   yearFilter?: number
+  startCreating: boolean
   save: (events: TimelineEvent[]) => void
 }) {
   const events = timeline.events ?? []
-  const [draft, setDraft] = useState<TimelineEvent | 'new' | null>(null)
+  const [draft, setDraft] = useState<TimelineEvent | 'new' | null>(startCreating ? 'new' : null)
   const [deleting, setDeleting] = useState<TimelineEvent | null>(null)
   const [period, setPeriod] = useState(false)
   const [error, setError] = useState('')
