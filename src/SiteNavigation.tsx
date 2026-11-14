@@ -62,13 +62,13 @@ export default function SiteNavigation() {
           ))}
         </nav>
         <div className="site-tools" lang={language}>
-          <button type="button" aria-label={english ? 'Language' : 'Язык'}
-            title={english ? 'Language' : 'Язык'} onClick={() => languageDialog.current?.showModal()}>
-            <span aria-hidden="true">🌐</span>
-          </button>
           <button type="button" aria-label={english ? 'Help' : 'Справка'}
             title={english ? 'Help' : 'Справка'} onClick={() => helpDialog.current?.showModal()}>
             <span aria-hidden="true">?</span>
+          </button>
+          <button type="button" aria-label={english ? 'Language' : 'Язык'}
+            title={english ? 'Language' : 'Язык'} onClick={() => languageDialog.current?.showModal()}>
+            <span aria-hidden="true">🌐</span>
           </button>
           <button type="button" aria-label={english ? 'Settings' : 'Настройки'}
             title={english ? 'Settings' : 'Настройки'} onClick={() => settingsDialog.current?.showModal()}>

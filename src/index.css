@@ -512,7 +512,7 @@ button.event-action:hover:enabled {
 
 .timeline-map {
   box-sizing: border-box;
-  min-height: clamp(12rem, 26vw, 26rem);
+  min-height: clamp(16rem, 45dvh, 40rem);
   padding: 1rem;
   border: 1px solid #a2b9b3;
   border-radius: 0.5rem;
@@ -650,6 +650,7 @@ button.event-action:hover:enabled {
 
 .timeline-view {
   padding-top: 0.5rem;
+  padding-bottom: 0.75rem;
 }
 
 .timeline-view > h1 {
@@ -672,4 +673,13 @@ button.event-action:hover:enabled {
 .timeline-navigation input[name='year'] {
   width: 6rem;
   max-width: 100%;
+}
+
+.timeline-navigation {
+  column-gap: clamp(0.5rem, 1vw, 1rem);
+}
+
+.timeline-years {
+  margin: 0;
+  flex-shrink: 0;
 }

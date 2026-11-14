@@ -77,13 +77,12 @@ export function TimelineScale({ timeline, calendar }: { timeline: Timeline; cale
   return (
     <section className="timeline-view" aria-labelledby="timeline-title">
       <h1 id="timeline-title">{timeline.name}</h1>
-      <p>
-        Системные годы: {timeline.startYear} — {timeline.endYear}<br />
-        Местные годы: {String(toCalendarYear(timeline.startYear, calendar.era))}
-        {' — '}{String(toCalendarYear(timeline.endYear, calendar.era))}
-      </p>
-
       <div className="timeline-controls timeline-navigation">
+        <p className="timeline-years">
+          Системные годы: {timeline.startYear} — {timeline.endYear}<br />
+          Местные годы: {String(toCalendarYear(timeline.startYear, calendar.era))}
+          {' — '}{String(toCalendarYear(timeline.endYear, calendar.era))}
+        </p>
         <div className="timeline-zoom" role="group" aria-label="Масштаб шкалы">
           <button type="button" disabled={zoomIndex === 0} onClick={() => setZoomIndex(zoomIndex - 1)}>
             Уменьшить
