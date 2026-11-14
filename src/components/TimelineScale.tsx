@@ -22,6 +22,11 @@ export function TimelineScale({ timeline, calendar }: { timeline: Timeline; cale
     return { year: start + offset, position }
   })
 
+  const eventsByYear = new Map<number, number>()
+  for (const { year } of timeline.events ?? []) {
+    eventsByYear.set(year, (eventsByYear.get(year) ?? 0) + 1)
+  }
+
   return (
     <section className="timeline-view" aria-labelledby="timeline-title">
       <h1 id="timeline-title">{timeline.name}</h1>
@@ -52,6 +57,21 @@ export function TimelineScale({ timeline, calendar }: { timeline: Timeline; cale
               <li key={String(year)} style={{ left: `${position}%` }}>{String(year)}</li>
             ))}
           </ol>
+          {eventsByYear.size > 0 && (
+            <ul className="timeline-markers" aria-label="Годы с событиями">
+              {[...eventsByYear].sort(([left], [right]) => left - right).map(([year, count]) => {
+                const offset = BigInt(year) - start
+                const position = span === 0n ? 50 : Number((offset * 1_000_000n) / span) / 10_000
+                return (
+                  <li key={year} style={{ left: `${position}%` }}>
+                    <a href={`#events?year=${year}`} title={`Год ${year}, событий: ${count}`} aria-label={`Год ${year}, событий: ${count}`}>
+                      {count}
+                    </a>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
         </div>
       </div>
     </section>

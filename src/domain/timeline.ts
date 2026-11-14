@@ -6,6 +6,8 @@ export type Timeline = {
   startYear: number
   endYear: number
   daysPerYear: number
+  events?: TimelineEvent[]
+  characters?: TimelineCharacter[]
   calendars: [TimelineCalendar, ...TimelineCalendar[]]
 }
 
@@ -36,4 +38,29 @@ export function validateTimelineBounds(
   }
 
   return null
+}
+
+export type TimelineEvent = {
+  id: string
+  year: number
+  title: string
+  description: string
+  characterIds?: string[]
+}
+
+export function validateEvent(
+  event: Omit<TimelineEvent, 'id'>,
+  bounds: Pick<Timeline, 'startYear' | 'endYear'>,
+): string | null {
+  if (!event.title.trim()) return 'Введите название события.'
+  if (!Number.isSafeInteger(event.year) || event.year < bounds.startYear || event.year > bounds.endYear) {
+    return 'Укажите целый системный год в пределах таймлайна.'
+  }
+  return null
+}
+
+export type TimelineCharacter = {
+  id: string
+  name: string
+  description: string
 }

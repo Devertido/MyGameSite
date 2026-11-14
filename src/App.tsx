@@ -1,11 +1,19 @@
 import { useRef, useState, type FormEvent } from 'react'
 import { standardYear, validateMonths, validateWeek } from './domain/calendar'
+import { CharactersPage } from './components/CharactersPage'
+import { EventsPage } from './components/EventsPage'
 import { TimelineScale } from './components/TimelineScale'
 import { validateCalendarEra } from './domain/calendarYear'
-import { validateTimelineBounds, type Timeline, type TimelineCalendar } from './domain/timeline'
-import { deleteTimeline, loadTimelines, rememberSelection, restoreSelection, saveTimeline } from './data/timelineStorage'
+import { validateTimelineBounds, type Timeline, type TimelineCalendar, type TimelineEvent, type TimelineCharacter } from './domain/timeline'
+import { deleteTimeline, exportTimeline, importTimeline, loadTimelines, rememberSelection, restoreSelection, saveTimeline } from './data/timelineStorage'
 
-function App() {
+function timelineSnapshot({ name, startYear, endYear, daysPerYear, calendars, events, characters }: Timeline) {
+  return JSON.stringify([name, startYear, endYear, daysPerYear, calendars, events, characters])
+}
+
+function App({ page, eventYear }: { page: 'timeline' | 'events' | 'characters'; eventYear?: number }) {
+  const [backupMessage, setBackupMessage] = useState('')
+  const [importing, setImporting] = useState(false)
   const [deleteError, setDeleteError] = useState('')
   const deleteDialogRef = useRef<HTMLDialogElement>(null)
   const createButtonRef = useRef<HTMLButtonElement>(null)
@@ -117,6 +125,7 @@ function App() {
     if (original) calendars[editCalendarIndex] = calendar
 
     const timeline: Timeline = {
+      ...original,
       name,
       startYear,
       endYear,
@@ -127,6 +136,13 @@ function App() {
     let id: string
     try {
       id = editing?.id ?? crypto.randomUUID()
+      if (editing) {
+        const latest = loadTimelines().entries.find((entry) => entry.id === id)
+        if (!latest || timelineSnapshot(latest.timeline) !== timelineSnapshot(editing.timeline)) {
+          setMessage('Таймлайн изменился в другой вкладке. Обновите страницу перед сохранением.')
+          return
+        }
+      }
       saveTimeline(id, timeline)
     } catch {
       setMessage('Не удалось сохранить таймлайн. Проверьте доступ к локальному хранилищу браузера и повторите попытку.')
@@ -163,6 +179,69 @@ function App() {
     createButtonRef.current?.focus()
   }
 
+  function saveSelectedContent(update: (timeline: Timeline) => Timeline) {
+    if (!selected) throw new Error('Выберите таймлайн.')
+    const { id } = selected
+    const latest = loadTimelines().entries.find((item) => item.id === id)
+    if (!latest || timelineSnapshot(latest.timeline) !== timelineSnapshot(selected.timeline)) {
+      throw new Error('Таймлайн изменился в другой вкладке. Обновите страницу.')
+    }
+
+    const timeline = update(latest.timeline)
+    try {
+      saveTimeline(id, timeline)
+    } catch {
+      throw new Error('Не удалось сохранить изменения в браузере.')
+    }
+    setLibrary((current) => ({
+      ...current,
+      entries: current.entries.map((item) => item.id === id ? { id, timeline } : item),
+    }))
+  }
+
+  function saveCharacters(characters: TimelineCharacter[]) {
+    const ids = new Set(characters.map(({ id }) => id))
+    saveSelectedContent((timeline) => ({
+      ...timeline,
+      characters,
+      events: timeline.events?.map((event) => event.characterIds
+        ? { ...event, characterIds: event.characterIds.filter((id) => ids.has(id)) }
+        : event),
+    }))
+  }
+
+  function downloadBackup() {
+    if (!selected) return
+    const url = URL.createObjectURL(new Blob([exportTimeline(selected.timeline)], { type: 'application/json' }))
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'atlas-timeline.json'
+    link.click()
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+  }
+
+  async function uploadBackup(input: HTMLInputElement) {
+    const file = input.files?.[0]
+    if (!file || importing) return
+    setImporting(true)
+    setBackupMessage('')
+    try {
+      const timeline = importTimeline(await file.text())
+      const copy = { ...timeline, name: timeline.name + ' (копия)' }
+      const id = crypto.randomUUID()
+      saveTimeline(id, copy)
+      setLibrary((current) => ({ ...current, entries: [...current.entries, { id, timeline: copy }] }))
+      selectTimeline(id)
+      setBackupMessage('Копия таймлайна импортирована.')
+    } catch {
+      setBackupMessage('Не удалось импортировать таймлайн. Проверьте JSON-файл и доступность хранилища.')
+    } finally {
+      input.value = ''
+      setImporting(false)
+    }
+  }
+
+
   function addMonth() {
     const id = nextId.current++
     setMonthIds((ids) => [...ids, id])
@@ -188,6 +267,33 @@ function App() {
   function renameWeekday(id: number, name: string) {
     setWeekdays((days) => days.map((day) => day.id === id ? { id, name } : day))
   }
+
+  if (page !== 'timeline') {
+    if (!selected) {
+      return (
+        <main className="section-page">
+          <h1>{page === 'events' ? 'События' : 'Персонажи'}</h1>
+          <p>Сначала создайте или импортируйте таймлайн.</p>
+          <a href="#timeline">К таймлайну</a>
+        </main>
+      )
+    }
+
+    if (page === 'characters') {
+      return <CharactersPage key={selected.id} timeline={selected.timeline} save={saveCharacters} />
+    }
+
+    return (
+      <EventsPage
+        key={JSON.stringify([selected.id, eventYear])}
+        yearFilter={eventYear}
+        timeline={selected.timeline}
+        calendar={selected.timeline.calendars[calendarIndex] ?? selected.timeline.calendars[0]}
+        save={(events: TimelineEvent[]) => saveSelectedContent((timeline) => ({ ...timeline, events }))}
+      />
+    )
+  }
+
 
   return (
     <main className={selected ? 'timeline-library' : 'start-screen'}>
@@ -220,6 +326,13 @@ function App() {
             Удалить таймлайн
           </button>
         )}
+        {selected && <button type="button" onClick={downloadBackup}>Экспорт JSON</button>}
+        <label>
+          Импорт JSON{' '}
+          <input className="backup-import" type="file" accept=".json,application/json" disabled={importing}
+            onChange={(event) => void uploadBackup(event.currentTarget)} />
+        </label>
+        {backupMessage && <p role="status">{backupMessage}</p>}
         {library.warning && <p role="status">{library.warning}</p>}
       </div>
 
@@ -249,7 +362,7 @@ function App() {
       <dialog ref={deleteDialogRef} aria-labelledby="delete-title" aria-describedby="delete-description">
         <h2 id="delete-title">Удалить таймлайн?</h2>
         <p id="delete-description">
-          Таймлайн «{selected?.timeline.name}» и все его календари будут удалены без возможности восстановления.
+          Таймлайн «{selected?.timeline.name}» вместе с календарями, событиями и персонажами будет удалён без возможности восстановления.
         </p>
         {deleteError && <p role="alert">{deleteError}</p>}
         <button type="button" autoFocus onClick={() => deleteDialogRef.current?.close()}>

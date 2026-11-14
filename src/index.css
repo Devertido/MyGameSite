@@ -160,3 +160,63 @@ button:focus-visible {
 .section-page {
   padding: clamp(1rem, 4vw, 3rem);
 }
+
+.timeline-axis:has(+ .timeline-markers) {
+  margin-top: 2rem;
+}
+
+.timeline-markers {
+  position: relative;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.timeline-markers li {
+  position: absolute;
+  bottom: 0.35rem;
+  transform: translateX(-50%);
+}
+
+.timeline-markers a {
+  display: grid;
+  place-items: center;
+  min-width: 1.5rem;
+  min-height: 1.5rem;
+  border-radius: 1rem;
+  background: #174b43;
+  color: #fff;
+  font-size: 0.75rem;
+  text-decoration: none;
+}
+
+.event-list {
+  padding: 0;
+  list-style: none;
+}
+
+.event-list li {
+  padding-block: 1rem;
+  border-bottom: 1px solid #b9cbc6;
+  overflow-wrap: anywhere;
+}
+
+.event-list p {
+  white-space: pre-wrap;
+}
+
+.catalog-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-block: 1rem;
+}
+
+.event-participant {
+  display: block;
+}
+
+.backup-import {
+  min-width: 0;
+  max-width: 100%;
+}

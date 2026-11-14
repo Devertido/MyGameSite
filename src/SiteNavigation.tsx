@@ -8,7 +8,12 @@ const pages = [
 ] as const
 
 function currentPage() {
-  return pages.find(({ id }) => window.location.hash === '#' + id) ?? pages[0]
+  const [path, query] = window.location.hash.slice(1).split('?')
+  const page = pages.find(({ id }) => path === id) ?? pages[0]
+  const rawYear = new URLSearchParams(query).get('year')
+  const year = rawYear && /^-?\d+$/.test(rawYear) ? Number(rawYear) : undefined
+
+  return { ...page, year: page.id === 'events' && Number.isSafeInteger(year) ? year : undefined }
 }
 
 export default function SiteNavigation() {
@@ -35,15 +40,7 @@ export default function SiteNavigation() {
         </nav>
       </header>
 
-      <div hidden={page.id !== 'timeline'}>
-        <App />
-      </div>
-      {page.id !== 'timeline' && (
-        <main className="section-page">
-          <h1>{page.title}</h1>
-          <p>{page.id === 'characters' ? 'Здесь пока нет персонажей.' : 'Здесь пока нет событий.'}</p>
-        </main>
-      )}
+      <App page={page.id} eventYear={page.year} />
     </>
   )
 }

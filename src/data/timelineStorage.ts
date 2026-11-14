@@ -1,6 +1,6 @@
 import { validateMonths, validateWeek } from '../domain/calendar.ts'
 import { validateCalendarEra } from '../domain/calendarYear.ts'
-import type { Timeline, TimelineCalendar } from '../domain/timeline'
+import { validateEvent, type Timeline, type TimelineCalendar, type TimelineCharacter, type TimelineEvent } from '../domain/timeline.ts'
 
 const keyPrefix = 'arena-atlas:timeline:v1:'
 
@@ -29,7 +29,38 @@ function parseTimeline(value: unknown): Timeline | null {
 
   const [first, ...rest] = calendars
   if (!first) return null
-  return { name, startYear, endYear, daysPerYear, calendars: [first, ...rest] }
+  const timeline: Timeline = { name, startYear, endYear, daysPerYear, calendars: [first, ...rest] }
+  const characterIds = new Set<string>()
+  if ('characters' in value) {
+    const characters = value.characters
+    if (!Array.isArray(characters)) return null
+    const parsed: TimelineCharacter[] = []
+    for (const character of characters as unknown[]) {
+      if (!isRecord(character) || typeof character.id !== 'string' || !character.id.trim() ||
+          characterIds.has(character.id) || typeof character.name !== 'string' || !character.name.trim() ||
+          typeof character.description !== 'string') return null
+      characterIds.add(character.id)
+      parsed.push({ id: character.id, name: character.name, description: character.description })
+    }
+    timeline.characters = parsed
+  }
+
+  if ('events' in value) {
+    const events = value.events
+    if (!Array.isArray(events) || !events.every((event: unknown): event is TimelineEvent =>
+      isRecord(event) && typeof event.id === 'string' && Boolean(event.id.trim()) &&
+      typeof event.year === 'number' && typeof event.title === 'string' &&
+      typeof event.description === 'string' &&
+      (!('characterIds' in event) || (Array.isArray(event.characterIds) &&
+        new Set(event.characterIds).size === event.characterIds.length &&
+        event.characterIds.every((id: unknown) => typeof id === 'string' && characterIds.has(id)))) &&
+      validateEvent({ year: event.year, title: event.title, description: event.description }, timeline) === null
+    )) return null
+
+    if (new Set(events.map(({ id }) => id)).size !== events.length) return null
+    timeline.events = events
+  }
+  return timeline
 }
 
 function isCalendar(calendar: unknown, daysPerYear: number): calendar is TimelineCalendar {
@@ -141,4 +172,15 @@ export function rememberSelection(
   } catch {
     // Выбор в открытой вкладке работает и при недоступном хранилище.
   }
+}
+
+export function exportTimeline(timeline: Timeline): string {
+  return JSON.stringify({ version: 1, timeline }, null, 2)
+}
+
+export function importTimeline(json: string): Timeline {
+  const backup: unknown = JSON.parse(json)
+  const timeline = isRecord(backup) && backup.version === 1 ? parseTimeline(backup.timeline) : null
+  if (!timeline) throw new Error('Файл не содержит корректной копии таймлайна.')
+  return timeline
 }

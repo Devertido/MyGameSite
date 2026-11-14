@@ -2,8 +2,8 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { standardYear, validateMonths, validateWeek } from '../src/domain/calendar.ts'
 import { toCalendarYear } from '../src/domain/calendarYear.ts'
-import { validateTimelineBounds } from '../src/domain/timeline.ts'
-import { deleteTimeline, loadTimelines, rememberSelection, restoreSelection, saveTimeline } from '../src/data/timelineStorage.ts'
+import { validateEvent, validateTimelineBounds } from '../src/domain/timeline.ts'
+import { deleteTimeline, exportTimeline, importTimeline, loadTimelines, rememberSelection, restoreSelection, saveTimeline } from '../src/data/timelineStorage.ts'
 
 const era = { systemAnchorYear: 100, calendarAnchorYear: 1, hasYearZero: false }
 
@@ -99,4 +99,50 @@ test('Удаление затрагивает только выбранный т
   deleteTimeline('first', storage)
   assert.deepEqual([...keys], ['arena-atlas:timeline:v1:second', 'other'])
   assert.throws(() => deleteTimeline(' ', storage), /идентификатор/)
+})
+
+test('События сохраняются в своём таймлайне, включая системный год 0', () => {
+  const data = new Map()
+  const storage = {
+    get length() { return data.size },
+    key: (index) => [...data.keys()][index] ?? null,
+    getItem: (key) => data.get(key) ?? null,
+    setItem: (key, value) => data.set(key, value),
+  }
+  const { daysPerYear, ...calendar } = standardYear
+  const timeline = {
+    name: 'Арена', startYear: -10, endYear: 0, daysPerYear,
+    calendars: [{ ...calendar, name: 'Основной', era }],
+  }
+  const event = { id: 'event-1', year: -10, title: 'Основание', description: '<текст>' }
+  assert.equal(validateEvent(event, timeline), null)
+  assert.equal(validateEvent({ ...event, year: 0 }, timeline), null)
+  assert.match(validateEvent({ ...event, year: 1 }, timeline), /в пределах/)
+  assert.match(validateEvent({ ...event, title: ' ' }, timeline), /название/)
+
+  saveTimeline('arena', { ...timeline, events: [event] }, storage)
+  saveTimeline('other', timeline, storage)
+  const edited = { ...event, year: 0, title: 'Основание Арены' }
+  saveTimeline('arena', { ...timeline, events: [edited] }, storage)
+  assert.deepEqual(loadTimelines(storage).entries, [
+    { id: 'arena', timeline: { ...timeline, events: [edited] } },
+    { id: 'other', timeline },
+  ])
+
+  saveTimeline('arena', { ...timeline, events: [] }, storage)
+  assert.deepEqual(loadTimelines(storage).entries[0].timeline.events, [])
+})
+
+test('Резервная копия сохраняет персонажей и связи с событиями', () => {
+  const { daysPerYear, ...calendar } = standardYear
+  const timeline = {
+    name: 'Арена', startYear: -10, endYear: 100, daysPerYear,
+    calendars: [{ ...calendar, name: 'Основной', era }],
+    characters: [{ id: 'c1', name: 'Мира', description: 'Летописец' }],
+    events: [{ id: 'e1', year: 0, title: 'Основание', description: '', characterIds: ['c1'] }],
+  }
+  assert.deepEqual(importTimeline(exportTimeline(timeline)), timeline)
+  assert.throws(() => importTimeline(exportTimeline({ ...timeline, characters: [] })))
+  assert.throws(() => importTimeline('{"version":2}'))
+  assert.throws(() => importTimeline('{'))
 })
