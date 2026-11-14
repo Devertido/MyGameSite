@@ -717,23 +717,10 @@ button.event-action:hover:enabled {
   content: '';
 }
 
-.timeline-day-ticks {
-  display: flex;
-  width: max-content;
-  gap: 0;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
 
-.timeline-day-ticks li {
-  display: grid;
-  justify-items: center;
-  min-width: 4rem;
-  padding: 0.4rem;
-  border-inline-start: 1px solid #b9cbc6;
-}
-
-.timeline-day-ticks span {
-  font-size: 0.75rem;
+.timeline-axis .timeline-calendar-tick {
+  width: 6rem;
+  overflow: hidden;
+  text-align: center;
+  text-overflow: ellipsis;
 }
