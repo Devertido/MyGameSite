@@ -1,5 +1,5 @@
 import { adjustedAbilities } from '../domain/abilities'
-import { itemTypes, parseDamageFormula } from '../domain/itemDamage'
+import { itemMaterials, itemTypes, parseDamageFormula } from '../domain/itemDamage'
 import { raceDetailsFor } from '../domain/lore'
 import { ItemDamage } from './ItemDamage'
 import { LocationMapZoom } from './LocationMapZoom'
@@ -75,6 +75,7 @@ export function ArchivePage({ kind, entries, entryId, timeline, save, embedded =
           ? { chronicleIds: original?.chronicleIds, eventIds: fields.getAll('events').map(String), characterIds: fields.getAll('characters').map(String) }
           : location ? { type: read('type'), image: read('image') || undefined, mapImage: mapImage || undefined, mapPlan: mapImage ? mapPlan : undefined }
           : { type: read('type'), rarity: read('rarity'), ownerId: read('ownerId') || undefined, image: read('image') || undefined,
+            material: itemMaterials.find((material) => material === read('material')),
             massKg: read('massKg') ? Number(read('massKg').replace(',', '.')) : undefined,
             requiredSkill: read('requiredSkill') || undefined, damageFormula: damageFormula || undefined }),
       }
@@ -112,6 +113,10 @@ export function ArchivePage({ kind, entries, entryId, timeline, save, embedded =
                     <label>{t('Тип')}<select name="type" value={itemType} onChange={(event) => setItemType(event.currentTarget.value)}>
                       {itemTypes.map((type) => <option key={type} value={type}>{t(type)}</option>)}
                       {original?.type && !itemTypes.some((type) => type === original.type) && <option value={original.type}>{original.type}</option>}
+                    </select></label>
+                    <label>{t('Материал')}<select name="material" defaultValue={original?.material ?? ''}>
+                      <option value="">{t('Не указан')}</option>
+                      {itemMaterials.map((material) => <option key={material} value={material}>{t(material)}</option>)}
                     </select></label>
                     <label>{t('Масса (кг)')}<input name="massKg" type="number" min={0} step="any" required defaultValue={original?.massKg} /></label>
                     <label>{t('Требуемый навык')}<input name="requiredSkill" maxLength={120} placeholder={t('Не требуется')} defaultValue={original?.requiredSkill} /></label>
@@ -170,8 +175,9 @@ export function ArchivePage({ kind, entries, entryId, timeline, save, embedded =
                 {selected.type && <p>{t(selected.type)}</p>}
               </div>}
               {kind === 'items' && <section className="item-mechanics">
-                <p>{t('Масса (кг)')} · {selected.massKg === undefined ? '—' : new Intl.NumberFormat().format(selected.massKg)}</p>
-                <p>{t('Требуемый навык')} · {selected.requiredSkill || t('Не требуется')}</p>
+                <p>{t('Материал')} · {selected.material ? t(selected.material) : '—'}</p>
+                <p><em>{t('Масса (кг)')} · {selected.massKg === undefined ? '—' : new Intl.NumberFormat().format(selected.massKg)}</em></p>
+                <p><em>{t('Требуемый навык')} · {selected.requiredSkill || t('Не требуется')}</em></p>
               </section>}
               {kind === 'items' && selected.damageFormula && <ItemDamage key={JSON.stringify([selected.id, selected.damageFormula, ownerStrength])}
                 formula={selected.damageFormula} ownerStrength={ownerStrength} />}

@@ -1,4 +1,5 @@
 import { sameHouse } from '../domain/houseTree'
+import { ClassProgressionDetails, ClassProgressionFields } from './ClassProgression'
 import { ItemDamage } from './ItemDamage'
 import { parseDamageFormula } from '../domain/itemDamage'
 import { DirectoryImage } from './DirectoryImage'
@@ -145,7 +146,18 @@ export function LorePage({ timeline, save, initialSection, initialEntry, archive
         next.surnameDetails = lore.surnameDetails.map((entry) =>
           entry.dynasty === editing ? { ...entry, dynasty: name } : entry)
       }
+      if (section === 'classes') {
+        const levels = JSON.parse(read('class-levels') || '[]')
+        next.classProgression = [...(lore.classProgression ?? []).filter((entry) => entry.name !== editing), { name, levels }]
+      }
       if (section === 'spells') {
+        if (editing && editing !== name && lore.classProgression) {
+          next.classProgression = lore.classProgression.map((entry) => ({
+            ...entry, levels: entry.levels.map((level) => ({
+              ...level, spells: level.spells.map((spell) => spell === editing ? name : spell),
+            })),
+          }))
+        }
         const damageFormula = read('spell-damage')
         if (damageFormula && !parseDamageFormula(damageFormula)) {
           setError(t('Проверьте формулу урона. Пример: 1d8 + СИЛ + 5'))
@@ -196,7 +208,11 @@ export function LorePage({ timeline, save, initialSection, initialEntry, archive
         surnameDetails: lore.surnameDetails?.map((entry) =>
         entry.dynasty === id ? { ...entry, dynasty: undefined } : entry) } : {}),
       ...(section === 'races' ? { raceDetails: lore.raceDetails?.filter((entry) => entry.name !== id) } : {}),
-      ...(section === 'spells' ? { spellDetails: lore.spellDetails?.filter((entry) => entry.name !== id) } : {}),
+      ...(section === 'classes' ? { classProgression: lore.classProgression?.filter((entry) => entry.name !== id) } : {}),
+      ...(section === 'spells' ? { spellDetails: lore.spellDetails?.filter((entry) => entry.name !== id),
+        classProgression: lore.classProgression?.map((entry) => ({
+          ...entry, levels: entry.levels.map((level) => ({ ...level, spells: level.spells.filter((spell) => spell !== id) })),
+        })) } : {}),
       descriptions: lore.descriptions?.filter((entry) => entry.section !== section || entry.name !== id),
       [section]: entries.filter((entry) => typeof entry === 'string' ? entry !== id : entry.id !== id),
     })
@@ -243,7 +259,7 @@ export function LorePage({ timeline, save, initialSection, initialEntry, archive
             </div>}
             <h2>{name}</h2>
             {spell?.school && <p className="item-rarity">{t('Школа магии')} · {spell.school}</p>}
-            {spellSection && spell?.mana != null && <p className="item-rarity">
+            {spellSection && spell?.mana != null && <p className="item-rarity lore-mana">
               {t('Мана · ')}{spell?.mana}
             </p>}
             {spellSection && spell && spell.components.length > 0 && <div className="spell-components">
@@ -271,6 +287,8 @@ export function LorePage({ timeline, save, initialSection, initialEntry, archive
                 </li>)}</ul>
               </section>}
             </>}
+            {section === 'classes' && <ClassProgressionDetails
+              levels={lore.classProgression?.find((entry) => entry.name === name)?.levels ?? []} />}
             {details?.dynasty && <p><strong>{t("Род")}</strong> · {details.dynasty}</p>}
             {details?.usage && <p className="archive-copy"><strong>{t("Значение и правила ношения")}</strong><br />{details.usage}</p>}
             {typeof entry !== 'string' && 'fields' in entry && traditionKind && (
@@ -386,6 +404,8 @@ export function LorePage({ timeline, save, initialSection, initialEntry, archive
               </fieldset>
             </>}
             {section === 'races' && <RaceFields race={lore.raceDetails?.find(({ name }) => name === editing)} />}
+            {section === 'classes' && <ClassProgressionFields key={editing}
+              initial={lore.classProgression?.find(({ name }) => name === editing)?.levels} spells={lore.spells} />}
             {section === 'spells' && <SpellFields spell={lore.spellDetails?.find(({ name }) => name === editing)} />}
             {traditionKind && (
               <>

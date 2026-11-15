@@ -122,7 +122,12 @@ export function validHouseYears(startYear?: number, endYear?: number) {
     (startYear === undefined || endYear === undefined || startYear <= endYear)
 }
 
+export const maxClassLevel = 20
+export type ClassLevel = { level: number; skills: string; abilities: string; spells: string[] }
+export type ClassProgression = { name: string; levels: ClassLevel[] }
+
 export type WorldLore = {
+  classProgression?: ClassProgression[]
   bestiary?: Beast[]
   surnameDetails?: SurnameDetails[]
   houseDetails?: HouseDetails[]
@@ -214,6 +219,20 @@ export function validLore(value: unknown, timeline: Timeline): value is WorldLor
         typeof entry.image === 'string' && (entry.image === '' || (entry.image.length <= 900_000 &&
           /^data:image\/(webp|png);base64,[A-Za-z0-9+/]+={0,2}$/.test(entry.image))) && valid(entry)) &&
       new Set(items.map((entry) => entry.name)).size === items.length)
+  }
+  if (value.classProgression !== undefined) {
+    const classNames = new Set(strings(value.classes) ? value.classes : [])
+    const spellNames = new Set(strings(value.spells) ? value.spells : [])
+    if (!Array.isArray(value.classProgression) || !value.classProgression.every((entry) => record(entry) &&
+        typeof entry.name === 'string' && classNames.has(entry.name) && Array.isArray(entry.levels) &&
+        entry.levels.length <= maxClassLevel && entry.levels.every((level) => record(level) &&
+          typeof level.level === 'number' && Number.isInteger(level.level) && level.level >= 1 && level.level <= maxClassLevel &&
+          typeof level.skills === 'string' && level.skills.length <= 4000 &&
+          typeof level.abilities === 'string' && level.abilities.length <= 4000 &&
+          strings(level.spells) && new Set(level.spells).size === level.spells.length &&
+          level.spells.every((spell) => spellNames.has(spell))) &&
+        new Set(entry.levels.map(({ level }) => level)).size === entry.levels.length) ||
+        new Set(value.classProgression.map(({ name }) => name)).size !== value.classProgression.length) return false
   }
   if (!validDetails(value.spellDetails, value.spells, (entry) =>
     (entry.school === undefined || (typeof entry.school === 'string' && entry.school.length <= 120)) &&

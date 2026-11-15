@@ -1,6 +1,9 @@
 export const itemTypes = ['Оружие', 'Прочее', 'Еда', 'Одежда', 'Доспех', 'Щит', 'Инструмент'] as const
 
-type Roll = (strength: number | undefined, random: () => number) => number
+export const itemMaterials = ['Медь', 'Бронза', 'Железо', 'Дерево', 'Кожа', 'Ткань'] as const
+export type ItemMaterial = typeof itemMaterials[number]
+
+type Roll = (strength?: number, random?: () => number) => number
 
 export function parseDamageFormula(formula: string): Roll | undefined {
   if (!formula.trim() || formula.length > 120) return
@@ -25,6 +28,7 @@ export function parseDamageFormula(formula: string): Roll | undefined {
       const faces = Number(dice[2])
       if (count < 1 || count > 100 || faces < 2 || faces > 1000) throw new Error()
       return (_, random) => {
+        if (!random) return count * (faces + 1) / 2
         let total = 0
         for (let i = 0; i < count; i++) total += 1 + Math.floor(random() * faces)
         return total
@@ -71,6 +75,11 @@ export function parseDamageFormula(formula: string): Roll | undefined {
   } catch {
     return undefined
   }
+}
+
+export function averageDamage(formula: string, strength?: number): number | undefined {
+  const result = parseDamageFormula(formula)?.(strength)
+  return result !== undefined && Number.isFinite(result) ? Math.max(0, Math.floor(result)) : undefined
 }
 
 export function damageUsesStrength(formula: string) {

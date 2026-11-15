@@ -1,4 +1,4 @@
-import { parseDamageFormula } from '../domain/itemDamage.ts'
+import { itemMaterials, parseDamageFormula } from '../domain/itemDamage.ts'
 import { validLocationMapPlan } from '../domain/locationMapPlan.ts'
 import { validLovers, validSpouses } from '../domain/houseTree.ts'
 import { t } from '../i18n.ts'
@@ -155,7 +155,7 @@ function parseTimeline(value: unknown): Timeline | null {
     if (entries.some((entry) =>
       entry.chronicleIds?.some((id) => field !== 'chronicles' || id === entry.id || !entries.some((note) => note.id === id)) ||
       entry.characterIds?.some((id) => !characterIds.has(id)) ||
-      (field !== 'items' && (entry.massKg !== undefined || entry.requiredSkill !== undefined || entry.damageFormula !== undefined)) ||
+      (field !== 'items' && (entry.material !== undefined || entry.massKg !== undefined || entry.requiredSkill !== undefined || entry.damageFormula !== undefined)) ||
       ((entry.mapImage !== undefined || entry.mapPlan !== undefined) && field !== 'locations') ||
       (entry.ownerId !== undefined && !characterIds.has(entry.ownerId)) ||
       entry.eventIds?.some((id) => !timeline.events?.some((event) => event.id === id))
@@ -207,6 +207,7 @@ function isArchiveEntry(entry: unknown): entry is ArchiveEntry {
     (!('image' in entry) || isStoredImage(entry.image)) &&
     (entry.mapImage === undefined || isStoredImage(entry.mapImage)) &&
     (entry.mapPlan === undefined || (isStoredImage(entry.mapImage) && validLocationMapPlan(entry.mapPlan))) &&
+    (entry.material === undefined || itemMaterials.some((material) => material === entry.material)) &&
     (entry.massKg === undefined || (typeof entry.massKg === 'number' && Number.isFinite(entry.massKg) && entry.massKg >= 0)) &&
     (entry.requiredSkill === undefined || (typeof entry.requiredSkill === 'string' && entry.requiredSkill.length <= 120)) &&
     (entry.damageFormula === undefined || (entry.type === 'Оружие' && typeof entry.damageFormula === 'string' && Boolean(parseDamageFormula(entry.damageFormula)))) &&

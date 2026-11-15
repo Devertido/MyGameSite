@@ -495,7 +495,17 @@ button:focus-visible {
   margin-bottom: 0.25rem;
 }
 
-.lore-magic-card .lore-mana {
+.spell-mana-field,
+.spell-mana-field input {
+  color: #08618f;
+}
+
+.spell-mana-field input {
+  background: #edf8ff;
+  border: 1px solid #4d9ac0;
+}
+
+.lore-magic-card .item-rarity.lore-mana {
   color: #a9d3ff;
 }
 
@@ -989,6 +999,38 @@ button.event-action:hover:enabled {
   clear: both;
 }
 
+.class-progression {
+  display: grid;
+  gap: 0.65rem;
+  margin-block: 0.75rem;
+}
+
+.class-progression label {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.class-progression select {
+  justify-self: start;
+}
+
+.class-progression-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: start;
+}
+
+.class-progression-table :is(th, td) {
+  padding: 0.45rem 0.55rem;
+  border-bottom: 1px solid #b9cbc6;
+  text-align: start;
+  vertical-align: top;
+}
+
+.class-progression-table td {
+  white-space: pre-wrap;
+}
+
 .spell-duration-fields {
   display: flex;
   flex-wrap: wrap;
@@ -1055,17 +1097,17 @@ button.event-action:hover:enabled {
   margin-block: 0.25rem;
 }
 
-.item-damage code,
+.item-damage code {
+  color: #a8a8b0;
+}
+
 .item-damage output {
   color: #f2d38e;
+  font-weight: 700;
 }
 
 .item-damage input {
   width: 5ch;
-}
-
-.item-damage button:disabled {
-  opacity: 0.6;
 }
 
 .item-wow-card > .archive-copy {

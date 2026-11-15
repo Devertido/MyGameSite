@@ -195,6 +195,7 @@ export function validateOrganization(organization: Organization, timeline: Timel
 }
 
 export type ArchiveEntry = EntryMetadata & {
+  material?: import('./itemDamage.ts').ItemMaterial
   massKg?: number
   requiredSkill?: string
   damageFormula?: string

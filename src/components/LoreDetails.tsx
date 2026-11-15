@@ -58,7 +58,7 @@ export function SpellFields({ spell }: { spell?: SpellDetails }) {
     <p><label>{t('Формула урона')} (1d8 + СИЛ + 5) <input name="spell-damage" maxLength={120} defaultValue={spell?.damageFormula} /></label></p>
     <SpellTimeFields name="spell-casting" label="Время произнесения" duration={spell?.castingTime} />
     <SpellTimeFields name="spell-cooldown" label="Время восстановления" duration={spell?.cooldown} />
-    <p><label>{t("Цена в мане ")}<input name="mana" type="number" min={0} step={1} defaultValue={spell?.mana ?? ''} /></label></p>
+    <p><label className="spell-mana-field">{t("Цена в мане ")}<input name="mana" type="number" min={0} step={1} defaultValue={spell?.mana ?? ''} /></label></p>
     <fieldset>
       <legend>{t("Компоненты заклинания")}</legend>
       <div className="directory-actions">
