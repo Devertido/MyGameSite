@@ -237,7 +237,7 @@ export function LorePage({ timeline, save, initialSection, initialEntry, archive
           )}
         </section>
       </div>
-      {section === 'dynasties' && typeof selected === 'string' && <HouseTree house={selected} characters={timeline.characters ?? []} save={saveCharacters} />}
+      {section === 'dynasties' && typeof selected === 'string' && <HouseTree key={selected} house={selected} characters={timeline.characters ?? []} save={saveCharacters} />}
       {editing !== null && (
         <CreationDialog onCancel={() => { setEditing(null); setError('') }}>
           <h2 id="creation-dialog-title">{label && t(label)}</h2>

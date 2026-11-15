@@ -44,6 +44,7 @@ export function HouseTree({ house, characters, save }: {
 }) {
   const titleId = useId()
   const dialogTitleId = useId()
+  const [editing, setEditing] = useState(false)
   const [selection, setSelection] = useState<{ id: string; relation: HouseRelationship } | null>(null)
   const [removal, setRemoval] = useState<Connection>()
   const [error, setError] = useState('')
@@ -116,9 +117,15 @@ export function HouseTree({ house, characters, save }: {
 
   return <section className="house-tree">
     <h3 id={titleId}>{t('Родословное дерево')}</h3>
-    {membersById.size > 0 && <p className="house-tree-legend">{t('Фиолетовая линия — любовная связь. Фиолетовый «+» добавляет её.')}</p>}
+    {membersById.size > 0 && <p className="house-tree-legend">{t('Фиолетовая линия — любовная связь.')}</p>}
     {membersById.size === 0 ? <p>{t('Выберите этот род в карточках персонажей, чтобы построить дерево.')}</p> :
       <div className="house-tree-scroll" role="region" tabIndex={0} aria-labelledby={titleId}>
+        <div className="house-tree-tools">
+          <button type="button" aria-pressed={editing} onClick={() => {
+            closePicker()
+            setEditing(!editing)
+          }}>{t('Редактировать род')}</button>
+        </div>
         <div className="house-tree-chart" style={{ width, height }}>
           <svg className="house-tree-lines" width={width} height={height} aria-hidden="true">
             {connections.map(({ first, second, kind, path }) => <path key={JSON.stringify([kind, first.id, second.id])}
@@ -130,7 +137,7 @@ export function HouseTree({ house, characters, save }: {
               {t(kind === 'spouse' ? 'Брак' : 'Любовники')}
             </span>
           ))}
-          {connections.map((connection) => {
+          {editing && connections.map((connection) => {
             const { first, second, kind, x, y } = connection
             const action = t(removalLabels[kind])
             const label = action + ' · ' + fullName(first) + ' → ' + fullName(second)
@@ -150,7 +157,7 @@ export function HouseTree({ house, characters, save }: {
               {person.bornOutsideMarriage && <small className="house-tree-outside-marriage">{t('Рождение вне брака')}</small>}
               {outside && person.dynasty && <small>{person.dynasty}</small>}
             </a>
-              {(Object.keys(relationshipLabels) as HouseRelationship[]).map((relation) => {
+              {editing && (Object.keys(relationshipLabels) as HouseRelationship[]).map((relation) => {
                 if (relation === 'spouse' && person.spouseId) return null
                 const label = t(relationshipLabels[relation]) + ' · ' + name
                 const style = relation === 'spouse'
