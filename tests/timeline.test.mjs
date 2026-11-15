@@ -420,6 +420,12 @@ test('Правки планировки, родство, бестиарий и �
     { level: 1, skills: 'Arcana', abilities: '', spells: [] },
     { level: 20, skills: '', abilities: 'Mastery', spells: [spell.name] },
   ] }]
+  const ability = { ...spell, name: 'Arcane pulse' }
+  timeline.lore.abilities = [ability.name]
+  timeline.lore.abilityDetails = [ability]
+  timeline.lore.classProgression[0].levels[1].abilityNames = [ability.name]
+  race.abilityNames = [ability.name]
+  characters[0].abilityNames = [ability.name]
   const invalidClass = structuredClone(timeline)
   invalidClass.lore.classProgression[0].levels[1].level = 21
   assert.throws(() => importTimeline(exportTimeline(invalidClass)))
@@ -437,6 +443,7 @@ test('Правки планировки, родство, бестиарий и �
     assert.deepEqual(restored.lore.houseDetails, timeline.lore.houseDetails)
     assert.deepEqual(restored.lore.spellDetails, [spell])
     assert.deepEqual(restored.lore.classProgression, timeline.lore.classProgression)
+    assert.deepEqual(restored.lore.abilityDetails, [ability])
     assert.deepEqual(removeMissingLoreLinks({ ...restored, locations: [] }).lore.houseDetails[0].locationIds, [])
   }
 })

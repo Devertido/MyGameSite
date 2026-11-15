@@ -13,7 +13,7 @@ import { CharactersPage } from './components/CharactersPage'
 import { EventsPage } from './components/EventsPage'
 import { TimelineScale } from './components/TimelineScale'
 import { LorePage } from './components/LorePage'
-import { removeMissingLoreLinks } from './domain/lore'
+import { removeMissingLoreLinks, updateAbilityNames } from './domain/lore'
 import { WorldMap } from './components/WorldMap'
 import { validateCalendarEra } from './domain/calendarYear'
 import { calendarDay, validateEvent, validateTimelineBounds, type Timeline, type TimelineCalendar, type TimelineEvent, type TimelineCharacter } from './domain/timeline'
@@ -355,7 +355,7 @@ function App({ backupTools, english, page, eventYear, eventId, characterId, orga
 
       if (page === 'lore') {
         const kind = loreSection === 'items' || loreSection === 'locations' ? loreSection : undefined
-        return <LorePage key={JSON.stringify([selected.id, loreSection, loreSection === 'dynasties' ? entryId : null])} initialSection={loreSection} initialEntry={entryId} saveCharacters={saveCharacters}
+        return <LorePage key={JSON.stringify([selected.id, loreSection, (loreSection === 'dynasties' || loreSection === 'abilities') ? entryId : null])} initialSection={loreSection} initialEntry={entryId} saveCharacters={saveCharacters}
           archive={kind && <ArchivePage embedded timeline={selected.timeline} kind={kind} entryId={entryId}
             entries={selected.timeline[kind] ?? []}
             save={(entries) => {
@@ -379,8 +379,12 @@ function App({ backupTools, english, page, eventYear, eventId, characterId, orga
             ...timeline,
             lore,
             ...(rename && timeline.characters ? {
-              characters: timeline.characters.map((character) => sameHouse(character.dynasty, rename.from)
-                ? { ...character, dynasty: rename.to } : character),
+              characters: timeline.characters.map((character) => {
+                if (rename.section === 'abilities') return {
+                  ...character, abilityNames: updateAbilityNames(character.abilityNames, rename.from, rename.to),
+                }
+                return sameHouse(character.dynasty, rename.from) ? { ...character, dynasty: rename.to } : character
+              }),
             } : {}),
           }))} />
       }

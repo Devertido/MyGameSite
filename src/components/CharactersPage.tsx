@@ -1,6 +1,7 @@
 import { sameHouse, validSpouses } from '../domain/houseTree'
 import { displayMonthName } from '../domain/calendar.ts'
 import { t } from '../i18n.ts'
+import { AbilityLinks, AbilityPicker } from './AbilityPicker'
 import { AbilityDetails, AbilityFields } from './AbilityScores'
 import { adjustedAbilities, readAbilityScores } from '../domain/abilities'
 import { RelativePicker } from './RelativePicker'
@@ -113,6 +114,7 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
       ...readEntryMetadata(fields),
       parentIds,
       abilities: readAbilityScores(fields),
+      abilityNames: fields.getAll('ability-names').map(String),
       ...(level !== undefined ? { level } : {}),
       ...(characterClass ? { characterClass } : {}),
       ...(dynasty ? { dynasty } : {}),
@@ -202,6 +204,7 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
             <CharacterDateFields prefix="death" label={t("Дата смерти")} months={months} initial={original?.death} />
             <ImageField name="portrait" allowGif label={t("Вертикальный портрет")} initial={original?.portrait} />
             <EntryFields entry={original} />
+            <AbilityPicker initial={original?.abilityNames} options={timeline.lore?.abilities ?? []} />
             <AbilityFields scores={original?.abilities} race={raceDetailsFor(timeline.lore, draftRace)} />
             <p><label>{t("Описание")}<br /><textarea name="description" rows={4} defaultValue={original?.description} /></label></p>
             <p><label>{t("Биография")}<br /><textarea name="biography" rows={8} defaultValue={original?.biography} /></label></p>
@@ -283,6 +286,7 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
                     </ul>
                   </section>
                 )}
+                <AbilityLinks names={character.abilityNames} />
                 <AbilityDetails scores={adjustedAbilities(character.abilities, raceDetails?.abilityBonuses, raceDetails?.abilityPenalties)} />
                 {character.birth && (
                   <p>{t("Дата рождения · ")}{calendarDay(months, character.birth.dayOfYear)} · {character.birth.year}{t(" г. системы")}</p>

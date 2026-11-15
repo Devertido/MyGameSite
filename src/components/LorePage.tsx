@@ -1,4 +1,5 @@
 import { sameHouse } from '../domain/houseTree'
+import { AbilityPicker, AbilityLinks } from './AbilityPicker'
 import { ClassProgressionDetails, ClassProgressionFields } from './ClassProgression'
 import { ItemDamage } from './ItemDamage'
 import { parseDamageFormula } from '../domain/itemDamage'
@@ -14,13 +15,13 @@ import { ImageField } from './ImageField'
 import { useState, type CSSProperties, type FormEvent, type ReactNode } from 'react'
 import { MagicDetails, RaceFields, SpellFields } from './LoreDetails'
 import { CreationDialog } from './CreationDialog'
-import { emptyLore, glossaryDescription, isGlossarySection, beastCombatFields, readRaceMeasure, surnameOrigins, spellComponents, validSpellDuration, formatSpellDuration, loreTargets, validHouseYears, validLore, type HouseDetails, type LinkKind, type WorldLore } from '../domain/lore'
+import { emptyLore, glossaryDescription, isGlossarySection, beastCombatFields, readRaceMeasure, surnameOrigins, spellComponents, validSpellDuration, formatSpellDuration, loreTargets, updateLoreAbilityLinks, validHouseYears, validLore, type HouseDetails, type LinkKind, type WorldLore } from '../domain/lore'
 import type { Timeline } from '../domain/timeline'
 
 const sections = [
   ['surnames', 'Фамилии'], ['races', 'Расы'], ['dynasties', 'Род'],
   ['classes', 'Классы'], ['spells', 'Заклинания'],
-  ['cultures', 'Культуры'], ['faiths', 'Верования'], ['bestiary', 'Бестиарий'], ['items', 'Предметы'], ['locations', 'Локации'],
+  ['cultures', 'Культуры'], ['faiths', 'Верования'], ['bestiary', 'Бестиарий'], ['items', 'Предметы'], ['locations', 'Локации'], ['abilities', 'Способности'],
 ] as const
 
 const fieldsByKind = {
@@ -43,18 +44,22 @@ function entryName(entry: string | { name: string } | { title: string }) {
   return typeof entry === 'string' ? entry : 'title' in entry ? entry.title : entry.name
 }
 
-export function LorePage({ timeline, save, initialSection, initialEntry, archive, saveCharacters }: { timeline: Timeline; save: (lore: WorldLore, rename?: { from: string; to: string }) => void; initialSection?: string; initialEntry?: string; archive: ReactNode; saveCharacters: (characters: NonNullable<Timeline['characters']>) => void }) {
-  const lore = { ...emptyLore, ...timeline.lore, bestiary: timeline.lore?.bestiary ?? [], classes: timeline.lore?.classes ?? [], spells: timeline.lore?.spells ?? [] }
+type LoreRename = { from: string; to: string; section: 'dynasties' | 'abilities' }
+
+export function LorePage({ timeline, save, initialSection, initialEntry, archive, saveCharacters }: { timeline: Timeline; save: (lore: WorldLore, rename?: LoreRename) => void; initialSection?: string; initialEntry?: string; archive: ReactNode; saveCharacters: (characters: NonNullable<Timeline['characters']>) => void }) {
+  const lore = { ...emptyLore, ...timeline.lore, bestiary: timeline.lore?.bestiary ?? [], classes: timeline.lore?.classes ?? [], spells: timeline.lore?.spells ?? [], abilities: timeline.lore?.abilities ?? [] }
   const section = sections.find(([key]) => key === initialSection)?.[0] ?? 'surnames'
   const [selectedId, setSelectedId] = useState<string | null>(() =>
-    section === 'dynasties' ? lore.dynasties.find((name) => sameHouse(initialEntry, name)) ?? null : null)
+    section === 'dynasties' ? lore.dynasties.find((name) => sameHouse(initialEntry, name)) ?? null : section === 'abilities' ? initialEntry ?? null : null)
   const [spellQuery, setSpellQuery] = useState('')
   const [editing, setEditing] = useState<string | null>(null)
   const [error, setError] = useState('')
   const archiveSection = section === 'items' || section === 'locations'
   const entries = archiveSection ? [] : lore[section]
-  const spellSection = section === 'spells'
-  const spellDetails = new Map(lore.spellDetails?.map((spell) => [spell.name, spell]))
+  const abilitySection = section === 'abilities'
+  const spellSection = section === 'spells' || abilitySection
+  const powerDetails = abilitySection ? lore.abilityDetails : lore.spellDetails
+  const spellDetails = new Map(powerDetails?.map((spell) => [spell.name, spell]))
   const tableEntries = spellSection
     ? entries.filter((entry) => entryName(entry).toLocaleLowerCase('ru').includes(spellQuery.trim().toLocaleLowerCase('ru')))
     : entries
@@ -71,7 +76,7 @@ export function LorePage({ timeline, save, initialSection, initialEntry, archive
   }
   const beast = section === 'bestiary' ? lore.bestiary.find(({ id }) => id === editing) : undefined
 
-  function persist(next: WorldLore, rename?: { from: string; to: string }) {
+  function persist(next: WorldLore, rename?: LoreRename) {
     try {
       if (!validLore(next, timeline)) throw new Error(t('Проверьте поля записи и годы в пределах таймлайна.'))
       save(next, rename)
@@ -118,7 +123,7 @@ export function LorePage({ timeline, save, initialSection, initialEntry, archive
       const text = read('description')
       const descriptions = (lore.descriptions ?? []).filter((entry) => entry.section !== section || entry.name !== editing)
       if (text) descriptions.push({ section, name, text })
-      const next = { ...lore, descriptions, [section]: [...lore[section].filter((item) => item !== editing), name] }
+      let next: WorldLore = { ...lore, descriptions, [section]: [...lore[section].filter((item) => item !== editing), name] }
       if (section === 'surnames') {
         const origin = surnameOrigins.find((item) => item === read('surname-origin')) ?? ''
         const locationId = read('surname-location')
@@ -150,8 +155,9 @@ export function LorePage({ timeline, save, initialSection, initialEntry, archive
         const levels = JSON.parse(read('class-levels') || '[]')
         next.classProgression = [...(lore.classProgression ?? []).filter((entry) => entry.name !== editing), { name, levels }]
       }
-      if (section === 'spells') {
-        if (editing && editing !== name && lore.classProgression) {
+      if (section === 'spells' || section === 'abilities') {
+        if (section === 'abilities' && editing && editing !== name) next = updateLoreAbilityLinks(next, editing, name)
+        if (section === 'spells' && editing && editing !== name && lore.classProgression) {
           next.classProgression = lore.classProgression.map((entry) => ({
             ...entry, levels: entry.levels.map((level) => ({
               ...level, spells: level.spells.map((spell) => spell === editing ? name : spell),
@@ -172,7 +178,8 @@ export function LorePage({ timeline, save, initialSection, initialEntry, archive
           setError(t('Введите неотрицательное время и выберите единицу измерения.'))
           return
         }
-        next.spellDetails = [...(lore.spellDetails ?? []).filter((entry) => entry.name !== editing), {
+        const detailKey = section === 'spells' ? 'spellDetails' : 'abilityDetails'
+        next[detailKey] = [...(powerDetails ?? []).filter((entry) => entry.name !== editing), {
           name, image: read('lore-image'), mana: read('mana') ? Number(read('mana')) : null,
           school: read('spell-school') || undefined, damageFormula: damageFormula || undefined,
           castingTime, cooldown,
@@ -189,20 +196,23 @@ export function LorePage({ timeline, save, initialSection, initialEntry, archive
         }
         next.raceDetails = [...(lore.raceDetails ?? []).filter((entry) => entry.name !== editing), {
           name, image: read('lore-image'), lifespan, height,
+          abilityNames: data.getAll('ability-names').map(String),
           size: read('size'), bonuses: read('bonuses'), debuffs: read('debuffs'),
           abilityBonuses: readAbilityScores(data, 'race-bonus-'),
           abilityPenalties: readAbilityScores(data, 'race-penalty-'),
         }]
       }
       setSelectedId(name)
-      persist(next, section === 'dynasties' && editing && name !== editing ? { from: editing, to: name } : undefined)
+      persist(next, (section === 'dynasties' || section === 'abilities') && editing && name !== editing
+        ? { from: editing, to: name, section } : undefined)
     }
   }
 
   function remove(id: string) {
     if (!window.confirm(t('Удалить запись из справочника?'))) return
     persist({
-      ...lore,
+      ...(section === 'abilities' ? updateLoreAbilityLinks(lore, id) : lore),
+      ...(section === 'abilities' ? { abilityDetails: lore.abilityDetails?.filter((entry) => entry.name !== id) } : {}),
       ...(section === 'surnames' ? { surnameDetails: lore.surnameDetails?.filter((entry) => entry.name !== id) } : {}),
       ...(section === 'dynasties' ? { houseDetails: lore.houseDetails?.filter((entry) => entry.name !== id),
         surnameDetails: lore.surnameDetails?.map((entry) =>
@@ -251,7 +261,7 @@ export function LorePage({ timeline, save, initialSection, initialEntry, archive
           const details = section === 'surnames' ? lore.surnameDetails?.find((item) => item.name === name) : undefined
           const location = timeline.locations?.find((item) => item.id === details?.locationId)
           const spell = spellSection ? spellDetails.get(name) : undefined
-          const magic = section === 'races' || section === 'spells'
+          const magic = section === 'races' || spellSection
           return <article key={id} className={magic ? 'archive-card item-card item-tooltip lore-magic-card' : 'directory-card'}
             style={magic ? { '--item-accent': '#f4d28d' } as CSSProperties : undefined}>
             {spellSection && <div className="item-image-frame">
@@ -287,6 +297,7 @@ export function LorePage({ timeline, save, initialSection, initialEntry, archive
                 </li>)}</ul>
               </section>}
             </>}
+            {section === 'races' && <AbilityLinks names={lore.raceDetails?.find((entry) => entry.name === name)?.abilityNames} />}
             {section === 'classes' && <ClassProgressionDetails
               levels={lore.classProgression?.find((entry) => entry.name === name)?.levels ?? []} />}
             {details?.dynasty && <p><strong>{t("Род")}</strong> · {details.dynasty}</p>}
@@ -305,7 +316,7 @@ export function LorePage({ timeline, save, initialSection, initialEntry, archive
         </div>
         <section className="directory-table" aria-label={label && t(label)}>
           <div className="directory-actions">
-            <button type="button" onClick={() => { setError(''); setEditing('') }}>{t(spellSection ? 'Добавить заклинание' : 'Добавить запись')}</button>
+            <button type="button" onClick={() => { setError(''); setEditing('') }}>{t(abilitySection ? 'Добавить способность' : spellSection ? 'Добавить заклинание' : 'Добавить запись')}</button>
           </div>
           {spellSection && entries.length > 0 && <label>{t('Поиск ')}<input type="search" value={spellQuery}
             onChange={(event) => setSpellQuery(event.currentTarget.value)} /></label>}
@@ -343,7 +354,7 @@ export function LorePage({ timeline, save, initialSection, initialEntry, archive
                       <td>{spell?.school || '—'}</td>
                       <td>{spell?.mana ?? '—'}</td>
                       <td>{spell?.components.map(t).join(' · ') || '—'}</td>
-                      <td>{glossaryDescription(lore, 'spells', name) || '—'}</td>
+                      <td>{glossaryDescription(lore, abilitySection ? 'abilities' : 'spells', name) || '—'}</td>
                     </>}
                     {section === 'dynasties' && typeof entry === 'string' && <>
                       <td>{timeline.characters?.filter(({ dynasty }) => sameHouse(dynasty, entry)).length ?? 0}</td>
@@ -403,10 +414,13 @@ export function LorePage({ timeline, save, initialSection, initialEntry, archive
                 </div>) : <p>{t('В разделе пока нет записей.')}</p>}
               </fieldset>
             </>}
-            {section === 'races' && <RaceFields race={lore.raceDetails?.find(({ name }) => name === editing)} />}
+            {section === 'races' && <>
+              <RaceFields race={lore.raceDetails?.find(({ name }) => name === editing)} />
+              <AbilityPicker initial={lore.raceDetails?.find(({ name }) => name === editing)?.abilityNames} options={lore.abilities} />
+            </>}
             {section === 'classes' && <ClassProgressionFields key={editing}
-              initial={lore.classProgression?.find(({ name }) => name === editing)?.levels} spells={lore.spells} />}
-            {section === 'spells' && <SpellFields spell={lore.spellDetails?.find(({ name }) => name === editing)} />}
+              initial={lore.classProgression?.find(({ name }) => name === editing)?.levels} spells={lore.spells} abilities={lore.abilities} />}
+            {spellSection && <SpellFields ability={abilitySection} spell={editing ? spellDetails.get(editing) : undefined} />}
             {traditionKind && (
               <>
                 {fieldsByKind[traditionKind].map((field, index) => (

@@ -50,17 +50,17 @@ function SpellTimeFields({ name, label, duration }: { name: string; label: strin
   </fieldset>
 }
 
-export function SpellFields({ spell }: { spell?: SpellDetails }) {
+export function SpellFields({ spell, ability = false }: { spell?: SpellDetails; ability?: boolean }) {
   const [components, setComponents] = useState(spell?.components ?? [])
   return <>
-    <ImageField name="lore-image" label={t("Изображение заклинания")} initial={spell?.image} />
+    <ImageField name="lore-image" label={t(ability ? 'Изображение способности' : 'Изображение заклинания')} initial={spell?.image} />
     <p><label>{t('Школа магии')} <input name="spell-school" maxLength={120} defaultValue={spell?.school} /></label></p>
     <p><label>{t('Формула урона')} (1d8 + СИЛ + 5) <input name="spell-damage" maxLength={120} defaultValue={spell?.damageFormula} /></label></p>
     <SpellTimeFields name="spell-casting" label="Время произнесения" duration={spell?.castingTime} />
     <SpellTimeFields name="spell-cooldown" label="Время восстановления" duration={spell?.cooldown} />
     <p><label className="spell-mana-field">{t("Цена в мане ")}<input name="mana" type="number" min={0} step={1} defaultValue={spell?.mana ?? ''} /></label></p>
     <fieldset>
-      <legend>{t("Компоненты заклинания")}</legend>
+      <legend>{t(ability ? 'Компоненты способности' : 'Компоненты заклинания')}</legend>
       <div className="directory-actions">
         {spellComponents.map((component) => <button type="button" key={component} className="lore-toggle"
           aria-pressed={components.includes(component)} onClick={() => setComponents((current) =>

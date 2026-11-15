@@ -68,9 +68,10 @@ function parseTimeline(value: unknown): Timeline | null {
           ('biography' in character && typeof character.biography !== 'string')) return null
       if (!validMetadata(character)) return null
       const { status, gallery } = character as TimelineCharacter
-      const { surname, race, sex, birth, death, portrait, parentIds, dynasty, characterClass, level, abilities, spouseId, loverIds, bornOutsideMarriage } = character
+      const { surname, race, sex, birth, death, portrait, parentIds, dynasty, characterClass, level, abilities, abilityNames, spouseId, loverIds, bornOutsideMarriage } = character
       if ((parentIds !== undefined && !isIdList(parentIds)) ||
           (abilities !== undefined && !validAbilityScores(abilities)) ||
+          (abilityNames !== undefined && !isIdList(abilityNames)) ||
           (level !== undefined && !validClassLevel(level)) ||
           (characterClass !== undefined && typeof characterClass !== 'string') ||
           (loverIds !== undefined && !isIdList(loverIds)) ||
@@ -90,6 +91,7 @@ function parseTimeline(value: unknown): Timeline | null {
         ...(gallery !== undefined ? { gallery } : {}),
         ...(parentIds !== undefined ? { parentIds } : {}),
         ...(abilities !== undefined ? { abilities } : {}),
+        ...(abilityNames !== undefined ? { abilityNames } : {}),
         ...(level !== undefined ? { level } : {}),
         ...(characterClass !== undefined ? { characterClass } : {}),
         ...(spouseId !== undefined ? { spouseId } : {}),
@@ -172,6 +174,8 @@ function parseTimeline(value: unknown): Timeline | null {
     if (!validLore(value.lore, timeline)) return null
     timeline.lore = value.lore
   }
+  const abilityNames = new Set(timeline.lore?.abilities)
+  if (timeline.characters?.some((person) => person.abilityNames?.some((name) => !abilityNames.has(name)))) return null
   return timeline
 }
 

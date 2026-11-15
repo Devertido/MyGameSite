@@ -1,10 +1,11 @@
+import { AbilityLinks, AbilitySelection } from './AbilityPicker'
 import { useState } from 'react'
 import { t } from '../i18n.ts'
 import { maxClassLevel, type ClassLevel } from '../domain/lore'
 
 const levelNumbers = Array.from({ length: maxClassLevel }, (_, index) => index + 1)
 
-export function ClassProgressionFields({ initial, spells }: { initial?: ClassLevel[]; spells: string[] }) {
+export function ClassProgressionFields({ initial, spells, abilities }: { initial?: ClassLevel[]; spells: string[]; abilities: string[] }) {
   const [level, setLevel] = useState(1)
   const [levels, setLevels] = useState<ClassLevel[]>(initial ?? [])
   const current = levels.find((entry) => entry.level === level) ?? { level, skills: '', abilities: '', spells: [] }
@@ -17,7 +18,7 @@ export function ClassProgressionFields({ initial, spells }: { initial?: ClassLev
   return <fieldset className="class-progression">
     <legend>{t('Развитие класса')}</legend>
     <input type="hidden" name="class-levels" value={JSON.stringify(levels.filter(
-      (entry) => entry.skills.trim() || entry.abilities.trim() || entry.spells.length,
+      (entry) => entry.skills.trim() || entry.abilities.trim() || entry.spells.length || entry.abilityNames?.length,
     ).map((entry) => ({ ...entry, skills: entry.skills.trim(), abilities: entry.abilities.trim() })).sort((a, b) => a.level - b.level))} />
     <label>{t('Уровень')} <select value={level} onChange={(event) => setLevel(Number(event.currentTarget.value))}>
       {levelNumbers.map((number) => <option key={number} value={number}>{number}</option>)}
@@ -26,6 +27,7 @@ export function ClassProgressionFields({ initial, spells }: { initial?: ClassLev
       onChange={(event) => edit({ skills: event.currentTarget.value })} /></label>
     <label>{t('Способности')}<textarea rows={3} maxLength={4000} value={current.abilities}
       onChange={(event) => edit({ abilities: event.currentTarget.value })} /></label>
+    <AbilitySelection options={abilities} selected={current.abilityNames ?? []} onChange={(abilityNames) => edit({ abilityNames })} />
     <label>{t('Добавить заклинание')} <select value="" disabled={!available.length} onChange={(event) => {
       if (event.currentTarget.value) edit({ spells: [...current.spells, event.currentTarget.value] })
     }}>
@@ -47,8 +49,8 @@ export function ClassProgressionDetails({ levels }: { levels: ClassLevel[] }) {
       <thead><tr>
         {['Уровень', 'Навыки', 'Способности', 'Заклинания'].map((label) => <th key={label} scope="col">{t(label)}</th>)}
       </tr></thead>
-      <tbody>{levels.map(({ level, skills, abilities, spells }) => <tr key={level}>
-        <th scope="row">{level}</th><td>{skills || '—'}</td><td>{abilities || '—'}</td><td>{spells.join(', ') || '—'}</td>
+      <tbody>{levels.map(({ level, skills, abilities, spells, abilityNames }) => <tr key={level}>
+        <th scope="row">{level}</th><td>{skills || '—'}</td><td>{abilities || (!abilityNames?.length && '—')}<AbilityLinks names={abilityNames} heading={false} /></td><td>{spells.join(', ') || '—'}</td>
       </tr>)}</tbody>
     </table></div>
   </section>

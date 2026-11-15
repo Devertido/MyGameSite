@@ -22,10 +22,10 @@ export type Reign = {
   accession: string
 }
 
-export type GlossarySection = 'surnames' | 'races' | 'dynasties' | 'classes' | 'spells'
+export type GlossarySection = 'surnames' | 'races' | 'dynasties' | 'classes' | 'spells' | 'abilities'
 
 export function isGlossarySection(value: unknown): value is GlossarySection {
-  return value === 'surnames' || value === 'races' || value === 'dynasties' || value === 'classes' || value === 'spells'
+  return value === 'surnames' || value === 'races' || value === 'dynasties' || value === 'classes' || value === 'spells' || value === 'abilities'
 }
 
 export const spellComponents = ['Слово', 'Реагент', 'Жест'] as const
@@ -85,7 +85,7 @@ export function readRaceMeasure(data: FormData, measure: RaceMeasure, previous =
 }
 
 export type RaceDetails = { name: string; image: string; lifespan: string; height: string; size: string; bonuses: string; debuffs: string;
-  abilityBonuses?: AbilityScores; abilityPenalties?: AbilityScores
+  abilityNames?: string[]; abilityBonuses?: AbilityScores; abilityPenalties?: AbilityScores
 }
 
 export const surnameOrigins = ['', 'От места', 'От рода', 'От ремесла', 'От прозвища', 'Пожалованная', 'Другое'] as const
@@ -127,7 +127,7 @@ export const maxClassLevel = 20
 export function validClassLevel(value: unknown): value is number {
   return typeof value === 'number' && Number.isInteger(value) && value >= 1 && value <= maxClassLevel
 }
-export type ClassLevel = { level: number; skills: string; abilities: string; spells: string[] }
+export type ClassLevel = { level: number; skills: string; abilities: string; spells: string[]; abilityNames?: string[] }
 export type ClassProgression = { name: string; levels: ClassLevel[] }
 
 export type WorldLore = {
@@ -136,6 +136,8 @@ export type WorldLore = {
   surnameDetails?: SurnameDetails[]
   houseDetails?: HouseDetails[]
   spellDetails?: SpellDetails[]
+  abilityDetails?: SpellDetails[]
+  abilities?: string[]
   raceDetails?: RaceDetails[]
   descriptions?: { section: GlossarySection; name: string; text: string }[]
   surnames: string[]
@@ -190,6 +192,20 @@ function strings(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === 'string')
 }
 
+export function updateAbilityNames(names: string[] | undefined, from: string, to?: string): string[] | undefined {
+  return names?.flatMap((name) => name === from ? to ? [to] : [] : [name])
+}
+
+export function updateLoreAbilityLinks(lore: WorldLore, from: string, to?: string): WorldLore {
+  return {
+    ...lore,
+    raceDetails: lore.raceDetails?.map((race) => ({ ...race, abilityNames: updateAbilityNames(race.abilityNames, from, to) })),
+    classProgression: lore.classProgression?.map((entry) => ({
+      ...entry, levels: entry.levels.map((level) => ({ ...level, abilityNames: updateAbilityNames(level.abilityNames, from, to) })),
+    })),
+  }
+}
+
 export function validLore(value: unknown, timeline: Timeline): value is WorldLore {
   if (!record(value)) return false
   if (![value.races, value.surnames, value.dynasties].every(strings)) return false
@@ -197,7 +213,7 @@ export function validLore(value: unknown, timeline: Timeline): value is WorldLor
       !value.descriptions.every((entry: unknown) => record(entry) && isGlossarySection(entry.section) &&
         typeof entry.name === 'string' && typeof entry.text === 'string' &&
         (value[entry.section] as string[] | undefined)?.includes(entry.name)))) return false
-  if ([value.classes, value.spells].some((items) => items !== undefined && !strings(items))) return false
+  if ([value.classes, value.spells, value.abilities].some((items) => items !== undefined && !strings(items))) return false
   const locations = new Set(timeline.locations?.map(({ id }) => id))
   const names = value.surnames as string[]
   const dynasties = value.dynasties as string[]
@@ -224,6 +240,9 @@ export function validLore(value: unknown, timeline: Timeline): value is WorldLor
           /^data:image\/(webp|png);base64,[A-Za-z0-9+/]+={0,2}$/.test(entry.image))) && valid(entry)) &&
       new Set(items.map((entry) => entry.name)).size === items.length)
   }
+  const abilityNames = new Set(strings(value.abilities) ? value.abilities : [])
+  const validAbilityNames = (names: unknown) => names === undefined ||
+    (strings(names) && new Set(names).size === names.length && names.every((name) => abilityNames.has(name)))
   if (value.classProgression !== undefined) {
     const classNames = new Set(strings(value.classes) ? value.classes : [])
     const spellNames = new Set(strings(value.spells) ? value.spells : [])
@@ -233,21 +252,23 @@ export function validLore(value: unknown, timeline: Timeline): value is WorldLor
           validClassLevel(level.level) &&
           typeof level.skills === 'string' && level.skills.length <= 4000 &&
           typeof level.abilities === 'string' && level.abilities.length <= 4000 &&
-          strings(level.spells) && new Set(level.spells).size === level.spells.length &&
+          validAbilityNames(level.abilityNames) && strings(level.spells) && new Set(level.spells).size === level.spells.length &&
           level.spells.every((spell) => spellNames.has(spell))) &&
         new Set(entry.levels.map(({ level }) => level)).size === entry.levels.length) ||
         new Set(value.classProgression.map(({ name }) => name)).size !== value.classProgression.length) return false
   }
-  if (!validDetails(value.spellDetails, value.spells, (entry) =>
+  const validPowerDetails = (entry: Record<string, unknown>) =>
     (entry.school === undefined || (typeof entry.school === 'string' && entry.school.length <= 120)) &&
     (entry.damageFormula === undefined || (typeof entry.damageFormula === 'string' && Boolean(parseDamageFormula(entry.damageFormula)))) &&
     (entry.castingTime === undefined || validSpellDuration(entry.castingTime)) &&
     (entry.cooldown === undefined || validSpellDuration(entry.cooldown)) &&
     (entry.mana === null || (typeof entry.mana === 'number' && Number.isSafeInteger(entry.mana) && entry.mana >= 0)) &&
     strings(entry.components) && entry.components.every((component) => spellComponents.some((item) => item === component)) &&
-    new Set(entry.components).size === entry.components.length)) return false
+    new Set(entry.components).size === entry.components.length
+  if (!validDetails(value.spellDetails, value.spells, validPowerDetails) ||
+      !validDetails(value.abilityDetails, value.abilities, validPowerDetails)) return false
   if (!validDetails(value.raceDetails, value.races, (entry) =>
-    [entry.lifespan, entry.height, entry.size, entry.bonuses, entry.debuffs].every((item) => typeof item === 'string') &&
+    validAbilityNames(entry.abilityNames) && [entry.lifespan, entry.height, entry.size, entry.bonuses, entry.debuffs].every((item) => typeof item === 'string') &&
     [entry.abilityBonuses, entry.abilityPenalties].every((scores) => scores === undefined || validAbilityScores(scores)))) return false
   const targets = new Map(linkKinds.map((kind) => [kind, new Set(loreTargets(timeline, kind).map(({ id }) => id))]))
   const known = (kind: LinkKind, id: unknown) => typeof id === 'string' && targets.get(kind)?.has(id)
@@ -286,7 +307,12 @@ export function removeMissingLoreLinks(timeline: Timeline): Timeline {
   const prune = (entries: Tradition[]) => entries.map((entry) => ({
     ...entry, links: entry.links.filter(({ kind, id }) => ids.get(kind)?.has(id)),
   }))
-  return { ...timeline, lore: {
+  const abilityNames = new Set(lore.abilities)
+  return { ...timeline,
+    characters: timeline.characters?.map((person) => person.abilityNames ? {
+      ...person, abilityNames: person.abilityNames.filter((name) => abilityNames.has(name)),
+    } : person),
+    lore: {
     ...lore,
     ...(lore.surnameDetails ? { surnameDetails: lore.surnameDetails.map((entry) =>
       entry.locationId && !ids.get('locations')?.has(entry.locationId) ? { ...entry, locationId: undefined } : entry) } : {}),
