@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import mapUrl from '../assets/world-map.jpg'
+import mapUrl from '../assets/world-map-glacier.png'
 
 export function WorldMap() {
   const viewportRef = useRef<HTMLDivElement>(null)
@@ -83,7 +83,7 @@ export function WorldMap() {
 
   return (
     <div ref={viewportRef} className="world-map-viewport" tabIndex={0} role="region" aria-labelledby="world-map-title">
-      <img ref={imageRef} src={mapUrl} alt="Карта мира Атласа Арены" width={4096} height={3072} draggable={false} />
+      <img ref={imageRef} src={mapUrl} alt="Карта мира Атласа Арены" width={1448} height={1086} draggable={false} />
     </div>
   )
 }
