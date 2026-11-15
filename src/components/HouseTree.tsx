@@ -9,7 +9,8 @@ const cardHeight = 174
 const columnGap = 44
 const rowGap = 76
 const padding = 46
-const topPadding = 66
+const topPadding = 36
+const bottomPadding = 72
 
 const relationshipLabels = {
   parent: 'Добавить родителя',
@@ -60,7 +61,7 @@ export function HouseTree({ house, characters, save }: {
   const { generations, linkedParents, membersById } = houseGenerations(characters, house)
   const widestRow = Math.max(1, ...generations.map((row) => row.length))
   const width = widestRow * (cardWidth + columnGap) - columnGap + 2 * padding
-  const height = generations.length * (cardHeight + rowGap) - rowGap + topPadding + padding
+  const height = generations.length * (cardHeight + rowGap) - rowGap + topPadding + bottomPadding
   const nodes = generations.flatMap((row, generation) => row.map((person, column) => ({
     person,
     x: (width - (row.length * (cardWidth + columnGap) - columnGap)) / 2 + column * (cardWidth + columnGap),
@@ -101,15 +102,18 @@ export function HouseTree({ house, characters, save }: {
       if (!lover || lover.y < y || (lover.y === y && lover.x <= x)) continue
       const startX = x + cardWidth * 0.75
       const endX = lover.x + cardWidth * 0.25
-      const lane = y - 28 - (index % 2) * 6
+      const bottom = y + cardHeight
+      const loverBottom = lover.y + cardHeight
+      const lane = bottom + 28 + (index % 2) * 6
+      const loverLane = loverBottom + 28 + (index % 2) * 6
       const turn = width - 14 - (index % 2) * 8
       const sameRow = lover.y === y
       links.push({
         first: person, second: lover.person, kind: 'lover',
-        path: sameRow ? `M ${startX} ${y} V ${lane} H ${endX} V ${y}`
-          : `M ${startX} ${y} V ${lane} H ${turn} V ${lover.y - 28} H ${endX} V ${lover.y}`,
+        path: sameRow ? `M ${startX} ${bottom} V ${lane} H ${endX} V ${loverBottom}`
+          : `M ${startX} ${bottom} V ${lane} H ${turn} V ${loverLane} H ${endX} V ${loverBottom}`,
         x: sameRow ? (startX + endX) / 2 : turn,
-        y: sameRow ? lane : (lane + lover.y - 28) / 2,
+        y: sameRow ? lane : (lane + loverLane) / 2,
       })
     }
     return links

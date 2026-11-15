@@ -84,7 +84,7 @@ export function ArchivePage({ kind, entries, entryId, timeline, save, embedded =
           if (imported[0]) window.location.hash = 'chronicles?entry=' + encodeURIComponent(imported[0].id)
         }} />}
       {draft !== null && (
-        <CreationDialog onCancel={() => { setDraft(null); setError('') }}>
+        <CreationDialog wide={location} onCancel={() => { setDraft(null); setError('') }}>
           <form className={chronicle ? 'archive-form parchment' : 'archive-form'} onSubmit={submit} onInput={() => setError('')}>
             <h2 id="creation-dialog-title">{original ? t('Редактировать') : location ? t('Новая локация') : chronicle ? t('Новая летопись') : t('Новый предмет')}</h2>
             <label>{t("Название")}<input name="title" defaultValue={original?.title} required /></label>

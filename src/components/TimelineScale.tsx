@@ -11,6 +11,7 @@ export function TimelineScale({ timeline, calendar }: { timeline: Timeline; cale
   const [zoomIndex, setZoomIndex] = useState(0)
   const scrollRef = useRef<HTMLDivElement>(null)
   const axisRef = useRef<HTMLOListElement>(null)
+  const [markerYear, setMarkerYear] = useState<number>()
   const [target, setTarget] = useState<{ year: number; day?: number } | null>(null)
   const zoom = zoomLevels[zoomIndex]!
   const start = BigInt(timeline.startYear)
@@ -18,10 +19,24 @@ export function TimelineScale({ timeline, calendar }: { timeline: Timeline; cale
   const span = BigInt(scaleEnd) - start
   const daysPerYear = BigInt(timeline.daysPerYear)
   const totalDays = (span + 1n) * daysPerYear
+  const selectedYear = Math.max(timeline.startYear, Math.min(scaleEnd, markerYear ?? target?.year ?? timeline.startYear))
 
   function positionOf(year: bigint, elapsedDays = 0) {
     const offset = (year - start) * daysPerYear + BigInt(elapsedDays)
     return Number(offset) / Number(totalDays) * 100
+  }
+
+  function chooseYear(year: number, day?: number) {
+    setMarkerYear(undefined)
+    setTarget({ year, day })
+  }
+
+  function selectAt(clientX: number) {
+    const box = axisRef.current?.getBoundingClientRect()
+    if (!box?.width) return
+    const fraction = Math.max(0, Math.min(1, (clientX - box.left) / box.width))
+    const offset = BigInt(Math.floor(fraction * Number(span + 1n)))
+    setMarkerYear(Number(start + (offset > span ? span : offset)))
   }
 
   useEffect(() => {
@@ -57,7 +72,7 @@ export function TimelineScale({ timeline, calendar }: { timeline: Timeline; cale
     event.preventDefault()
     const year = Number(new FormData(event.currentTarget).get('year'))
     if (Number.isSafeInteger(year) && year >= timeline.startYear && year <= timeline.endYear) {
-      setTarget({ year })
+      chooseYear(year)
     }
   }
 
@@ -97,7 +112,7 @@ export function TimelineScale({ timeline, calendar }: { timeline: Timeline; cale
     return { ...event, position: leftPosition, width, row }
   })
   const organizationPeriods = (timeline.organizations ?? []).filter((organization) => organization.onTimeline && matchesStatus(organization))
-  const highlightedYear = target?.year
+  const highlightedYear = markerYear ?? target?.year
 
   return (
     <section className="timeline-view" aria-labelledby="timeline-title">
@@ -132,7 +147,7 @@ export function TimelineScale({ timeline, calendar }: { timeline: Timeline; cale
           <label>{t("Перейти к событию")}{' '}
             <select value="" onChange={(event) => {
               const selected = visibleEvents.find(({ id }) => id === event.currentTarget.value)
-              if (selected) setTarget({ year: selected.year, day: (selected.date?.first ?? 1) - 1 })
+              if (selected) chooseYear(selected.year, (selected.date?.first ?? 1) - 1)
             }}>
               <option value="" disabled>{t("Выберите событие")}</option>
               {[...visibleEvents].sort((left, right) => left.year - right.year).map(({ id, year, title }) => (
@@ -141,9 +156,13 @@ export function TimelineScale({ timeline, calendar }: { timeline: Timeline; cale
             </select>
           </label>
         )}
-        {highlightedYear !== undefined && <output aria-live="polite">{t("Год ")}{highlightedYear}</output>}
+
       </div>
 
+      <div className="timeline-year-selection">
+        <span>{t('Выбранный год')}</span>
+        <output aria-label={t('Выбранный год')} aria-live="off">{selectedYear}</output>
+      </div>
       <div ref={scrollRef} className="timeline-scroll" tabIndex={0} role="region" aria-label={t("Шкала системных лет")}>
         <div className="timeline-track" style={{ width: `${100 * zoom}%`, minWidth: `${36 * zoom}rem` }}>
           {markers.length > 0 && (
@@ -164,11 +183,27 @@ export function TimelineScale({ timeline, calendar }: { timeline: Timeline; cale
               <li key={String(year)} className={year === 0n ? "timeline-zero" : undefined} style={{ left: `${position}%` }}>{String(year)}</li>
             ))}
           </ol>
-          {highlightedYear !== undefined && (
-            <div className="timeline-position" aria-hidden="true">
-              <span style={{ left: `${positionOf(BigInt(highlightedYear), target?.day)}%` }} />
-            </div>
-          )}
+          <div className="timeline-position">
+            <div className="timeline-year-marker" tabIndex={0} role="slider"
+              aria-label={t('Маркер года')} aria-valuemin={timeline.startYear} aria-valuemax={scaleEnd} aria-valuenow={selectedYear}
+              title={t('Маркер года') + ' · ' + selectedYear}
+              style={{ left: `${positionOf(BigInt(selectedYear), markerYear === undefined ? target?.day : 0)}%` }}
+              onPointerDown={(event) => {
+                if (!event.isPrimary || event.button !== 0) return
+                event.currentTarget.setPointerCapture(event.pointerId)
+              }}
+              onPointerMove={(event) => {
+                if (event.currentTarget.hasPointerCapture(event.pointerId)) selectAt(event.clientX)
+              }}
+              onKeyDown={(event) => {
+                const year = { ArrowLeft: selectedYear - 1, ArrowDown: selectedYear - 1,
+                  ArrowRight: selectedYear + 1, ArrowUp: selectedYear + 1,
+                  Home: timeline.startYear, End: scaleEnd }[event.key]
+                if (year === undefined) return
+                event.preventDefault()
+                chooseYear(Math.max(timeline.startYear, Math.min(scaleEnd, year)))
+              }} />
+          </div>
           {organizationPeriods.length > 0 && (
             <ul className="timeline-organizations" aria-label={t("Периоды существования организаций")}>
               {organizationPeriods.map(({ id, name, startYear, endYear, color = defaultOrganizationColor }) => {

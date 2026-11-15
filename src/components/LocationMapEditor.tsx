@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState, type PointerEvent } from 'react'
 import { brushDisplacement, mapHeight, mapWidth, moveDistrictCorner, rerollDistrict, warpDistricts, type LocationMapPlan } from '../domain/locationMapPlan'
+import { insideDistrict } from '../domain/settlementBuildings'
 import type { Point } from '../domain/settlementDistricts'
 import { t } from '../i18n.ts'
 import { locationMap } from './locationMap'
+import { LocationMapLayerEditor, type MapLayer } from './LocationMapLayerEditor'
 
 export type MapLocationLink = { id: string; title: string }
 
@@ -14,6 +16,8 @@ export function LocationMapEditor({ plan, image, locations, onChange }: {
 }) {
   const [districtIndex, setDistrictIndex] = useState(0)
   const [districtName, setDistrictName] = useState(plan.geometry?.districts[0]?.name ?? '')
+  const [layer, setLayer] = useState<MapLayer>()
+  const [placingMarker, setPlacingMarker] = useState(false)
   const [point, setPoint] = useState<Point>()
   const [name, setName] = useState('')
   const [locationId, setLocationId] = useState('')
@@ -21,6 +25,7 @@ export function LocationMapEditor({ plan, image, locations, onChange }: {
   const [drag, setDrag] = useState<{ index: number; point: Point }>()
   const view = useRef<HTMLDivElement>(null)
   const [draft, setDraft] = useState<{ plan: LocationMapPlan; image: string }>()
+  const [previousStroke, setPreviousStroke] = useState<typeof draft>()
   const [radius, setRadius] = useState(90)
   const [cursor, setCursor] = useState<Point>()
   const [stroke, setStroke] = useState<{ origin: Point; target: Point }>()
@@ -42,6 +47,12 @@ export function LocationMapEditor({ plan, image, locations, onChange }: {
   const selected = geometry.districts[districtIndex]
   const markers = plan.markers ?? []
 
+  function selectDistrict(index: number) {
+    setDistrictIndex(index)
+    setDistrictName(geometry?.districts[index]?.name ?? '')
+    setError('')
+  }
+
   function update(form: HTMLFormElement | null, next: LocationMapPlan) {
     const field = form?.elements.namedItem('title')
     const title = field instanceof HTMLInputElement ? field.value.trim() : ''
@@ -62,16 +73,34 @@ export function LocationMapEditor({ plan, image, locations, onChange }: {
   return <details className="location-map-editor">
     <summary>{t('Редактор плана поселения')}</summary>
     <div className="location-map-editor-actions">
+      <button type="button" disabled={warping} aria-pressed={!layer && !warping && !placingMarker}
+        onClick={() => { setLayer(undefined); setPlacingMarker(false); setError('') }}>{t('Кварталы')}</button>
+      {(['walls', 'landscape'] as const).map((item) => <button key={item} type="button" disabled={warping} aria-pressed={layer === item}
+        onClick={() => {
+          setLayer(item)
+          setPlacingMarker(false)
+          setError('')
+        }}>{t(item === 'walls' ? 'Стены и башни' : 'Окружение')}</button>)}
       <button type="button" aria-pressed={warping} onClick={() => {
+        setLayer(undefined)
         if (warping) setDraft(undefined)
         else setDraft({ plan, image })
         setError('')
         setCursor(undefined)
         setStroke(undefined)
+        setPreviousStroke(undefined)
       }}>{t('Планировка')}</button>
+      {!warping && <button type="button" aria-pressed={!layer && placingMarker}
+        onClick={() => { setPlacingMarker(layer ? true : !placingMarker); setLayer(undefined) }}>{t('Метки карты')}</button>}
       {draft && <>
         <label>{t('Радиус кисти')} <input type="range" min={25} max={250} step={5} value={radius}
           onChange={(event) => setRadius(Number(event.currentTarget.value))} /></label>
+        <button type="button" disabled={!previousStroke} onClick={() => {
+          if (!previousStroke) return
+          setDraft(previousStroke)
+          setPreviousStroke(undefined)
+          setError('')
+        }}>{t('Отменить последний мазок')}</button>
         <button type="button" disabled={draft.plan === plan} onClick={() => {
           onChange(draft.image, draft.plan)
           setDraft(undefined)
@@ -84,14 +113,11 @@ export function LocationMapEditor({ plan, image, locations, onChange }: {
         }}>{t('Отмена')}</button>
       </>}
     </div>
+    {layer ? <LocationMapLayerEditor key={layer} layer={layer} plan={plan} image={image} onUpdate={update} /> : <>
     {warping && <p>{t('Потяните карту кистью. Колёсико изменяет радиус.')}</p>}
-    <fieldset hidden={warping} disabled={warping} className="location-map-tools">
+    <fieldset hidden={warping || placingMarker} disabled={warping || placingMarker} className="location-map-tools">
     <label>{t('Квартал')}
-      <select value={districtIndex} onChange={(event) => {
-        const index = Number(event.currentTarget.value)
-        setDistrictIndex(index)
-        setDistrictName(geometry.districts[index]?.name ?? '')
-      }}>
+      <select value={districtIndex} onChange={(event) => selectDistrict(Number(event.currentTarget.value))}>
         {geometry.districts.map(({ name, kind }, index) => (
           <option key={index} value={index}>{index + 1} · {name || t(kind === 'square' ? 'Площадь' : kind === 'urban' ? 'Городская застройка' : 'Окраины')}</option>
         ))}
@@ -139,8 +165,10 @@ export function LocationMapEditor({ plan, image, locations, onChange }: {
           }
           const title = event.currentTarget.closest('form')?.elements.namedItem('title')
           const preview = locationMap(next, title instanceof HTMLInputElement ? title.value.trim() : '')
-          if (preview) setDraft({ plan: next, image: preview })
-          else setError(t('Не удалось сгенерировать карту.'))
+          if (preview) {
+            setPreviousStroke(draft)
+            setDraft({ plan: next, image: preview })
+          } else setError(t('Не удалось сгенерировать карту.'))
         }}>
         <img src={draft.image} alt={t('Предпросмотр')} draggable={false} />
         <svg className="location-map-corners location-map-brush" viewBox={'0 0 ' + mapWidth + ' ' + mapHeight} aria-hidden="true">
@@ -152,15 +180,24 @@ export function LocationMapEditor({ plan, image, locations, onChange }: {
           {cursor && <circle cx={cursor[0]} cy={cursor[1]} r={radius} />}
         </svg>
       </div> : <>
-      <button type="button" className="location-map-select-point" aria-label={t('Выбрать точку для метки')}
-        onClick={(event) => setPoint(event.detail === 0 ? [mapWidth / 2, mapHeight / 2] : coordinates(event.clientX, event.clientY))}>
+      <button type="button" className="location-map-select-point"
+        aria-label={t(placingMarker ? 'Выбрать точку для метки' : 'Выбрать квартал на карте')}
+        onClick={(event) => {
+          const target: Point = event.detail === 0 ? [mapWidth / 2, mapHeight / 2] : coordinates(event.clientX, event.clientY)
+          if (placingMarker) {
+            setPoint(target)
+            return
+          }
+          const index = geometry.districts.findIndex(({ vertices }) => insideDistrict(target, vertices))
+          if (index >= 0) selectDistrict(index)
+        }}>
         <img src={image} alt="" />
       </button>
       <svg className="location-map-corners" viewBox={'0 0 ' + mapWidth + ' ' + mapHeight} aria-hidden="true">
-        {selected && <polygon points={selected.vertices.map((vertex, i) =>
+        {!placingMarker && selected && <polygon points={selected.vertices.map((vertex, i) =>
           (drag?.index === i ? drag.point : vertex).join(',')).join(' ')} />}
-        {point && <circle cx={point[0]} cy={point[1]} r="7" />}
-        {selected?.vertices.map((vertex, index) => {
+        {placingMarker && point && <circle cx={point[0]} cy={point[1]} r="7" />}
+        {!placingMarker && selected?.vertices.map((vertex, index) => {
           const [x, y] = drag?.index === index ? drag.point : vertex
           return <circle className="location-map-corner" key={index} cx={x} cy={y} r="6"
             onPointerDown={(event: PointerEvent<SVGCircleElement>) => {
@@ -189,8 +226,8 @@ export function LocationMapEditor({ plan, image, locations, onChange }: {
       </svg>
       </>}
     </div>
-    <fieldset hidden={warping} disabled={warping} className="location-map-tools">
-    <p>{t('Перетаскивайте углы выбранного квартала.')}</p>
+    {!warping && !placingMarker && <p>{t('Выберите квартал на карте и перетащите его углы.')}</p>}
+    <fieldset hidden={warping || !placingMarker} disabled={warping || !placingMarker} className="location-map-tools">
     <p>{point ? t('Точка выбрана') : t('Нажмите на карту, чтобы выбрать место для метки.')}</p>
     <div className="location-map-editor-actions">
       <label>{t('Название метки')}<input maxLength={80} value={name} onChange={(event) => setName(event.currentTarget.value)} /></label>
@@ -217,6 +254,7 @@ export function LocationMapEditor({ plan, image, locations, onChange }: {
       </li>
     ))}</ul>}
     </fieldset>
+    </>}
     {error && <p role="alert">{error}</p>}
   </details>
 }

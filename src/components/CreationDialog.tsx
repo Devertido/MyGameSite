@@ -1,7 +1,8 @@
 import { useLayoutEffect, useRef, type ReactNode } from 'react'
 
-export function CreationDialog({ onCancel, children, titleId = 'creation-dialog-title' }: {
+export function CreationDialog({ onCancel, children, wide = false, titleId = 'creation-dialog-title' }: {
   titleId?: string
+  wide?: boolean
   onCancel: () => void
   children: ReactNode
 }) {
@@ -16,7 +17,7 @@ export function CreationDialog({ onCancel, children, titleId = 'creation-dialog-
   }, [])
 
   return (
-    <dialog ref={dialogRef} className="creation-dialog" aria-labelledby={titleId}
+    <dialog ref={dialogRef} className={wide ? 'creation-dialog creation-dialog-wide' : 'creation-dialog'} aria-labelledby={titleId}
       onCancel={(event) => {
         event.preventDefault()
         onCancel()

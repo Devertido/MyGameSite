@@ -5,6 +5,9 @@ import { settlementBuildings } from './settlementBuildings.ts'
 
 export const mapWidth = 760
 export const mapHeight = 500
+export type LandscapeFeature = { kind: 'tree' | 'mountain'; point: Point; size: number }
+export type Fortifications = { walls: (readonly [Point, Point])[]; towers: Point[] }
+
 export type MapMarker = { id: string; name: string; point: Point; locationId?: string }
 
 export type MapMode = 'settlement' | 'terrain'
@@ -53,6 +56,8 @@ export type LocationMapPlan = {
   settings: LocationMapSettings
   geometry?: ReturnType<typeof buildGeometry>
   markers?: MapMarker[]
+  fortifications?: Fortifications
+  landscape?: LandscapeFeature[]
 }
 
 export function createLocationMapPlan(settings: LocationMapSettings): LocationMapPlan {
@@ -186,6 +191,11 @@ export function validLocationMapPlan(value: unknown): value is LocationMapPlan {
       marker.point[1] >= 0 && marker.point[1] <= mapHeight &&
       (marker.locationId === undefined || (typeof marker.locationId === 'string' && marker.locationId.length > 0))) ||
       new Set(value.markers.map((marker) => record(marker) && marker.id)).size !== value.markers.length)) return false
+  if (value.fortifications !== undefined && (!record(value.fortifications) ||
+      !list(value.fortifications.walls, 2048, segment) || !list(value.fortifications.towers, 2048, point))) return false
+  if (value.landscape !== undefined && !list(value.landscape, 400, (feature) => record(feature) &&
+      (feature.kind === 'tree' || feature.kind === 'mountain') && point(feature.point) &&
+      typeof feature.size === 'number' && feature.size >= 3 && feature.size <= 28)) return false
   if (settings.mode === 'terrain') return geometry === undefined && value.markers === undefined
   if (settings.mode !== 'settlement' || !record(geometry) || !record(geometry.network)) return false
 

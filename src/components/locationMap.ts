@@ -2,7 +2,7 @@ import { seededRandom, settlementFoundation, type SettlementSettings } from '../
 
 import type { Point, SettlementDistrict } from '../domain/settlementDistricts'
 import type { BuildingLot } from '../domain/settlementBuildings'
-import { mapHeight as height, mapWidth as width, type LocationMapPlan } from '../domain/locationMapPlan'
+import { mapHeight as height, mapWidth as width, type LandscapeFeature, type LocationMapPlan } from '../domain/locationMapPlan'
 import { drawLocationMapLabels, type Landmark } from './locationMapLabels'
 import { t } from '../i18n.ts'
 
@@ -14,7 +14,7 @@ function drawPath(context: CanvasRenderingContext2D, points: Point[], color: str
   context.stroke()
 }
 
-export function locationMap({ settings, geometry, markers }: LocationMapPlan, title: string): string | undefined {
+export function locationMap({ settings, geometry, markers, fortifications, landscape }: LocationMapPlan, title: string): string | undefined {
   const { mode, terrain, fortified } = settings
   const canvas = document.createElement('canvas')
   const resolution = mode === 'settlement' ? 2.3 : 1.4
@@ -104,16 +104,8 @@ export function locationMap({ settings, geometry, markers }: LocationMapPlan, ti
       }
     }
   }
-  // Woodland and ridges are drawn outside the urban footprint.
-  for (let index = 0; index < (terrain === 'forest' ? 275 : terrain === 'mountains' ? 125 : 35); index++) {
-    const x = 32 + random() * (width - 64)
-    const y = 32 + random() * (height - 64)
-    if (cave || (island && !land(x, y)) || (['river', 'river-mouth', 'river-city'].includes(water) && Math.abs(x - waterline(y)) < bank + 19) ||
-      (water === 'coast' && x > waterline(y) - 19) ||
-      (settlement && x > cityX(170) && x < cityX(423) && y > cityY(125) && y < cityY(365)) ||
-      Math.abs(y - crossing) < 20) continue
-    const size = 5 + random() * 7
-    if (terrain === 'mountains') {
+  for (const { kind, point: [x, y], size } of landscape ?? defaultLandscape(settings)) {
+    if (kind === 'mountain') {
       const peak = size * 1.9
       context.beginPath()
       context.moveTo(x - size, y)
@@ -175,7 +167,7 @@ export function locationMap({ settings, geometry, markers }: LocationMapPlan, ti
       for (const alley of alleys) drawPath(context, [...alley], '#e6c99a', 2)
       for (const lot of lots) drawBuilding(context, lot)
     }
-    drawSettlementRoutes(context, network, settings, fortified, bank)
+    drawSettlementRoutes(context, fortifications ? { ...network, ...fortifications } : network, settings, fortified || Boolean(fortifications), bank)
     drawDistrictLegend(context)
     const landmarks: Landmark[] = [{ kind: 'market', label: t('Рынок'), point: network.squareCenter }]
     const citadel = blocks.flatMap(({ lots }) => lots).find(({ kind }) => kind === 'citadel')
@@ -259,6 +251,35 @@ export function locationMap({ settings, geometry, markers }: LocationMapPlan, ti
     if (image.length <= 900_000 && /^data:image\/(webp|png);base64,/.test(image)) return image
   }
   return undefined
+}
+
+export function defaultLandscape(settings: LocationMapPlan['settings']): LandscapeFeature[] {
+  const settlement = settings.mode === 'settlement'
+  const { terrain } = settings
+  const { centerX, centerY, scale, water, waterline } = settlementFoundation({
+    ...settings, water: settlement ? settings.water : 'river',
+  })
+  if (water === 'cave' || water === 'underground') return []
+  const random = seededRandom(settings.seed ^ 0x75a830fb)
+  // Continue the original sequence after the paper texture and gorge strokes.
+  for (let i = 0; i < 3300 * 3; i++) random()
+  if (water === 'gorge') for (let i = 0; i < Math.ceil((width - 7) / 9) * 2; i++) random()
+  const island = water === 'island' || water === 'peninsula'
+  const bank = water === 'river-city' ? 13 : terrain === 'mountains' ? 20 : 27
+  const features: LandscapeFeature[] = []
+  const count = terrain === 'forest' ? 275 : terrain === 'mountains' ? 125 : 35
+  for (let index = 0; index < count; index++) {
+    const x = 32 + random() * (width - 64)
+    const y = 32 + random() * (height - 64)
+    const dx = (x - centerX) / scale
+    const dy = (y - centerY) / scale
+    if ((island && Math.hypot(dx / 192, dy / 162) > 1) ||
+        (['river', 'river-mouth', 'river-city'].includes(water) && Math.abs(x - waterline(y)) < bank + 19) ||
+        (water === 'coast' && x > waterline(y) - 19) ||
+        (settlement && dx > -127 && dx < 126 && dy > -123 && dy < 117) || Math.abs(y - centerY) < 20) continue
+    features.push({ kind: terrain === 'mountains' ? 'mountain' : 'tree', point: [x, y], size: 5 + random() * 7 })
+  }
+  return features
 }
 
 const districtStyle = {

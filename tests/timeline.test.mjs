@@ -289,6 +289,8 @@ test('Копия таймлайна переносит изображение, �
   const mapPlan = createLocationMapPlan({
     mode: 'settlement', terrain: 'forest', seed: 42, size: 'city', water: 'coast', fortified: true,
   })
+  mapPlan.fortifications = { walls: [[[100, 150], [150, 200]]], towers: [[100, 150]] }
+  mapPlan.landscape = [{ kind: 'tree', point: [50, 70], size: 9 }, { kind: 'mountain', point: [120, 80], size: 12 }]
   const location = { id: 'doren', title: 'Дорэн', summary: '', body: '', mapImage: 'data:image/webp;base64,AAAA', mapPlan }
   const timeline = {
     name: 'Арена', startYear: -10, endYear: 100, daysPerYear,

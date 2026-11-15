@@ -285,11 +285,47 @@ button:focus-visible {
   pointer-events: none;
 }
 
-.timeline-position span {
+.timeline-year-selection {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-block-end: 0.5rem;
+}
+
+.timeline-year-selection output {
+  min-width: 5ch;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid #af9879;
+  border-radius: 0.25rem;
+  background: #fff8e9;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.timeline-year-marker {
   position: absolute;
-  top: -1.4rem;
-  height: 1.4rem;
-  border-left: 3px solid #a35814;
+  z-index: 1;
+  top: -2px;
+  width: 1rem;
+  height: 1rem;
+  box-sizing: border-box;
+  translate: -50% -50%;
+  border: 2px solid #fff8e9;
+  border-radius: 50%;
+  background: #a35814;
+  box-shadow: 0 0 0 1px #a35814;
+  cursor: grab;
+  pointer-events: auto;
+  touch-action: none;
+}
+
+.timeline-year-marker:active {
+  cursor: grabbing;
+}
+
+.timeline-year-marker:focus-visible {
+  outline: 2px solid #174b43;
+  outline-offset: 3px;
 }
 
 .timeline-markers a[data-highlighted='true'] {
@@ -1428,6 +1464,15 @@ button.event-action:hover:enabled {
   padding: 0;
 }
 
+.creation-dialog.creation-dialog-wide {
+  width: min(94rem, calc(100% - 2rem));
+  max-height: calc(100% - 1rem);
+}
+
+.creation-dialog-wide .archive-form {
+  max-width: none;
+}
+
 .creation-dialog::backdrop {
   background: rgb(12 28 24 / 45%);
 }
@@ -1521,6 +1566,7 @@ dl.ability-grid > div {
 }
 
 .house-tree-relationship-label[data-kind='lover'] {
+  translate: -50% 13px;
   color: #784760;
 }
 
@@ -1836,7 +1882,7 @@ button.house-tree-add[data-relation='spouse'] {
 .location-map-select-point {
   display: block;
   position: relative;
-  width: min(100%, 47.5rem);
+  width: 100%;
   padding: 0;
 }
 
@@ -1863,7 +1909,50 @@ button.house-tree-add[data-relation='spouse'] {
 
 .location-map-edit-view {
   position: relative;
-  width: min(100%, 47.5rem);
+  width: min(100%, 76rem);
+  margin-inline: auto;
+}
+
+.location-map-layer-image {
+  display: block;
+  width: 100%;
+}
+
+.location-map-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.location-map-layer line {
+  stroke: #e0b86c;
+  stroke-width: 2;
+  pointer-events: none;
+}
+
+.location-map-layer[data-tool='remove'] line {
+  stroke-width: 9;
+  stroke-opacity: 0.4;
+  pointer-events: stroke;
+  cursor: pointer;
+}
+
+.location-map-layer-handle,
+.location-map-wall-start {
+  fill: #fff8e9;
+  stroke: #75442d;
+  stroke-width: 1.5;
+}
+
+.location-map-layer-handle[data-tool='move'] { cursor: grab; }
+.location-map-layer-handle[data-tool='remove'] { cursor: pointer; }
+
+.location-map-editor-actions button[aria-pressed='true'] {
+  outline: 2px solid #bb7655;
+  outline-offset: 2px;
 }
 
 .location-map-corners .location-map-corner {
