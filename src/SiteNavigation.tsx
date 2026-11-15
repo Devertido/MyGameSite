@@ -61,6 +61,7 @@ export default function SiteNavigation() {
     <>
       <header className="site-header">
         <span className="site-version">{version}</span>
+        <a className="site-brand" href="#timeline">{english ? 'Atlas' : 'Атлас'}</a>
         <nav lang={language} aria-label={english ? "Atlas sections" : "Разделы Атласа"}>
           {pages.map(({ id, title }) => (
             <a key={id} href={'#' + id} aria-current={page.id === id ? 'page' : undefined}>

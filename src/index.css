@@ -1,7 +1,8 @@
 :root {
   font-family: system-ui, sans-serif;
   color: #16201f;
-  background: #f8faf9;
+  --site-background: #f3ead7;
+  background: var(--site-background);
 }
 
 body {
@@ -133,15 +134,15 @@ button:focus-visible {
 .site-header {
   position: sticky;
   top: 0;
-  z-index: 1;
+  z-index: 2;
   height: 5dvh;
-  border-top: 5dvh solid #f8faf9;
+  border-top: 1.25rem solid var(--site-background);
   background: #103930;
 }
 
 .site-version {
   position: absolute;
-  top: -2.5dvh;
+  top: -0.625rem;
   right: 0.75rem;
   transform: translateY(-50%);
   color: #5d6663;
@@ -912,6 +913,38 @@ button.event-action:hover:enabled {
 .site-header {
   min-height: 2.5rem;
   padding-block: 0.625rem;
+}
+
+.site-header .site-brand {
+  display: flex;
+  align-items: center;
+  padding-inline: clamp(0.75rem, 2vw, 2rem);
+  color: #f4d29b;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(1.4rem, 2.3vw, 2.25rem);
+  font-weight: 700;
+  letter-spacing: 0.045em;
+  white-space: nowrap;
+}
+
+@media (max-width: 60rem) {
+  .site-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    height: auto;
+  }
+
+  .site-header nav {
+    grid-row: 2;
+    grid-column: 1 / -1;
+    width: 100%;
+    height: auto;
+  }
+
+  .site-tools {
+    grid-row: 1;
+    grid-column: 2;
+  }
 }
 
 .site-header::before,
