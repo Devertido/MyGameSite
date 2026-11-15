@@ -8,11 +8,13 @@ export function TimelineLocationMap({ locations = [] }: { locations?: ArchiveEnt
   const location = withMaps[Math.floor(sample * withMaps.length)]
 
   return (
-    <section className="timeline-map" aria-labelledby="location-map-title">
+    <section className="timeline-map timeline-map-location" aria-labelledby="location-map-title">
       <h2 id="location-map-title">{t('Карта локации')}</h2>
       {location ? (
         <figure className="timeline-location-map">
-          <img className="location-map-image" src={location.mapImage} alt={t('Карта локации') + ' · ' + location.title} />
+          <div className="timeline-location-viewport">
+            <img src={location.mapImage} alt={t('Карта локации') + ' · ' + location.title} />
+          </div>
           <figcaption>
             <a href={'#lore?section=locations&entry=' + encodeURIComponent(location.id)}>{location.title}</a>
           </figcaption>

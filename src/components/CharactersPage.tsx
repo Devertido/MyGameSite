@@ -206,6 +206,7 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
             const fullName = [character.name, character.surname].filter(Boolean).join(' ')
             const raceDetails = raceDetailsFor(timeline.lore, character.race)
             const lifespan = character.birth && character.death ? formatLifespan(character.birth, character.death) : null
+            const items = (timeline.items ?? []).filter(({ ownerId }) => ownerId === character.id)
             const events = (timeline.events ?? []).filter(({ characterIds }) => characterIds?.includes(character.id))
             return (
               <li key={character.id} className="directory-card">
@@ -237,6 +238,24 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
                     {character.description && <p>{character.description}</p>}
                   </div>
                 </div>
+                {items.length > 0 && (
+                  <section className="character-items">
+                    <h3>{t('Предметы')}</h3>
+                    <ul>
+                      {items.map(({ id, title, image, type, rarity }) => (
+                        <li key={id}>
+                          <a href={'#lore?section=items&entry=' + encodeURIComponent(id)}>
+                            {image && <img src={image} alt="" loading="lazy" />}
+                            <span>
+                              <strong>{title}</strong>
+                              {(type || rarity) && <small>{[type, rarity && t(rarity)].filter(Boolean).join(' · ')}</small>}
+                            </span>
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                )}
                 <AbilityDetails scores={adjustedAbilities(character.abilities, raceDetails?.abilityBonuses, raceDetails?.abilityPenalties)} />
                 {character.birth && (
                   <p>{t("Дата рождения · ")}{calendarDay(months, character.birth.dayOfYear)} · {character.birth.year}{t(" г. системы")}</p>
@@ -260,8 +279,6 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
                         .filter(({ memberIds }) => memberIds.includes(character.id)).map(({ id, name }) => ({ id, title: name })) },
                       { heading: t('Летописи'), route: 'chronicles?entry=', links: (timeline.chronicles ?? [])
                         .filter(({ characterIds }) => characterIds?.includes(character.id)) },
-                      { heading: t('Предметы'), route: 'lore?section=items&entry=', links: (timeline.items ?? [])
-                        .filter(({ ownerId }) => ownerId === character.id) },
                     ].filter(({ links }) => links.length > 0).map(({ heading, route, links }) => (
                       <section key={route}>
                         <h3>{heading}</h3>
