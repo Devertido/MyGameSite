@@ -1,6 +1,7 @@
 import { WikiText } from './WikiText'
 import { t } from '../i18n.ts'
 import { abilities } from '../domain/abilities'
+import { MovementFields, SpeedValue } from './MovementFields'
 import { AbilityFields } from './AbilityScores'
 import { useState } from 'react'
 import { parseRaceMeasure, spellComponents, spellTimeUnits, type SpellDuration, type RaceMeasure, type RaceDetails, type SpellDetails } from '../domain/lore'
@@ -36,6 +37,7 @@ export function RaceFields({ race }: { race?: RaceDetails }) {
         ? <textarea name={key} rows={3} defaultValue={race?.[key]} />
         : <input name={key} defaultValue={race?.[key]} />}
     </label></p>)}
+    <MovementFields movement={race} />
     <AbilityFields label={t("Бонусы к характеристикам")} prefix="race-bonus-" scores={race?.abilityBonuses} />
     <AbilityFields label={t("Штрафы к характеристикам")} prefix="race-penalty-" scores={race?.abilityPenalties} />
   </>
@@ -89,6 +91,7 @@ function formatRaceMeasure(value: string, measure: RaceMeasure, unit: string) {
 export function MagicDetails({ race }: { race?: RaceDetails }) {
   return <>
     {race?.image && <div className="item-image-frame race-image-frame"><img className="atlas-entry-image" src={race.image} alt="" /></div>}
+    {race?.speedFeet !== undefined && <p><strong>{t('Скорость')}</strong> · <SpeedValue movement={race} /></p>}
     {race && raceMeasures.map(([key, label, unit]) => race[key] && (
       <section key={key} className={'lore-' + key}>
         <h3>{t(label)}</h3>

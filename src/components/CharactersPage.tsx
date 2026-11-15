@@ -3,6 +3,7 @@ import { EntryLink, WikiText } from './WikiText'
 import { CharacterEditor } from './CharacterEditor'
 import { t } from '../i18n.ts'
 import { AppliedAbilities } from './AbilityPicker'
+import { SpeedValue } from './MovementFields'
 import { AbilityDetails } from './AbilityScores'
 import { FamilyTree } from './FamilyTree'
 import { LoreLinks } from './LoreLinks'
@@ -150,6 +151,7 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
                   </section>
                 )}
                 <AppliedAbilities effects={effects} />
+                {raceDetails?.speedFeet !== undefined && <p><strong>{t('Скорость')}</strong> · <SpeedValue movement={raceDetails} /></p>}
                 <AbilityDetails scores={effects.scores} />
                 {character.birth && (
                   <p>{t("Дата рождения · ")}{calendarDay(months, character.birth.dayOfYear)} · {character.birth.year}{t(" г. системы")}</p>

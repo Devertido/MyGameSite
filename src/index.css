@@ -1045,6 +1045,17 @@ button.event-action:hover:enabled {
   white-space: pre-wrap;
 }
 
+.movement-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin-block: 0.75rem;
+}
+
+.movement-fields input {
+  width: 8ch;
+}
+
 .spell-duration-fields {
   display: flex;
   flex-wrap: wrap;

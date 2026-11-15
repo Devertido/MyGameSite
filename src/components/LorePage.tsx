@@ -10,6 +10,7 @@ import { EditIcon } from './EditIcon'
 import { TrashIcon } from './TrashIcon'
 import { HouseTree } from './HouseTree'
 import { t } from '../i18n.ts'
+import { MovementFields } from './MovementFields'
 import { BestiaryCard, BeastCombatFields } from './BestiaryCard'
 import { AbilityBonuses, AbilityFields } from './AbilityScores'
 import { readAbilityScores } from '../domain/abilities'
@@ -17,7 +18,7 @@ import { ImageField } from './ImageField'
 import { useState, type CSSProperties, type FormEvent, type ReactNode } from 'react'
 import { MagicDetails, RaceFields, SpellFields } from './LoreDetails'
 import { CreationDialog } from './CreationDialog'
-import { appliedAbilityEffects, emptyLore, glossaryDescription, isGlossarySection, beastCombatFields, readRaceMeasure, surnameOrigins, spellComponents, validSpellDuration, formatSpellDuration, loreTargets, surnameInheritanceRules, updateLoreAbilityLinks, validHouseYears, validLore, type HouseDetails, type LinkKind, type WorldLore } from '../domain/lore'
+import { appliedAbilityEffects, emptyLore, glossaryDescription, isGlossarySection, beastCombatFields, legacyBeastSpeed, readMovement, readRaceMeasure, surnameOrigins, spellComponents, validSpellDuration, formatSpellDuration, loreTargets, surnameInheritanceRules, updateLoreAbilityLinks, validHouseYears, validLore, type HouseDetails, type LinkKind, type WorldLore } from '../domain/lore'
 import type { Timeline } from '../domain/timeline'
 
 const sections = [
@@ -107,10 +108,13 @@ export function LorePage({ timeline, save, initialSection, initialEntry, archive
       persist({ ...lore, [traditionKind]: tradition
         ? lore[traditionKind].map((item) => item.id === id ? entry : item) : [...lore[traditionKind], entry] })
     } else if (section === 'bestiary') {
-      const entry = { id, name, abilityNames: data.getAll('ability-names').map(String), type: read('beast-type'), description: read('description'),
+      const entry = { ...readMovement(data), id, name, abilityNames: data.getAll('ability-names').map(String), type: read('beast-type'), description: read('description'),
         image: read('beast-image'), abilities: readAbilityScores(data),
         combat: Object.fromEntries(beastCombatFields.flatMap(([key]) => {
-          const value = read('beast-' + key)
+          const oldSpeed = beast?.combat?.speed
+          const value = key === 'speed'
+            ? !read('speed-feet') && legacyBeastSpeed(oldSpeed) === undefined ? oldSpeed : undefined
+            : read('beast-' + key)
           return value ? [[key, value]] : []
         })),
       }
@@ -204,7 +208,7 @@ export function LorePage({ timeline, save, initialSection, initialEntry, archive
           return
         }
         next.raceDetails = [...(lore.raceDetails ?? []).filter((entry) => entry.name !== editing), {
-          name, image: read('lore-image'), lifespan, height,
+          ...readMovement(data), name, image: read('lore-image'), lifespan, height,
           abilityNames: data.getAll('ability-names').map(String),
           size: read('size'), bonuses: read('bonuses'), debuffs: read('debuffs'),
           abilityBonuses: readAbilityScores(data, 'race-bonus-'),
@@ -457,6 +461,7 @@ export function LorePage({ timeline, save, initialSection, initialEntry, archive
                 <AbilityPicker initial={beast?.abilityNames} options={lore.abilities} />
                 <AbilityFields scores={beast?.abilities} />
                 <BeastCombatFields combat={beast?.combat} />
+                <MovementFields movement={beast} legacySpeed={beast?.combat?.speed} />
               </>
             )}
             {error && <p role="alert">{error}</p>}

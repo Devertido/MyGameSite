@@ -1,6 +1,7 @@
 import { WikiText } from './WikiText'
 import type { ReactNode } from 'react'
 import { t } from '../i18n.ts'
+import { SpeedValue } from './MovementFields'
 import { AppliedAbilities } from './AbilityPicker'
 import { appliedAbilityEffects, beastCombatFields, type Beast, type WorldLore } from '../domain/lore'
 import { AbilityDetails } from './AbilityScores'
@@ -14,7 +15,7 @@ export function BestiaryCard({ beast, controls, lore }: { beast: Beast; controls
   const baseArmor = armor?.match(/^\s*(\d+)(.*)$/u)
   const armorWithBonus = effects.armorBonus && baseArmor
     ? String(Number(baseArmor[1]) + effects.armorBonus) + baseArmor[2] : armor
-  const stats = summaryFields.filter(([key]) => beast.combat?.[key])
+  const stats = summaryFields.filter(([key]) => beast.combat?.[key] || (key === 'speed' && beast.speedFeet !== undefined))
   const showStatBlock = stats.length > 0 || Object.keys(effects.scores).length > 0 || effects.powers.length > 0 ||
     Boolean(beast.combat?.traits || beast.combat?.actions)
   return (
@@ -33,7 +34,8 @@ export function BestiaryCard({ beast, controls, lore }: { beast: Beast; controls
             <h3 className="bestiary-stat-name">{beast.name}</h3>
             {beast.type && <p className="bestiary-type">{beast.type}</p>}
             {stats.length > 0 && <dl className="bestiary-stat-summary">
-              {stats.map(([key, label]) => <div key={key}><dt>{t(label)}</dt><dd>{key === 'armor' ? armorWithBonus : beast.combat?.[key]}</dd></div>)}
+              {stats.map(([key, label]) => <div key={key}><dt>{t(label)}</dt><dd>{key === 'armor' ? armorWithBonus : key === 'speed'
+                ? <SpeedValue movement={beast} legacySpeed={beast.combat?.speed} /> : beast.combat?.[key]}</dd></div>)}
             </dl>}
             <AbilityDetails scores={effects.scores} />
             <AppliedAbilities effects={effects} />
@@ -55,7 +57,7 @@ export function BeastCombatFields({ combat }: { combat?: Beast['combat'] }) {
   return <fieldset className="bestiary-combat-fields">
     <legend>{t('Боевые характеристики')}</legend>
     <div className="bestiary-combat-summary">
-      {summaryFields.map(([key, label]) => (
+      {summaryFields.filter(([key]) => key !== 'speed').map(([key, label]) => (
         <label key={key}>{t(label)}<input name={'beast-' + key} defaultValue={combat?.[key]} /></label>
       ))}
     </div>

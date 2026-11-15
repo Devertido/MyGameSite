@@ -13,7 +13,7 @@ import { toCalendarYear } from '../src/domain/calendarYear.ts'
 import { calendarDay, eventDays, validateEvent, validateTimelineBounds } from '../src/domain/timeline.ts'
 import { timelineSnapshot, deleteTimeline, exportTimeline, importTimeline, loadTimelines, rememberSelection, restoreSelection, saveTimeline } from '../src/data/timelineStorage.ts'
 
-import { appliedAbilityEffects, emptyLore, parseRaceMeasure, readRaceMeasure, removeMissingLoreLinks } from '../src/domain/lore.ts'
+import { appliedAbilityEffects, effectiveSpeed, emptyLore, legacyBeastSpeed, raceDetailsFor, parseRaceMeasure, readRaceMeasure, removeMissingLoreLinks } from '../src/domain/lore.ts'
 import { addHouseRelationship, childSurname, houseGenerations, layoutHouseRows, removeHouseRelationship } from '../src/domain/houseTree.ts'
 
 const era = { systemAnchorYear: 100, calendarAnchorYear: 1, hasYearZero: false }
@@ -431,6 +431,15 @@ test('Правки планировки, родство, бестиарий и �
   timeline.lore.abilityDetails = [ability]
   timeline.lore.classProgression[0].levels[1].abilityNames = [ability.name]
   race.abilityNames = [ability.name]
+  race.speedFeet = 30
+  race.speedPenaltyFeet = 5
+  beast.combat.speed = '35 ft.'
+  beast.speedPenaltyFeet = 10
+  characters[0].race = race.name
+  assert.equal(effectiveSpeed(raceDetailsFor(timeline.lore, characters[0].race)), 25)
+  assert.equal(effectiveSpeed(beast, legacyBeastSpeed(beast.combat.speed)), 25)
+  assert.equal(effectiveSpeed({ speedFeet: 5, speedPenaltyFeet: 10 }), 0)
+  assert.equal(legacyBeastSpeed('30 ft., fly 60 ft.'), undefined)
   beast.abilityNames = [ability.name]
   const effects = appliedAbilityEffects(timeline.lore, [ability.name], { strength: 28 }, race)
   assert.equal(effects.armorBonus, 2)
@@ -438,6 +447,9 @@ test('Правки планировки, родство, бестиарий и �
   assert.equal(effects.powers.length, 1)
   assert.deepEqual(damageRange(effects.powers[0].damageFormula, effects.scores.strength), [5, 15])
   characters[0].abilityNames = [ability.name]
+  const invalidSpeed = structuredClone(timeline)
+  invalidSpeed.lore.raceDetails[0].speedFeet = -1
+  assert.throws(() => importTimeline(exportTimeline(invalidSpeed)))
   const invalidClass = structuredClone(timeline)
   invalidClass.lore.classProgression[0].levels[1].level = 21
   assert.throws(() => importTimeline(exportTimeline(invalidClass)))

@@ -87,7 +87,37 @@ export function readRaceMeasure(data: FormData, measure: RaceMeasure, previous =
   return start === end ? String(start) : start + '–' + end
 }
 
-export type RaceDetails = { name: string; image: string; lifespan: string; height: string; size: string; bonuses: string; debuffs: string;
+export type Movement = { speedFeet?: number; speedPenaltyFeet?: number }
+
+export function readMovement(fields: FormData): Movement {
+  function read(name: string) {
+    const value = String(fields.get(name) ?? '').trim()
+    return value ? Number(value) : undefined
+  }
+  return { speedFeet: read('speed-feet'), speedPenaltyFeet: read('speed-penalty-feet') }
+}
+
+export function validSpeed(value: unknown): value is number {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0
+}
+
+function validMovement(entry: Record<string, unknown>) {
+  return (entry.speedFeet === undefined || validSpeed(entry.speedFeet)) &&
+    (entry.speedPenaltyFeet === undefined || validSpeed(entry.speedPenaltyFeet))
+}
+
+export function legacyBeastSpeed(speed?: string): number | undefined {
+  const match = speed?.trim().match(/^(\d+)(?:\s*(?:фт\.?|фут(?:а|ов)?|ft\.?|feet))?$/iu)
+  const value = match ? Number(match[1]) : undefined
+  return validSpeed(value) ? value : undefined
+}
+
+export function effectiveSpeed(movement?: Movement, fallback?: number): number | undefined {
+  const base = movement?.speedFeet ?? fallback
+  return base === undefined ? undefined : Math.max(0, base - (movement?.speedPenaltyFeet ?? 0))
+}
+
+export type RaceDetails = Movement & { name: string; image: string; lifespan: string; height: string; size: string; bonuses: string; debuffs: string;
   abilityNames?: string[]; abilityBonuses?: AbilityScores; abilityPenalties?: AbilityScores
 }
 
@@ -107,7 +137,7 @@ export const beastCombatFields = [
 
 export type BeastCombat = Partial<Record<typeof beastCombatFields[number][0], string>>
 
-export type Beast = {
+export type Beast = Movement & {
   abilityNames?: string[]
   combat?: BeastCombat
   id: string
@@ -280,7 +310,7 @@ export function validLore(value: unknown, timeline: Timeline): value is WorldLor
   if (!validDetails(value.spellDetails, value.spells, validPowerDetails) ||
       !validDetails(value.abilityDetails, value.abilities, validPowerDetails)) return false
   if (!validDetails(value.raceDetails, value.races, (entry) =>
-    validAbilityNames(entry.abilityNames) && [entry.lifespan, entry.height, entry.size, entry.bonuses, entry.debuffs].every((item) => typeof item === 'string') &&
+    validMovement(entry) && validAbilityNames(entry.abilityNames) && [entry.lifespan, entry.height, entry.size, entry.bonuses, entry.debuffs].every((item) => typeof item === 'string') &&
     [entry.abilityBonuses, entry.abilityPenalties].every((scores) => scores === undefined || validAbilityScores(scores)))) return false
   const targets = new Map(linkKinds.map((kind) => [kind, new Set(loreTargets(timeline, kind).map(({ id }) => id))]))
   const known = (kind: LinkKind, id: unknown) => typeof id === 'string' && targets.get(kind)?.has(id)
@@ -294,7 +324,7 @@ export function validLore(value: unknown, timeline: Timeline): value is WorldLor
     typeof item.type === 'string' && typeof item.description === 'string' &&
     typeof item.image === 'string' && (item.image === '' || (item.image.length <= 900_000 &&
       /^data:image\/(webp|png);base64,[A-Za-z0-9+/]+={0,2}$/.test(item.image))) &&
-    validAbilityNames(item.abilityNames) && validAbilityScores(item.abilities) &&
+    validMovement(item) && validAbilityNames(item.abilityNames) && validAbilityScores(item.abilities) &&
     (item.combat === undefined || (record(item.combat) && Object.entries(item.combat).every(([key, value]) =>
       beastCombatFields.some(([field]) => field === key) && typeof value === 'string'))),
   )) return false
