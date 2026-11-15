@@ -16,6 +16,11 @@ import { ImageField } from './ImageField'
 import { useState, type CSSProperties, type FormEvent } from 'react'
 import type { ArchiveEntry, Timeline } from '../domain/timeline'
 
+const locationTypes = [
+  'Ферма', 'Деревня', 'Город', 'Метрополия', 'Мегаполис', 'Пещера',
+  'Лес', 'Луг', 'Холм', 'Переправа', 'Фактория',
+] as const
+
 const rarities = ['Обычный', 'Необычный', 'Редкий', 'Эпический', 'Легендарный']
 
 export function ArchivePage({ kind, entries, entryId, timeline, save, embedded = false }: {
@@ -104,11 +109,16 @@ export function ArchivePage({ kind, entries, entryId, timeline, save, embedded =
           <form className={chronicle ? 'archive-form parchment' : 'archive-form'} onSubmit={submit} onInput={() => setError('')}>
             <h2 id="creation-dialog-title">{original ? t('Редактировать') : location ? t('Новая локация') : chronicle ? t('Новая летопись') : t('Новый предмет')}</h2>
             <label>{t("Название")}<input name="title" defaultValue={original?.title} required /></label>
+            {location && <label>{t('Тип')}<select name="type" defaultValue={original?.type ?? ''} required>
+              <option value="" disabled>{t('Выберите тип локации')}</option>
+              {locationTypes.map((type) => <option key={type} value={type}>{t(type)}</option>)}
+              {original?.type && !locationTypes.some((type) => type === original.type) && <option value={original.type}>{original.type}</option>}
+            </select></label>}
             {!chronicle && (
               <>
                 <ImageField name="image" label={location ? t("Изображение локации") : t("Изображение предмета")} initial={original?.image} />
                 {location && <ImageField name="mapImage" label={t("Карта локации")} initial={original?.mapImage} initialMapPlan={original?.mapPlan} mapLocations={entries.filter(({ id }) => id !== original?.id)} generateMap />}
-                {location ? <label>{t('Тип')}<input name="type" defaultValue={original?.type} placeholder={t('Город, крепость, регион')} /></label> :
+                {!location &&
                   <>
                     <label>{t('Тип')}<select name="type" value={itemType} onChange={(event) => setItemType(event.currentTarget.value)}>
                       {itemTypes.map((type) => <option key={type} value={type}>{t(type)}</option>)}
@@ -169,7 +179,7 @@ export function ArchivePage({ kind, entries, entryId, timeline, save, embedded =
             <article className={chronicle ? 'archive-card parchment' : 'archive-card item-card item-tooltip' + (kind === 'items' ? ' item-wow-card' : '')} style={chronicle ? undefined : itemAccent(selected)}>
               {!chronicle && <ItemImage entry={selected} />}
               <h2>{selected.title}</h2>
-              {location && <p className="item-rarity">{[selected.type, selected.rarity && t(selected.rarity)].filter(Boolean).join(' · ')}</p>}
+              {location && <p className="item-rarity">{[selected.type && t(selected.type), selected.rarity && t(selected.rarity)].filter(Boolean).join(' · ')}</p>}
               {kind === 'items' && (selected.type || selected.rarity) && <div className="item-wow-meta">
                 {selected.rarity && <p>{t(selected.rarity)}</p>}
                 {selected.type && <p>{t(selected.type)}</p>}
@@ -254,7 +264,7 @@ export function ArchivePage({ kind, entries, entryId, timeline, save, embedded =
                       <td><a href={'#' + entryRoute + encodeURIComponent(entry.id)}
                         aria-current={entry.id === selected?.id ? 'true' : undefined}
                         onClick={() => { setDeleting(null); setError('') }}>{entry.title}</a></td>
-                      {!chronicle && <td>{entry.type ? (kind === 'items' ? t(entry.type) : entry.type) : '—'}</td>}
+                      {!chronicle && <td>{entry.type ? t(entry.type) : '—'}</td>}
                       {kind === 'items' && <td>{entry.rarity ? t(entry.rarity) : '—'}</td>}
                       <td>{entry.summary || '—'}</td>
                     </tr>
