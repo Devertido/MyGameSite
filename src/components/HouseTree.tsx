@@ -1,7 +1,7 @@
 import { Fragment, useId, useState, type CSSProperties } from 'react'
 import { t } from '../i18n.ts'
 import { CharacterEditor } from './CharacterEditor'
-import { addHouseRelationship, childSurname, sameHouse, houseGenerations, removeHouseRelationship, type HouseRelationship } from '../domain/houseTree'
+import { addHouseRelationship, childSurname, sameHouse, houseGenerations, layoutHouseRows, removeHouseRelationship, type HouseRelationship } from '../domain/houseTree'
 import { CreationDialog } from './CreationDialog'
 import type { Timeline, TimelineCharacter } from '../domain/timeline'
 
@@ -65,12 +65,14 @@ export function HouseTree({ house, timeline, save }: {
     setError('')
   }
   const { generations, linkedParents, membersById } = houseGenerations(characters, house)
-  const widestRow = Math.max(1, ...generations.map((row) => row.length))
-  const width = widestRow * (cardWidth + columnGap) - columnGap + 2 * padding
+  const centers = layoutHouseRows(generations, linkedParents, cardWidth + columnGap)
+  const left = Math.min(0, ...centers.values())
+  const right = Math.max(0, ...centers.values())
+  const width = right - left + cardWidth + 2 * padding
   const height = generations.length * (cardHeight + rowGap) - rowGap + topPadding + bottomPadding
-  const nodes = generations.flatMap((row, generation) => row.map((person, column) => ({
+  const nodes = generations.flatMap((row, generation) => row.map((person) => ({
     person,
-    x: (width - (row.length * (cardWidth + columnGap) - columnGap)) / 2 + column * (cardWidth + columnGap),
+    x: centers.get(person.id)! - left + padding,
     y: topPadding + generation * (cardHeight + rowGap),
   })))
   const byId = new Map(nodes.map((node) => [node.person.id, node]))

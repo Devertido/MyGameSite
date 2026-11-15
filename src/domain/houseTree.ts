@@ -141,3 +141,56 @@ export function houseGenerations(characters: readonly TimelineCharacter[], house
   const generations = generationRows(people, true) ?? generationRows(people, false) ?? []
   return { generations, linkedParents, membersById }
 }
+
+// Lay out each generation around parent centers, keeping spouses together.
+export function layoutHouseRows(
+  generations: TimelineCharacter[][], parents: ReadonlyMap<string, readonly string[]>, spacing: number,
+) {
+  const positions = new Map<string, number>()
+  for (const row of generations) {
+    const rowById = new Map(row.map((person) => [person.id, person]))
+    const seen = new Set<string>()
+    const groups = row.flatMap((person, index) => {
+      if (seen.has(person.id)) return []
+      const spouse = person.spouseId ? rowById.get(person.spouseId) : undefined
+      const members = spouse && spouse.spouseId === person.id ? [person, spouse] : [person]
+      members.forEach(({ id }) => seen.add(id))
+      const anchors = members.flatMap(({ id }, column) => {
+        const centers = (parents.get(id) ?? []).map((parent) => positions.get(parent))
+          .filter((center): center is number => center !== undefined)
+        return centers.length ? [centers.reduce((sum, center) => sum + center, 0) / centers.length - column * spacing] : []
+      })
+      return [{ members, preferred: anchors.length
+        ? anchors.reduce((sum, center) => sum + center, 0) / anchors.length
+        : index * spacing }]
+    }).sort((a, b) => a.preferred - b.preferred)
+
+    // Pool overlapping groups and center them around their combined targets.
+    const blocks: { start: number; end: number; sum: number; count: number }[] = []
+    let offset = 0
+    const offsets = groups.map(({ members, preferred }, index) => {
+      const minimum = offset
+      offset += members.length * spacing
+      blocks.push({ start: index, end: index, sum: preferred - minimum, count: 1 })
+      while (blocks.length > 1) {
+        const last = blocks.at(-1)!
+        const previous = blocks.at(-2)!
+        if (previous.sum / previous.count <= last.sum / last.count) break
+        previous.end = last.end
+        previous.sum += last.sum
+        previous.count += last.count
+        blocks.pop()
+      }
+      return minimum
+    })
+    for (const block of blocks) {
+      const origin = block.sum / block.count
+      for (let index = block.start; index <= block.end; index++) {
+        groups[index]!.members.forEach(({ id }, column) => {
+          positions.set(id, origin + offsets[index]! + column * spacing)
+        })
+      }
+    }
+  }
+  return positions
+}

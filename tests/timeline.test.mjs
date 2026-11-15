@@ -14,7 +14,7 @@ import { calendarDay, eventDays, validateEvent, validateTimelineBounds } from '.
 import { timelineSnapshot, deleteTimeline, exportTimeline, importTimeline, loadTimelines, rememberSelection, restoreSelection, saveTimeline } from '../src/data/timelineStorage.ts'
 
 import { appliedAbilityEffects, emptyLore, parseRaceMeasure, readRaceMeasure, removeMissingLoreLinks } from '../src/domain/lore.ts'
-import { addHouseRelationship, childSurname, houseGenerations, removeHouseRelationship } from '../src/domain/houseTree.ts'
+import { addHouseRelationship, childSurname, houseGenerations, layoutHouseRows, removeHouseRelationship } from '../src/domain/houseTree.ts'
 
 const era = { systemAnchorYear: 100, calendarAnchorYear: 1, hasYearZero: false }
 
@@ -542,4 +542,16 @@ test('Wiki links resolve titles and aliases, show summaries and preserve unknown
     { text: 'Дорэн', href: '#lore?section=locations&entry=d', preview: 'Дорэн — Порт на реке.' },
     { text: '. ' }, { text: '[[Дорэн]]' }, { text: ' ' }, { text: '[[Неизвестно]]' },
   ])
+})
+
+test('Family tree aligns children beneath their own parents and keeps siblings apart', () => {
+  const top = [{ id: 'a', spouseId: 'b' }, { id: 'b', spouseId: 'a' }, { id: 'c' }, { id: 'd' }, { id: 'e' }]
+  const children = [{ id: 'single' }, { id: 'sibling1' }, { id: 'sibling2' }]
+  const positions = layoutHouseRows([top, children], new Map([
+    ['single', ['e']], ['sibling1', ['a', 'b']], ['sibling2', ['a', 'b']],
+  ]), 188)
+  assert.equal(positions.get('single'), positions.get('e'))
+  assert.equal((positions.get('sibling1') + positions.get('sibling2')) / 2,
+    (positions.get('a') + positions.get('b')) / 2)
+  assert.equal(positions.get('sibling2') - positions.get('sibling1'), 188)
 })
