@@ -1,12 +1,13 @@
 import { HouseTree } from './HouseTree'
 import { t } from '../i18n.ts'
-import { AbilityDetails, AbilityFields } from './AbilityScores'
+import { BestiaryCard, BeastCombatFields } from './BestiaryCard'
+import { AbilityFields } from './AbilityScores'
 import { readAbilityScores } from '../domain/abilities'
 import { ImageField } from './ImageField'
 import { useState, type CSSProperties, type FormEvent, type ReactNode } from 'react'
 import { MagicDetails, RaceFields, SpellFields } from './LoreDetails'
 import { CreationDialog } from './CreationDialog'
-import { emptyLore, glossaryDescription, isGlossarySection, surnameOrigins, spellComponents, loreTargets, validLore, type LinkKind, type WorldLore } from '../domain/lore'
+import { emptyLore, glossaryDescription, isGlossarySection, beastCombatFields, surnameOrigins, spellComponents, loreTargets, validLore, type LinkKind, type WorldLore } from '../domain/lore'
 import type { Timeline } from '../domain/timeline'
 
 const sections = [
@@ -75,7 +76,12 @@ export function LorePage({ timeline, save, initialSection, archive }: { timeline
         ? lore[traditionKind].map((item) => item.id === id ? entry : item) : [...lore[traditionKind], entry] })
     } else if (section === 'bestiary') {
       const entry = { id, name, type: read('beast-type'), description: read('description'),
-        image: read('beast-image'), abilities: readAbilityScores(data) }
+        image: read('beast-image'), abilities: readAbilityScores(data),
+        combat: Object.fromEntries(beastCombatFields.flatMap(([key]) => {
+          const value = read('beast-' + key)
+          return value ? [[key, value]] : []
+        })),
+      }
       persist({ ...lore, bestiary: beast
         ? lore.bestiary.map((item) => item.id === id ? entry : item) : [...lore.bestiary, entry] })
       setSelectedId(id)
@@ -151,10 +157,17 @@ export function LorePage({ timeline, save, initialSection, archive }: { timeline
       </nav>
       {archiveSection ? archive : <>
       {error && editing === null && <p role="alert">{error}</p>}
-      <div className="directory-layout">
+      <div className={section === 'bestiary' ? "directory-layout bestiary-layout" : "directory-layout"}>
         <div>
         {selected === undefined ? <p>{t("В разделе пока нет записей.")}</p> : [selected].map((entry) => {
           const id = entryId(entry)
+          const controls = <>
+            <button type="button" onClick={() => { setError(''); setEditing(id) }}>{t("Редактировать")}</button>{' '}
+            <button type="button" onClick={() => remove(id)}>{t("Удалить")}</button>
+          </>
+          if (typeof entry !== 'string' && 'abilities' in entry) {
+            return <BestiaryCard key={id} beast={entry} controls={controls} />
+          }
           const name = entryName(entry)
           const details = section === 'surnames' ? lore.surnameDetails?.find((item) => item.name === name) : undefined
           const location = timeline.locations?.find((item) => item.id === details?.locationId)
@@ -172,14 +185,6 @@ export function LorePage({ timeline, save, initialSection, archive }: { timeline
             {location && <p><strong>{t("Локация")}</strong> · <a href={'#lore?section=locations&entry=' + encodeURIComponent(location.id)}>{location.title}</a></p>}
             {details?.dynasty && <p><strong>{t("Род")}</strong> · {details.dynasty}</p>}
             {details?.usage && <p className="archive-copy"><strong>{t("Значение и правила ношения")}</strong><br />{details.usage}</p>}
-            {typeof entry !== 'string' && 'abilities' in entry && (
-              <>
-                {entry.image && <img className="atlas-entry-image bestiary-image" src={entry.image} alt={entry.name} />}
-                {entry.type && <p>{entry.type}</p>}
-                {entry.description && <p className="archive-copy">{entry.description}</p>}
-                <AbilityDetails scores={entry.abilities} />
-              </>
-            )}
             {typeof entry !== 'string' && 'fields' in entry && traditionKind && (
               <>
                 {entry.fields.map((value, index) => value && <p key={index}><strong>{t(fieldsByKind[traditionKind][index]!)}</strong> · {value}</p>)}
@@ -188,8 +193,7 @@ export function LorePage({ timeline, save, initialSection, archive }: { timeline
                 </p>)}
               </>
             )}
-            <button type="button" onClick={() => { setError(''); setEditing(id) }}>{t("Редактировать")}</button>{' '}
-            <button type="button" onClick={() => remove(id)}>{t("Удалить")}</button>
+            {controls}
           </article>
         })}
         </div>
@@ -257,6 +261,7 @@ export function LorePage({ timeline, save, initialSection, archive }: { timeline
                 <p><label>{t("Вид существа ")}<input name="beast-type" defaultValue={beast?.type} /></label></p>
                 <p><label>{t("Описание")}<br /><textarea name="description" rows={4} defaultValue={beast?.description} /></label></p>
                 <AbilityFields scores={beast?.abilities} />
+                <BeastCombatFields combat={beast?.combat} />
               </>
             )}
             {error && <p role="alert">{error}</p>}

@@ -43,7 +43,15 @@ export type SurnameDetails = {
   usage: string
 }
 
+export const beastCombatFields = [
+  ['armor', 'Класс доспеха'], ['hitPoints', 'Хиты'], ['speed', 'Скорость'], ['challenge', 'Опасность'],
+  ['traits', 'Особенности'], ['actions', 'Действия'],
+] as const
+
+export type BeastCombat = Partial<Record<typeof beastCombatFields[number][0], string>>
+
 export type Beast = {
+  combat?: BeastCombat
   id: string
   name: string
   type: string
@@ -155,7 +163,9 @@ export function validLore(value: unknown, timeline: Timeline): value is WorldLor
     typeof item.type === 'string' && typeof item.description === 'string' &&
     typeof item.image === 'string' && (item.image === '' || (item.image.length <= 900_000 &&
       /^data:image\/(webp|png);base64,[A-Za-z0-9+/]+={0,2}$/.test(item.image))) &&
-    validAbilityScores(item.abilities),
+    validAbilityScores(item.abilities) &&
+    (item.combat === undefined || (record(item.combat) && Object.entries(item.combat).every(([key, value]) =>
+      beastCombatFields.some(([field]) => field === key) && typeof value === 'string'))),
   )) return false
   return [value.cultures, value.faiths].every((items) => records(items, (item) =>
     typeof item.name === 'string' && item.name.trim() && strings(item.fields) && item.fields.length === 4 &&
