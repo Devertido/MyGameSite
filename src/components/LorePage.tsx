@@ -10,7 +10,7 @@ import type { Timeline } from '../domain/timeline'
 const sections = [
   ['surnames', 'Фамилии'], ['races', 'Расы'], ['dynasties', 'Династии'],
   ['classes', 'Классы'], ['spells', 'Заклинания'],
-  ['cultures', 'Народы и культуры'], ['faiths', 'Религии и верования'], ['bestiary', 'Бестиарий'], ['items', 'Предметы'],
+  ['cultures', 'Культуры'], ['faiths', 'Верования'], ['bestiary', 'Бестиарий'], ['items', 'Предметы'],
 ] as const
 
 const fieldsByKind = {
@@ -139,7 +139,7 @@ export function LorePage({ timeline, save, initialSection, items }: { timeline: 
   return (
     <main className="section-page">
       <h1>Справочник мира</h1>
-      <nav className="directory-actions" aria-label="Разделы справочника">
+      <nav className="directory-actions lore-sections" aria-label="Разделы справочника">
         {sections.map(([key, title]) => (
           <button type="button" className="lore-toggle" key={key} aria-pressed={section === key} onClick={() => {
             window.location.hash = 'lore?section=' + key

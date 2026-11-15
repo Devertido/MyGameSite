@@ -424,6 +424,15 @@ button:focus-visible {
   border-color: #ff9e36;
 }
 
+.lore-sections .lore-toggle {
+  background: #bb7655;
+  color: #20150f;
+}
+
+.lore-sections .lore-toggle:hover {
+  background: #c88766;
+}
+
 .lore-magic-card h3 {
   margin-bottom: 0.25rem;
 }
