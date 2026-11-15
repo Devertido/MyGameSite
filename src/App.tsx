@@ -1,3 +1,4 @@
+import { TimelineLocationMap } from './components/TimelineLocationMap'
 import { sameHouse } from './domain/houseTree'
 import { t } from './i18n.ts'
 import { useRef, useState, type FormEvent } from 'react'
@@ -496,9 +497,7 @@ function App({ backupTools, english, page, eventYear, eventId, characterId, orga
                 <h2 id="world-map-title">{t("Карта мира")}</h2>
                 <WorldMap />
               </section>
-              <section className="timeline-map" aria-labelledby="location-map-title">
-                <h2 id="location-map-title">{t("Карта локации")}</h2>
-              </section>
+              <TimelineLocationMap key={selected.id} locations={selected.timeline.locations} />
             </div>
           </>
         )}

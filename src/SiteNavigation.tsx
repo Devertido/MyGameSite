@@ -40,6 +40,7 @@ export default function SiteNavigation() {
     setInterfaceLanguage(preference)
     return preference
   })
+  const [musicVisualEnabled, setMusicVisualEnabled] = useState(() => readPreference('music-animation') !== 'false')
   const [largeText, setLargeText] = useState(() => readPreference('large-text') === 'true')
   const languageDialog = useRef<HTMLDialogElement>(null)
   const [musicButtonTarget, setMusicButtonTarget] = useState<HTMLDivElement | null>(null)
@@ -138,8 +139,8 @@ export default function SiteNavigation() {
             title={fullscreenLabel} aria-pressed={fullscreen} disabled={!document.fullscreenEnabled}
             onClick={() => void toggleFullscreen()}>F11</button>
         </div>
+        <div className="site-music-visual" ref={setMusicAnimationTarget} />
       </header>
-      <div className="site-music-visual" ref={setMusicAnimationTarget} />
       {fullscreenError && <p className="backup-status" role="status">
         {english ? 'Fullscreen is unavailable. Try pressing F11 in your browser.' : 'Полноэкранный режим недоступен. Попробуйте нажать F11 в браузере.'}
       </p>}
@@ -188,7 +189,12 @@ export default function SiteNavigation() {
           setLargeText(enabled)
           writePreference('large-text', String(enabled))
         }} />{' '}{english ? 'Larger text' : 'Увеличенный текст'}</label></p>
-        <MusicSettings buttonTarget={musicButtonTarget} animationTarget={musicAnimationTarget} english={english} initialVolume={readMusicVolume()}
+        <p><label><input type="checkbox" checked={musicVisualEnabled} onChange={(event) => {
+          const enabled = event.currentTarget.checked
+          setMusicVisualEnabled(enabled)
+          writePreference('music-animation', String(enabled))
+        }} />{' '}{t('Показывать анимацию при воспроизведении музыки')}</label></p>
+        <MusicSettings buttonTarget={musicButtonTarget} animationTarget={musicVisualEnabled ? musicAnimationTarget : null} english={english} initialVolume={readMusicVolume()}
           rememberVolume={(volume) => writePreference('music-volume', String(volume))} />
         <button type="button" onClick={() => settingsDialog.current?.close()}>{english ? 'Close' : 'Закрыть'}</button>
       </dialog>

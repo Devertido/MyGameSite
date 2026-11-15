@@ -1,0 +1,23 @@
+import { useState } from 'react'
+import { t } from '../i18n.ts'
+import type { ArchiveEntry } from '../domain/timeline'
+
+export function TimelineLocationMap({ locations = [] }: { locations?: ArchiveEntry[] }) {
+  const [sample] = useState(Math.random)
+  const withMaps = locations.filter((location) => location.mapImage)
+  const location = withMaps[Math.floor(sample * withMaps.length)]
+
+  return (
+    <section className="timeline-map" aria-labelledby="location-map-title">
+      <h2 id="location-map-title">{t('Карта локации')}</h2>
+      {location ? (
+        <figure className="timeline-location-map">
+          <img className="location-map-image" src={location.mapImage} alt={t('Карта локации') + ' · ' + location.title} />
+          <figcaption>
+            <a href={'#lore?section=locations&entry=' + encodeURIComponent(location.id)}>{location.title}</a>
+          </figcaption>
+        </figure>
+      ) : <p>{t('В справочнике пока нет сохранённых карт локаций.')}</p>}
+    </section>
+  )
+}

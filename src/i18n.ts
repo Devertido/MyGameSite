@@ -43,6 +43,8 @@ const english: Readonly<Record<string, string>> = {
   "Удалить текущий таймлайн": "Delete current timeline",
   "Карта мира": "World map",
   "Карта локации": "Location map",
+  "В справочнике пока нет сохранённых карт локаций.": "No saved location maps in the reference yet.",
+  "Показывать анимацию при воспроизведении музыки": "Show animation while music plays",
   "Тип карты": "Map type",
   "План поселения": "Settlement plan",
   "Карта местности": "Terrain map",
