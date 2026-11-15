@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { averageDamage, damageUsesStrength } from '../domain/itemDamage'
+import { damageRange, damageUsesStrength } from '../domain/itemDamage'
 import { t } from '../i18n.ts'
 
 export function ItemDamage({ formula, ownerStrength }: { formula: string; ownerStrength?: number }) {
@@ -7,11 +7,13 @@ export function ItemDamage({ formula, ownerStrength }: { formula: string; ownerS
   const needsStrength = damageUsesStrength(formula)
   const strength = manualStrength === '' ? ownerStrength : Number(manualStrength)
   const missingStrength = needsStrength && (strength === undefined || !Number.isInteger(strength) || strength < 0 || strength > 30)
-  const result = missingStrength ? undefined : averageDamage(formula, strength)
+  const range = missingStrength ? undefined : damageRange(formula, strength)
+  const format = new Intl.NumberFormat().format
+  const result = range && (range[0] === range[1] ? format(range[0]) : range.map(format).join('–'))
 
   return <section className="item-damage">
     <p><strong>{t('Урон')}</strong>{' '}
-      <output aria-live="polite">{result === undefined ? '—' : new Intl.NumberFormat().format(result)}</output>
+      <output aria-live="polite">{result ?? '—'}</output>
       <code>{'\u00a0'.repeat(5)}({formula})</code>
     </p>
     {needsStrength && ownerStrength === undefined && <label>{t('Сила для расчёта')}{' '}

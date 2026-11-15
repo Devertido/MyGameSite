@@ -123,6 +123,10 @@ export function validHouseYears(startYear?: number, endYear?: number) {
 }
 
 export const maxClassLevel = 20
+
+export function validClassLevel(value: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 1 && value <= maxClassLevel
+}
 export type ClassLevel = { level: number; skills: string; abilities: string; spells: string[] }
 export type ClassProgression = { name: string; levels: ClassLevel[] }
 
@@ -226,7 +230,7 @@ export function validLore(value: unknown, timeline: Timeline): value is WorldLor
     if (!Array.isArray(value.classProgression) || !value.classProgression.every((entry) => record(entry) &&
         typeof entry.name === 'string' && classNames.has(entry.name) && Array.isArray(entry.levels) &&
         entry.levels.length <= maxClassLevel && entry.levels.every((level) => record(level) &&
-          typeof level.level === 'number' && Number.isInteger(level.level) && level.level >= 1 && level.level <= maxClassLevel &&
+          validClassLevel(level.level) &&
           typeof level.skills === 'string' && level.skills.length <= 4000 &&
           typeof level.abilities === 'string' && level.abilities.length <= 4000 &&
           strings(level.spells) && new Set(level.spells).size === level.spells.length &&

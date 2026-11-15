@@ -500,6 +500,7 @@ const english: Readonly<Record<string, string>> = {
   "Хиты": "Hit points",
   "Скорость": "Speed",
   "Опасность": "Challenge rating",
+  "Укажите целый уровень от 1 до 20.": "Enter a whole level from 1 to 20.",
   "Уровень": "Level",
   "Особенности": "Traits",
   "Действия": "Actions",

@@ -6,7 +6,7 @@ import { adjustedAbilities, readAbilityScores } from '../domain/abilities'
 import { RelativePicker } from './RelativePicker'
 import { FamilyTree } from './FamilyTree'
 import { LoreLinks } from './LoreLinks'
-import { glossaryDescription, raceDetailsFor, surnameTooltip, validFamily } from '../domain/lore'
+import { glossaryDescription, maxClassLevel, raceDetailsFor, surnameTooltip, validClassLevel, validFamily } from '../domain/lore'
 import { EntryFields, EntryGallery, EntryStatusLabel, readEntryMetadata, useStatusMatch } from './EntryMedia'
 import { CreationDialog } from './CreationDialog'
 import { EditIcon } from './EditIcon'
@@ -21,6 +21,7 @@ const columns = [
   { key: 'surname', title: 'Фамилия' },
   { key: 'race', title: 'Раса' },
   { key: 'sex', title: 'Пол' },
+  { key: 'level', title: 'Уровень' },
 ] as const
 
 const characterCollator = new Intl.Collator('ru', { sensitivity: 'base', numeric: true })
@@ -44,7 +45,7 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
     const a = left[sort.key] ?? ''
     const b = right[sort.key] ?? ''
     if (!a || !b) return Number(!a) - Number(!b)
-    return characterCollator.compare(a, b) * (sort.descending ? -1 : 1)
+    return characterCollator.compare(String(a), String(b)) * (sort.descending ? -1 : 1)
   })
   const selected = characters.find(({ id }) => id === characterId) ??
     (characterId === undefined ? characters.find(matchesStatus) : undefined)
@@ -98,6 +99,12 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
       return
     }
 
+    const levelText = String(fields.get('level') ?? '').trim()
+    const level = levelText ? Number(levelText) : undefined
+    if (level !== undefined && !validClassLevel(level)) {
+      setError(t('Укажите целый уровень от 1 до 20.'))
+      return
+    }
     const characterClass = String(fields.get('characterClass') ?? '').trim()
     const dynasty = String(fields.get('dynasty') ?? '').trim()
     const parentIds = fields.getAll('parents').map(String)
@@ -106,6 +113,7 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
       ...readEntryMetadata(fields),
       parentIds,
       abilities: readAbilityScores(fields),
+      ...(level !== undefined ? { level } : {}),
       ...(characterClass ? { characterClass } : {}),
       ...(dynasty ? { dynasty } : {}),
       ...(original?.loverIds?.length ? { loverIds: original.loverIds } : {}),
@@ -166,6 +174,7 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
             <p><label>{t("Класс")}<br /><input name="characterClass" list="lore-classes" defaultValue={original?.characterClass}
                 title={glossaryDescription(timeline.lore, 'classes', original?.characterClass)}
                 onInput={(event) => { event.currentTarget.title = glossaryDescription(timeline.lore, 'classes', event.currentTarget.value) ?? '' }} /></label></p>
+            <p><label>{t('Уровень')}<br /><input name="level" type="number" min={1} max={maxClassLevel} step={1} defaultValue={original?.level} /></label></p>
             {(['surnames', 'races', 'classes'] as const).map((field) => (
               <datalist key={field} id={'lore-' + field}>
                 {(timeline.lore?.[field] ?? []).map((value) => <option key={value} value={value} />)}
@@ -239,6 +248,7 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
                     )}</h2>
                     <dl className="character-facts">
                       {character.sex && <div><dt>{t("Пол")}</dt><dd>{t(character.sex)}</dd></div>}
+                      {character.level !== undefined && <div><dt>{t('Уровень')}</dt><dd>{character.level}</dd></div>}
                       {character.characterClass && <div><dt>{t("Класс")}</dt><dd title={glossaryDescription(timeline.lore, 'classes', character.characterClass)}>{character.characterClass}</dd></div>}
                       {character.race && <div><dt>{t("Раса")}</dt><dd title={glossaryDescription(timeline.lore, 'races', character.race)}>{character.race}</dd></div>}
                       {character.dynasty && <div><dt>{t('Род')}</dt><dd title={glossaryDescription(timeline.lore, 'dynasties', character.dynasty)}>
@@ -359,6 +369,7 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
                     <td><span title={surnameTooltip(timeline, character.surname)}>{character.surname || '—'}</span></td>
                     <td><span title={glossaryDescription(timeline.lore, 'races', character.race)}>{character.race || '—'}</span></td>
                     <td>{character.sex ? t(character.sex) : '—'}</td>
+                    <td>{character.level ?? '—'}</td>
                   </tr>
                 ))}
               </tbody>

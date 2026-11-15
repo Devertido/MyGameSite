@@ -139,6 +139,7 @@ export type TimelineCharacter = EntryMetadata & {
   parentIds?: string[]
   dynasty?: string
   characterClass?: string
+  level?: number
   surname?: string
   race?: string
   sex?: string

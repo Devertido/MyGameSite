@@ -3,7 +3,7 @@ import { validLocationMapPlan } from '../domain/locationMapPlan.ts'
 import { validLovers, validSpouses } from '../domain/houseTree.ts'
 import { t } from '../i18n.ts'
 import { validAbilityScores } from '../domain/abilities.ts'
-import { validFamily, validLore } from '../domain/lore.ts'
+import { validClassLevel, validFamily, validLore } from '../domain/lore.ts'
 import { validateMonths, validateWeek } from '../domain/calendar.ts'
 import { validateCalendarEra } from '../domain/calendarYear.ts'
 import { isAtlasColor, isCharacterDate, isCharacterLifeOrderValid, validateOrganization, validateEvent, type Organization, type ArchiveEntry, type Timeline, type TimelineCalendar, type TimelineCharacter, type TimelineEvent } from '../domain/timeline.ts'
@@ -68,9 +68,10 @@ function parseTimeline(value: unknown): Timeline | null {
           ('biography' in character && typeof character.biography !== 'string')) return null
       if (!validMetadata(character)) return null
       const { status, gallery } = character as TimelineCharacter
-      const { surname, race, sex, birth, death, portrait, parentIds, dynasty, characterClass, abilities, spouseId, loverIds, bornOutsideMarriage } = character
+      const { surname, race, sex, birth, death, portrait, parentIds, dynasty, characterClass, level, abilities, spouseId, loverIds, bornOutsideMarriage } = character
       if ((parentIds !== undefined && !isIdList(parentIds)) ||
           (abilities !== undefined && !validAbilityScores(abilities)) ||
+          (level !== undefined && !validClassLevel(level)) ||
           (characterClass !== undefined && typeof characterClass !== 'string') ||
           (loverIds !== undefined && !isIdList(loverIds)) ||
           (bornOutsideMarriage !== undefined && typeof bornOutsideMarriage !== 'boolean') ||
@@ -89,6 +90,7 @@ function parseTimeline(value: unknown): Timeline | null {
         ...(gallery !== undefined ? { gallery } : {}),
         ...(parentIds !== undefined ? { parentIds } : {}),
         ...(abilities !== undefined ? { abilities } : {}),
+        ...(level !== undefined ? { level } : {}),
         ...(characterClass !== undefined ? { characterClass } : {}),
         ...(spouseId !== undefined ? { spouseId } : {}),
         ...(loverIds !== undefined ? { loverIds } : {}),

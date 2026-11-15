@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { averageDamage, parseDamageFormula } from '../src/domain/itemDamage.ts'
+import { damageRange, parseDamageFormula } from '../src/domain/itemDamage.ts'
 import { buildOppositeBank, createLocationMapPlan, editDistricts, mergeDistrictOutline, moveDistrictCorner, moveWaterChannel, waterXAt, rerollDistrict, validLocationMapPlan, warpDistricts } from '../src/domain/locationMapPlan.ts'
 import { insideDistrict, settlementBuildings } from '../src/domain/settlementBuildings.ts'
 import { settlementStreets } from '../src/domain/settlementStreets.ts'
@@ -446,7 +446,7 @@ test('An affair can coexist with a marriage and the child keeps biological paren
     { id: 'mother', name: 'Mother', description: '', sex: 'Жен', dynasty: 'House', spouseId: 'spouse' },
     { id: 'spouse', name: 'Spouse', description: '', sex: 'Муж', spouseId: 'mother' },
     { id: 'father', name: 'Father', description: '' },
-    { id: 'child', name: 'Child', description: '', parentIds: ['mother', 'father'], bornOutsideMarriage: true },
+    { id: 'child', name: 'Child', description: '', parentIds: ['mother', 'father'], bornOutsideMarriage: true, level: 20 },
   ]
   const characters = addHouseRelationship(people, people[0], people[2], 'lover')
   assert.equal(characters[0].spouseId, 'spouse')
@@ -496,16 +496,16 @@ test('Districts can merge or be removed, and edits to the river and both banks s
   assert.deepEqual(importTimeline(exportTimeline(timeline)).locations[0].mapPlan, mapPlan)
 })
 
-test('Weapon damage uses dice, strength and arithmetic precedence without executing code', () => {
-  assert.equal(parseDamageFormula('1d8 + СИЛ + 5')(14, () => 0.5), 24)
-  assert.equal(parseDamageFormula('(2d6 + 4) / 2 - 1 * -3')(undefined, () => 0), 6)
-  assert.equal(parseDamageFormula('2,5 + 1')(undefined, () => 0), 3.5)
-  assert.equal(averageDamage('1d8 + 5'), 9)
-  assert.equal(averageDamage('2d8 + 3'), 12)
-  assert.equal(averageDamage('1d12 + 5'), 11)
-  assert.equal(averageDamage('1 / 0'), undefined)
-  assert.ok(Number.isNaN(parseDamageFormula('1 / (3 - 3)')(undefined, () => 0)))
-  assert.ok(Number.isNaN(parseDamageFormula('СИЛ + 2')(undefined, () => 0)))
+test('Damage range follows dice, signs and operator precedence', () => {
+  assert.deepEqual(damageRange('1d8'), [1, 8])
+  assert.deepEqual(damageRange('1d12 + 5'), [6, 17])
+  assert.deepEqual(damageRange('1d8 + СИЛ + 5', 14), [20, 27])
+  assert.deepEqual(damageRange('(2d6 + 4) / 2 - 1 * -3'), [6, 11])
+  assert.deepEqual(damageRange('12 - 1d8'), [4, 11])
+  assert.deepEqual(damageRange('15 + (1d4 - 5) * 1d2'), [7, 14])
+  assert.deepEqual(damageRange('2,5 + 1'), [3, 3])
+  assert.equal(damageRange('1 / (1d4 - 2)'), undefined)
+  assert.equal(damageRange('СИЛ + 2'), undefined)
   for (const formula of ['1d1', '500d20', '1d8 +', '2(3)', 'alert(1)', '(1 + 2', '5 ^ 2']) {
     assert.equal(parseDamageFormula(formula), undefined, formula)
   }
