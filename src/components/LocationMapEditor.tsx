@@ -1,5 +1,5 @@
-import { useRef, useState, type PointerEvent } from 'react'
-import { mapHeight, mapWidth, moveDistrictCorner, rerollDistrict, type LocationMapPlan } from '../domain/locationMapPlan'
+import { useEffect, useRef, useState, type PointerEvent } from 'react'
+import { brushDisplacement, mapHeight, mapWidth, moveDistrictCorner, rerollDistrict, warpDistricts, type LocationMapPlan } from '../domain/locationMapPlan'
 import type { Point } from '../domain/settlementDistricts'
 import { t } from '../i18n.ts'
 import { locationMap } from './locationMap'
@@ -20,7 +20,24 @@ export function LocationMapEditor({ plan, image, locations, onChange }: {
   const [error, setError] = useState('')
   const [drag, setDrag] = useState<{ index: number; point: Point }>()
   const view = useRef<HTMLDivElement>(null)
-  const geometry = plan.geometry
+  const [draft, setDraft] = useState<{ plan: LocationMapPlan; image: string }>()
+  const [radius, setRadius] = useState(90)
+  const [cursor, setCursor] = useState<Point>()
+  const [stroke, setStroke] = useState<{ origin: Point; target: Point }>()
+  const warping = draft !== undefined
+
+  useEffect(() => {
+    const canvas = view.current
+    if (!warping || !canvas) return
+    function resizeBrush(event: WheelEvent) {
+      event.preventDefault()
+      setRadius((value) => Math.max(25, Math.min(250, value + (event.deltaY < 0 ? 10 : -10))))
+    }
+    canvas.addEventListener('wheel', resizeBrush, { passive: false })
+    return () => canvas.removeEventListener('wheel', resizeBrush)
+  }, [warping])
+
+  const geometry = (draft?.plan ?? plan).geometry
   if (!geometry) return null
   const selected = geometry.districts[districtIndex]
   const markers = plan.markers ?? []
@@ -44,6 +61,31 @@ export function LocationMapEditor({ plan, image, locations, onChange }: {
 
   return <details className="location-map-editor">
     <summary>{t('Редактор плана поселения')}</summary>
+    <div className="location-map-editor-actions">
+      <button type="button" aria-pressed={warping} onClick={() => {
+        if (warping) setDraft(undefined)
+        else setDraft({ plan, image })
+        setError('')
+        setCursor(undefined)
+        setStroke(undefined)
+      }}>{t('Планировка')}</button>
+      {draft && <>
+        <label>{t('Радиус кисти')} <input type="range" min={25} max={250} step={5} value={radius}
+          onChange={(event) => setRadius(Number(event.currentTarget.value))} /></label>
+        <button type="button" disabled={draft.plan === plan} onClick={() => {
+          onChange(draft.image, draft.plan)
+          setDraft(undefined)
+          setError('')
+          setPoint(undefined)
+        }}>{t('Применить')}</button>
+        <button type="button" onClick={() => {
+          setDraft(undefined)
+          setError('')
+        }}>{t('Отмена')}</button>
+      </>}
+    </div>
+    {warping && <p>{t('Потяните карту кистью. Колёсико изменяет радиус.')}</p>}
+    <fieldset hidden={warping} disabled={warping} className="location-map-tools">
     <label>{t('Квартал')}
       <select value={districtIndex} onChange={(event) => {
         const index = Number(event.currentTarget.value)
@@ -67,7 +109,49 @@ export function LocationMapEditor({ plan, image, locations, onChange }: {
         update(event.currentTarget.form, rerollDistrict(plan, districtIndex, crypto.getRandomValues(new Uint32Array(1))[0]!))
       }}>{t('Перестроить квартал')}</button>
     </div>
+    </fieldset>
     <div className="location-map-edit-view" ref={view}>
+      {draft ? <div className="location-map-warp" onPointerDown={(event) => {
+        if (event.button !== 0 || !event.isPrimary) return
+        const origin = coordinates(event.clientX, event.clientY)
+        event.currentTarget.setPointerCapture(event.pointerId)
+        setStroke({ origin, target: origin })
+        setCursor(origin)
+        setError('')
+      }} onPointerMove={(event) => {
+        if (!event.isPrimary) return
+        const target = coordinates(event.clientX, event.clientY)
+        setCursor(target)
+        if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+          setStroke((current) => current && { ...current, target })
+        }
+      }} onPointerLeave={() => setCursor(undefined)} onLostPointerCapture={() => setStroke(undefined)}
+        onPointerCancel={() => { setStroke(undefined); setCursor(undefined) }}
+        onPointerUp={(event) => {
+          if (!stroke || !event.currentTarget.hasPointerCapture(event.pointerId)) return
+          const target = coordinates(event.clientX, event.clientY)
+          setStroke(undefined)
+          if (target[0] === stroke.origin[0] && target[1] === stroke.origin[1]) return
+          const next = warpDistricts(draft.plan, stroke.origin, target, radius)
+          if (next === draft.plan) {
+            setError(t('Кварталы в этой области нельзя сдвинуть.'))
+            return
+          }
+          const title = event.currentTarget.closest('form')?.elements.namedItem('title')
+          const preview = locationMap(next, title instanceof HTMLInputElement ? title.value.trim() : '')
+          if (preview) setDraft({ plan: next, image: preview })
+          else setError(t('Не удалось сгенерировать карту.'))
+        }}>
+        <img src={draft.image} alt={t('Предпросмотр')} draggable={false} />
+        <svg className="location-map-corners location-map-brush" viewBox={'0 0 ' + mapWidth + ' ' + mapHeight} aria-hidden="true">
+          {stroke && geometry.districts.map(({ vertices }, index) =>
+            <polygon key={index} points={vertices.map((vertex) => {
+              const delta = brushDisplacement(vertex, stroke.origin, stroke.target, radius)
+              return delta ? [vertex[0] + delta[0], vertex[1] + delta[1]].join(',') : vertex.join(',')
+            }).join(' ')} />)}
+          {cursor && <circle cx={cursor[0]} cy={cursor[1]} r={radius} />}
+        </svg>
+      </div> : <>
       <button type="button" className="location-map-select-point" aria-label={t('Выбрать точку для метки')}
         onClick={(event) => setPoint(event.detail === 0 ? [mapWidth / 2, mapHeight / 2] : coordinates(event.clientX, event.clientY))}>
         <img src={image} alt="" />
@@ -103,7 +187,9 @@ export function LocationMapEditor({ plan, image, locations, onChange }: {
             onPointerCancel={() => setDrag(undefined)} />
         })}
       </svg>
+      </>}
     </div>
+    <fieldset hidden={warping} disabled={warping} className="location-map-tools">
     <p>{t('Перетаскивайте углы выбранного квартала.')}</p>
     <p>{point ? t('Точка выбрана') : t('Нажмите на карту, чтобы выбрать место для метки.')}</p>
     <div className="location-map-editor-actions">
@@ -130,6 +216,7 @@ export function LocationMapEditor({ plan, image, locations, onChange }: {
           update(event.currentTarget.form, { ...plan, markers: markers.filter(({ id }) => id !== marker.id) })}>×</button>
       </li>
     ))}</ul>}
+    </fieldset>
     {error && <p role="alert">{error}</p>}
   </details>
 }

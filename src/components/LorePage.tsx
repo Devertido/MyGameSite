@@ -8,7 +8,7 @@ import { ImageField } from './ImageField'
 import { useState, type CSSProperties, type FormEvent, type ReactNode } from 'react'
 import { MagicDetails, RaceFields, SpellFields } from './LoreDetails'
 import { CreationDialog } from './CreationDialog'
-import { emptyLore, glossaryDescription, isGlossarySection, beastCombatFields, surnameOrigins, spellComponents, loreTargets, validLore, type LinkKind, type WorldLore } from '../domain/lore'
+import { emptyLore, glossaryDescription, isGlossarySection, beastCombatFields, readRaceMeasure, surnameOrigins, spellComponents, loreTargets, validLore, type LinkKind, type WorldLore } from '../domain/lore'
 import type { Timeline } from '../domain/timeline'
 
 const sections = [
@@ -117,8 +117,15 @@ export function LorePage({ timeline, save, initialSection, initialEntry, archive
         }]
       }
       if (section === 'races') {
+        const prior = lore.raceDetails?.find((entry) => entry.name === editing)
+        const lifespan = readRaceMeasure(data, 'lifespan', prior?.lifespan)
+        const height = readRaceMeasure(data, 'height', prior?.height)
+        if (lifespan === null || height === null) {
+          setError(t('Укажите целые числа. Конец диапазона должен быть не меньше начала.'))
+          return
+        }
         next.raceDetails = [...(lore.raceDetails ?? []).filter((entry) => entry.name !== editing), {
-          name, image: read('lore-image'), lifespan: read('lifespan'), height: read('height'),
+          name, image: read('lore-image'), lifespan, height,
           size: read('size'), bonuses: read('bonuses'), debuffs: read('debuffs'),
           abilityBonuses: readAbilityScores(data, 'race-bonus-'),
           abilityPenalties: readAbilityScores(data, 'race-penalty-'),
@@ -271,7 +278,7 @@ export function LorePage({ timeline, save, initialSection, initialEntry, archive
             )}
             {section === 'bestiary' && (
               <>
-                <ImageField name="beast-image" label={t("Изображение существа")} initial={beast?.image} />
+                <ImageField name="beast-image" label={t("Изображение существа")} initial={beast?.image} largeIllustration />
                 <p><label>{t("Вид существа ")}<input name="beast-type" defaultValue={beast?.type} /></label></p>
                 <p><label>{t("Описание")}<br /><textarea name="description" rows={4} defaultValue={beast?.description} /></label></p>
                 <AbilityFields scores={beast?.abilities} />

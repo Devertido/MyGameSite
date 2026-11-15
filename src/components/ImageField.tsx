@@ -5,8 +5,8 @@ import { LocationMapEditor, type MapLocationLink } from './LocationMapEditor'
 import { LocationMapGenerator } from './LocationMapGenerator'
 import { prepareImage } from './prepareImage'
 
-export function ImageField({ name, label, initial, allowGif = false, generateMap = false, initialMapPlan, mapLocations = [] }: {
-  name: string; label: string; initial?: string; allowGif?: boolean; generateMap?: boolean; initialMapPlan?: LocationMapPlan; mapLocations?: MapLocationLink[]
+export function ImageField({ name, label, initial, allowGif = false, largeIllustration = false, generateMap = false, initialMapPlan, mapLocations = [] }: {
+  name: string; label: string; initial?: string; allowGif?: boolean; largeIllustration?: boolean; generateMap?: boolean; initialMapPlan?: LocationMapPlan; mapLocations?: MapLocationLink[]
 }) {
   const [image, setImage] = useState(initial ?? '')
   const [mapPlan, setMapPlan] = useState(initialMapPlan)
@@ -14,7 +14,7 @@ export function ImageField({ name, label, initial, allowGif = false, generateMap
   const revision = useRef(0)
   const [mapRevision, setMapRevision] = useState(0)
 
-  function useGeneratedMap(map: string, plan: LocationMapPlan) {
+  function acceptGeneratedMap(map: string, plan: LocationMapPlan) {
     revision.current++
     setImage(map)
     setMapPlan(plan)
@@ -44,7 +44,7 @@ export function ImageField({ name, label, initial, allowGif = false, generateMap
         if (current === revision.current) setImage(image)
         return
       }
-      const prepared = await prepareImage(file)
+      const prepared = await prepareImage(file, largeIllustration)
       if (current === revision.current) {
         setImage(prepared)
         setMapPlan(undefined)
@@ -64,11 +64,11 @@ export function ImageField({ name, label, initial, allowGif = false, generateMap
       <legend>{label}</legend>
       <label>{t("Выбрать файл ")}<input type="file" accept={allowGif ? "image/png,image/jpeg,image/webp,image/gif,.gif" : "image/png,image/jpeg,image/webp"} onChange={choose} /></label>
       {generateMap && <LocationMapGenerator initial={initialMapPlan} onGenerate={(map, plan) => {
-        useGeneratedMap(map, plan)
+        acceptGeneratedMap(map, plan)
         setMapRevision((current) => current + 1)
       }} />}
       {generateMap && mapPlan?.geometry && image && <LocationMapEditor key={mapRevision} plan={mapPlan}
-        image={image} locations={mapLocations} onChange={useGeneratedMap} />}
+        image={image} locations={mapLocations} onChange={acceptGeneratedMap} />}
       {allowGif && <small>{t(" GIF до 650 КБ")}</small>}
       <input type="hidden" name={name} value={image} />
       {generateMap && mapPlan && <input type="hidden" name="mapPlan" value={JSON.stringify(mapPlan)} />}

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { createLocationMapPlan, moveDistrictCorner, rerollDistrict, validLocationMapPlan } from '../src/domain/locationMapPlan.ts'
+import { createLocationMapPlan, moveDistrictCorner, rerollDistrict, validLocationMapPlan, warpDistricts } from '../src/domain/locationMapPlan.ts'
 import { insideDistrict, settlementBuildings } from '../src/domain/settlementBuildings.ts'
 import { settlementStreets } from '../src/domain/settlementStreets.ts'
 import { settlementDistricts } from '../src/domain/settlementDistricts.ts'
@@ -10,6 +10,9 @@ import { standardYear, validateMonths, validateWeek } from '../src/domain/calend
 import { toCalendarYear } from '../src/domain/calendarYear.ts'
 import { calendarDay, eventDays, validateEvent, validateTimelineBounds } from '../src/domain/timeline.ts'
 import { timelineSnapshot, deleteTimeline, exportTimeline, importTimeline, loadTimelines, rememberSelection, restoreSelection, saveTimeline } from '../src/data/timelineStorage.ts'
+
+import { emptyLore, parseRaceMeasure, readRaceMeasure } from '../src/domain/lore.ts'
+import { addHouseRelationship } from '../src/domain/houseTree.ts'
 
 const era = { systemAnchorYear: 100, calendarAnchorYear: 1, hasYearZero: false }
 
@@ -347,4 +350,73 @@ test('Перетаскивание меняет общий угол во все�
   const target = updated.geometry.districts[0].vertices[0]
   for (const i of affected) assert.ok(updated.geometry.districts[i].vertices.some((vertex) => vertex === target))
   assert.ok(validLocationMapPlan(JSON.parse(JSON.stringify(updated))))
+})
+
+test('Кисть сдвигает несколько углов, сохраняет общие границы и не меняет дальние кварталы', () => {
+  const plan = createLocationMapPlan({ mode: 'settlement', terrain: 'forest', seed: 42, size: 'city', water: 'inland', fortified: true })
+  const origin = plan.geometry.districts[0].vertices[0]
+  const target = [origin[0] + 4, origin[1] + 2]
+  const radius = 75
+  const updated = warpDistricts(plan, origin, target, radius)
+  assert.notEqual(updated, plan)
+  const moved = new Map()
+  for (const [i, district] of plan.geometry.districts.entries()) {
+    for (const [j, vertex] of district.vertices.entries()) {
+      const next = updated.geometry.districts[i].vertices[j]
+      if (Math.hypot(vertex[0] - origin[0], vertex[1] - origin[1]) >= radius) {
+        assert.equal(next, vertex)
+      } else {
+        const key = vertex.map((value) => Math.round(value * 1e6)).join(',')
+        if (moved.has(key)) assert.deepEqual(next, moved.get(key))
+        moved.set(key, next)
+      }
+    }
+  }
+  assert.ok(moved.size > 1)
+  assert.ok(updated.geometry.districts.some((district, index) => district === plan.geometry.districts[index]))
+  assert.ok(validLocationMapPlan(JSON.parse(JSON.stringify(updated))))
+  assert.equal(warpDistricts(plan, origin, origin, radius), plan)
+})
+
+test('Правки планировки, родство, бестиарий и расы переживают сохранение и импорт', () => {
+  assert.deepEqual(parseRaceMeasure('1000лет-10000 лет', 'lifespan'), ['1000', '10000'])
+  assert.deepEqual(parseRaceMeasure('2-2.5м', 'height'), ['200', '250'])
+  const form = new FormData()
+  form.set('height', '200')
+  form.set('height-max', '250')
+  const { daysPerYear, ...calendar } = standardYear
+  const base = createLocationMapPlan({ mode: 'settlement', terrain: 'forest', seed: 42, size: 'city', water: 'inland', fortified: true })
+  const origin = base.geometry.districts[0].vertices[0]
+  const mapPlan = warpDistricts(base, origin, [origin[0] + 4, origin[1] + 2], 75)
+  assert.notEqual(mapPlan, base)
+  const image = 'data:image/webp;base64,AAAA'
+  const location = { id: 'doren', title: 'Дорэн', summary: '', body: '', mapImage: image, mapPlan }
+  const race = { name: 'Альвы', image, lifespan: '1000–10000', height: readRaceMeasure(form, 'height'), size: '2', bonuses: '', debuffs: '' }
+  assert.equal(race.height, '200–250')
+  const beast = { id: 'beast', name: 'Грифон', type: 'Зверь', description: '', image, abilities: {}, combat: { challenge: '1/2', level: '3' } }
+  const people = [
+    { id: 'a', name: 'А', description: '', sex: 'Муж' },
+    { id: 'b', name: 'Б', description: '', sex: 'Жен' },
+    { id: 'c', name: 'В', description: '' },
+  ]
+  const couple = addHouseRelationship(people, people[0], people[1], 'spouse')
+  const characters = addHouseRelationship(couple, couple[0], couple[2], 'child')
+  const timeline = {
+    name: 'Арена', startYear: -10, endYear: 100, daysPerYear,
+    calendars: [{ ...calendar, name: 'Основной', era }],
+    locations: [location], characters,
+    lore: { ...emptyLore, races: [race.name], raceDetails: [race], bestiary: [beast] },
+  }
+  let saved
+  const storage = { length: 1, key: () => 'arena-atlas:timeline:v1:verification',
+    getItem: () => saved, setItem: (key, value) => { storage.key = () => key; saved = value } }
+  saveTimeline('verification', timeline, storage)
+  const { entries, skipped } = loadTimelines(storage)
+  assert.equal(skipped, 0)
+  for (const restored of [entries[0].timeline, importTimeline(exportTimeline(timeline))]) {
+    assert.deepEqual(restored.locations[0], location)
+    assert.deepEqual(restored.characters, characters)
+    assert.deepEqual(restored.lore.raceDetails[0], race)
+    assert.deepEqual(restored.lore.bestiary[0], beast)
+  }
 })

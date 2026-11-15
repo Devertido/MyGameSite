@@ -74,29 +74,71 @@ function streetSegments(network: NonNullable<LocationMapPlan['geometry']>['netwo
 }
 
 export function moveDistrictCorner(plan: LocationMapPlan, original: Point, target: Point): LocationMapPlan {
+  const same = (point: Point) => Math.hypot(point[0] - original[0], point[1] - original[1]) < 1e-5
+  const [dx, dy] = [target[0] - original[0], target[1] - original[1]]
+  if (!dx && !dy) return plan
+  const targets = new Map<number, Point>()
+  return moveDistrictVertices(plan, (point, fraction) => {
+    if (!same(point)) return point
+    const next: Point = targets.get(fraction) ?? [original[0] + dx * fraction, original[1] + dy * fraction]
+    targets.set(fraction, next)
+    return next
+  })
+}
+
+export function brushDisplacement(point: Point, origin: Point, target: Point, radius: number): Point | undefined {
+  const distance = Math.hypot(point[0] - origin[0], point[1] - origin[1])
+  if (distance >= radius) return
+  const weight = (1 - (distance / radius) ** 2) ** 2
+  return [(target[0] - origin[0]) * weight, (target[1] - origin[1]) * weight]
+}
+
+export function warpDistricts(plan: LocationMapPlan, origin: Point, target: Point, radius: number): LocationMapPlan {
+  if (radius <= 0) return plan
+  if (origin[0] === target[0] && origin[1] === target[1]) return plan
+  return moveDistrictVertices(plan, (point, fraction) => {
+    const vertex: Point = [Math.round(point[0] * 1e6) / 1e6, Math.round(point[1] * 1e6) / 1e6]
+    const delta = brushDisplacement(vertex, origin, target, radius)
+    return delta ? [vertex[0] + delta[0] * fraction, vertex[1] + delta[1] * fraction] : point
+  })
+}
+
+function moveDistrictVertices(plan: LocationMapPlan, targetFor: (point: Point, fraction: number) => Point): LocationMapPlan {
   const geometry = plan.geometry
   if (!geometry) return plan
-  const same = (point: Point) => Math.hypot(point[0] - original[0], point[1] - original[1]) < 1e-5
   const { centerX, centerY, scale, waterline } = settlementFoundation(plan.settings)
   const { water } = plan.settings
+  function allowed([x, y]: Point, original: Point) {
+    if (x < 23 || x > mapWidth - 23 || y < 23 || y > mapHeight - 75) return false
+    if ((water === 'river' || water === 'river-mouth') && x > waterline(y) - 28) return false
+    if (water === 'coast' && x > waterline(y) - 2) return false
+    if (['island', 'peninsula', 'cave', 'underground'].includes(water) &&
+        Math.hypot((x - centerX) / (192 * scale), (y - centerY) / (162 * scale)) > 0.93) return false
+    if (water === 'gorge' && Math.abs(y - centerY) > 124 * scale - 13) return false
+    return water !== 'river-city' || (Math.abs(x - waterline(y)) >= 16 - 1e-5 &&
+      (x < waterline(y)) === (original[0] < waterline(original[1])))
+  }
+
   let districts = geometry.districts
   for (let fraction = 1; fraction >= 1 / 32; fraction /= 2) {
-    const next: Point = [original[0] + (target[0] - original[0]) * fraction, original[1] + (target[1] - original[1]) * fraction]
-    const [x, y] = next
-    if (x < 23 || x > mapWidth - 23 || y < 23 || y > mapHeight - 75) continue
-    if ((water === 'river' || water === 'river-mouth') && x > waterline(y) - 28) continue
-    if (water === 'coast' && x > waterline(y) - 2) continue
-    if (['island', 'peninsula', 'cave', 'underground'].includes(water) &&
-        Math.hypot((x - centerX) / (192 * scale), (y - centerY) / (162 * scale)) > 0.93) continue
-    if (water === 'gorge' && Math.abs(y - centerY) > 124 * scale - 13) continue
-    if (water === 'river-city' && (Math.abs(x - waterline(y)) < 16 - 1e-5 ||
-        (x < waterline(y)) !== (original[0] < waterline(original[1])))) continue
-    const proposed = geometry.districts.map((district) => district.vertices.some(same)
-      ? { ...district, vertices: district.vertices.map((point) => same(point) ? next : point) } : district)
+    let valid = true
+    const proposed = geometry.districts.map((district) => {
+      const vertices = district.vertices.map((original) => {
+        const next = targetFor(original, fraction)
+        if (next !== original && !allowed(next, original)) valid = false
+        return next
+      })
+      return vertices.some((point, i) => point !== district.vertices[i]) ? { ...district, vertices } : district
+    })
+    if (!valid) continue
     if (proposed.some((district, index) => district !== geometry.districts[index] && district.vertices.some((a, i, vertices) => {
       const b = vertices[(i + 1) % vertices.length]!
       const c = vertices[(i + 2) % vertices.length]!
-      return Math.hypot(b[0] - a[0], b[1] - a[1]) < 0.1 ||
+      const originals = geometry.districts[index]!.vertices
+      const previous = originals[i]!
+      const next = originals[(i + 1) % vertices.length]!
+      const minimumLength = Math.min(0.1, Math.hypot(next[0] - previous[0], next[1] - previous[1]) / 2)
+      return Math.hypot(b[0] - a[0], b[1] - a[1]) < minimumLength ||
         (b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0]) < -1e-6
     }))) continue
     districts = proposed

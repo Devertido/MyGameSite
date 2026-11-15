@@ -1746,6 +1746,37 @@ button.house-tree-add[data-relation='spouse'] {
   margin-block: 0.5rem;
 }
 
+.location-map-tools {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.location-map-warp {
+  position: relative;
+  cursor: crosshair;
+  touch-action: none;
+  user-select: none;
+}
+
+.location-map-warp img {
+  display: block;
+  width: 100%;
+}
+
+.location-map-warp .location-map-brush {
+  fill: none;
+  stroke: #503721;
+  stroke-width: 1.5;
+}
+
+.location-map-brush circle {
+  fill: none;
+  stroke: #fff8e9;
+  filter: drop-shadow(0 0 2px #241401);
+}
+
 .location-map-select-point {
   display: block;
   position: relative;
@@ -1830,6 +1861,17 @@ button.house-tree-add[data-relation='spouse'] {
   box-shadow: 0 3px 9px #49362022;
   font-family: Georgia, 'Times New Roman', serif;
   overflow-wrap: anywhere;
+}
+
+.race-measure {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin-block: 0.75rem;
+}
+
+.race-measure input {
+  width: 8ch;
 }
 
 .bestiary-intro {

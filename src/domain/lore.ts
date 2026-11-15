@@ -30,6 +30,36 @@ export function isGlossarySection(value: unknown): value is GlossarySection {
 export const spellComponents = ['Слово', 'Реагент', 'Жест'] as const
 export type SpellComponent = typeof spellComponents[number]
 export type SpellDetails = { name: string; image: string; mana: number | null; components: SpellComponent[] }
+export type RaceMeasure = 'lifespan' | 'height'
+
+export function parseRaceMeasure(value: string, measure: RaceMeasure): string[] | null {
+  if (!value.trim()) return []
+  const parts = value.trim().toLowerCase().split(/\s*[-–—]\s*/)
+  if (parts.length > 2) return null
+  const numbers = parts.map((part) => part.match(/^(\d+(?:[.,]\d+)?)\s*(лет|год(?:а|ов)?|см|м|years?|cm|m)?$/u))
+  const lastUnit = numbers.at(-1)?.[2]
+  const parsed = numbers.map((match) => {
+    if (!match) return NaN
+    const unit = match[2] ?? lastUnit ?? ''
+    const amount = Number(match[1]!.replace(',', '.'))
+    if (measure === 'lifespan') return /^(?:лет|год(?:а|ов)?|years?)?$/.test(unit) ? amount : NaN
+    if (unit === 'м' || unit === 'm') return Math.round(amount * 100)
+    return /^(?:см|cm)?$/.test(unit) ? amount : NaN
+  })
+  return parsed.every((amount) => Number.isSafeInteger(amount) && amount >= 0) ? parsed.map(String) : null
+}
+
+export function readRaceMeasure(data: FormData, measure: RaceMeasure, previous = ''): string | null {
+  const min = String(data.get(measure) ?? '').trim()
+  const max = String(data.get(measure + '-max') ?? '').trim()
+  if (!min && !max) return parseRaceMeasure(previous, measure) === null ? previous : ''
+  if (!/^\d+$/.test(min) || (max && !/^\d+$/.test(max))) return null
+  const start = Number(min)
+  const end = max ? Number(max) : start
+  if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || end < start) return null
+  return start === end ? String(start) : start + '–' + end
+}
+
 export type RaceDetails = { name: string; image: string; lifespan: string; height: string; size: string; bonuses: string; debuffs: string;
   abilityBonuses?: AbilityScores; abilityPenalties?: AbilityScores
 }
