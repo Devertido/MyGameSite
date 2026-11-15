@@ -1,13 +1,13 @@
 import { sameHouse, validSpouses } from '../domain/houseTree'
 import { displayMonthName } from '../domain/calendar.ts'
 import { t } from '../i18n.ts'
-import { AbilityLinks, AbilityPicker } from './AbilityPicker'
+import { AppliedAbilities, AbilityPicker } from './AbilityPicker'
 import { AbilityDetails, AbilityFields } from './AbilityScores'
-import { adjustedAbilities, readAbilityScores } from '../domain/abilities'
+import { readAbilityScores } from '../domain/abilities'
 import { RelativePicker } from './RelativePicker'
 import { FamilyTree } from './FamilyTree'
 import { LoreLinks } from './LoreLinks'
-import { glossaryDescription, maxClassLevel, raceDetailsFor, surnameTooltip, validClassLevel, validFamily } from '../domain/lore'
+import { appliedAbilityEffects, glossaryDescription, maxClassLevel, raceDetailsFor, surnameTooltip, validClassLevel, validFamily } from '../domain/lore'
 import { EntryFields, EntryGallery, EntryStatusLabel, readEntryMetadata, useStatusMatch } from './EntryMedia'
 import { CreationDialog } from './CreationDialog'
 import { EditIcon } from './EditIcon'
@@ -230,6 +230,7 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
           {(selected ? [selected] : []).map((character) => {
             const fullName = [character.name, character.surname].filter(Boolean).join(' ')
             const raceDetails = raceDetailsFor(timeline.lore, character.race)
+            const effects = appliedAbilityEffects(timeline.lore, character.abilityNames, character.abilities, raceDetails)
             const lifespan = character.birth && character.death ? formatLifespan(character.birth, character.death) : null
             const items = (timeline.items ?? []).filter(({ ownerId }) => ownerId === character.id)
             const events = (timeline.events ?? []).filter(({ characterIds }) => characterIds?.includes(character.id))
@@ -286,8 +287,8 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
                     </ul>
                   </section>
                 )}
-                <AbilityLinks names={character.abilityNames} />
-                <AbilityDetails scores={adjustedAbilities(character.abilities, raceDetails?.abilityBonuses, raceDetails?.abilityPenalties)} />
+                <AppliedAbilities effects={effects} />
+                <AbilityDetails scores={effects.scores} />
                 {character.birth && (
                   <p>{t("Дата рождения · ")}{calendarDay(months, character.birth.dayOfYear)} · {character.birth.year}{t(" г. системы")}</p>
                 )}

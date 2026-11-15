@@ -1,14 +1,20 @@
 import type { ReactNode } from 'react'
 import { t } from '../i18n.ts'
-import { beastCombatFields, type Beast } from '../domain/lore'
+import { AppliedAbilities } from './AbilityPicker'
+import { appliedAbilityEffects, beastCombatFields, type Beast, type WorldLore } from '../domain/lore'
 import { AbilityDetails } from './AbilityScores'
 
 const summaryFields = beastCombatFields.filter(([key]) => key !== 'traits' && key !== 'actions')
 const narrativeFields = beastCombatFields.filter(([key]) => key === 'traits' || key === 'actions')
 
-export function BestiaryCard({ beast, controls }: { beast: Beast; controls: ReactNode }) {
+export function BestiaryCard({ beast, controls, lore }: { beast: Beast; controls: ReactNode; lore: WorldLore }) {
+  const effects = appliedAbilityEffects(lore, beast.abilityNames, beast.abilities)
+  const armor = beast.combat?.armor
+  const baseArmor = armor?.match(/^\s*(\d+)(.*)$/u)
+  const armorWithBonus = effects.armorBonus && baseArmor
+    ? String(Number(baseArmor[1]) + effects.armorBonus) + baseArmor[2] : armor
   const stats = summaryFields.filter(([key]) => beast.combat?.[key])
-  const showStatBlock = stats.length > 0 || Object.keys(beast.abilities).length > 0 ||
+  const showStatBlock = stats.length > 0 || Object.keys(effects.scores).length > 0 || effects.powers.length > 0 ||
     Boolean(beast.combat?.traits || beast.combat?.actions)
   return (
     <article className="bestiary-page">
@@ -26,9 +32,10 @@ export function BestiaryCard({ beast, controls }: { beast: Beast; controls: Reac
             <h3 className="bestiary-stat-name">{beast.name}</h3>
             {beast.type && <p className="bestiary-type">{beast.type}</p>}
             {stats.length > 0 && <dl className="bestiary-stat-summary">
-              {stats.map(([key, label]) => <div key={key}><dt>{t(label)}</dt><dd>{beast.combat?.[key]}</dd></div>)}
+              {stats.map(([key, label]) => <div key={key}><dt>{t(label)}</dt><dd>{key === 'armor' ? armorWithBonus : beast.combat?.[key]}</dd></div>)}
             </dl>}
-            <AbilityDetails scores={beast.abilities} />
+            <AbilityDetails scores={effects.scores} />
+            <AppliedAbilities effects={effects} />
           </div>
           {(beast.combat?.traits || beast.combat?.actions) && (
             <div className="bestiary-actions">

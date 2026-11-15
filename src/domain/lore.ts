@@ -1,6 +1,6 @@
 import { parseDamageFormula } from './itemDamage.ts'
 import { t } from '../i18n.ts'
-import { validAbilityScores, type AbilityScores } from './abilities.ts'
+import { abilities, adjustedAbilities, validAbilityScores, type AbilityScores } from './abilities.ts'
 import type { Timeline } from './timeline.ts'
 
 export type Tradition = {
@@ -38,11 +38,14 @@ export type SpellDetails = {
   name: string
   image: string
   mana: number | null
+  stamina?: number
   components: SpellComponent[]
   school?: string
   damageFormula?: string
   castingTime?: SpellDuration
   cooldown?: SpellDuration
+  armorBonus?: number
+  statBonuses?: AbilityScores
 }
 
 export function validSpellDuration(value: unknown): value is SpellDuration {
@@ -105,6 +108,7 @@ export const beastCombatFields = [
 export type BeastCombat = Partial<Record<typeof beastCombatFields[number][0], string>>
 
 export type Beast = {
+  abilityNames?: string[]
   combat?: BeastCombat
   id: string
   name: string
@@ -199,6 +203,7 @@ export function updateAbilityNames(names: string[] | undefined, from: string, to
 export function updateLoreAbilityLinks(lore: WorldLore, from: string, to?: string): WorldLore {
   return {
     ...lore,
+    bestiary: lore.bestiary?.map((beast) => ({ ...beast, abilityNames: updateAbilityNames(beast.abilityNames, from, to) })),
     raceDetails: lore.raceDetails?.map((race) => ({ ...race, abilityNames: updateAbilityNames(race.abilityNames, from, to) })),
     classProgression: lore.classProgression?.map((entry) => ({
       ...entry, levels: entry.levels.map((level) => ({ ...level, abilityNames: updateAbilityNames(level.abilityNames, from, to) })),
@@ -262,6 +267,9 @@ export function validLore(value: unknown, timeline: Timeline): value is WorldLor
     (entry.damageFormula === undefined || (typeof entry.damageFormula === 'string' && Boolean(parseDamageFormula(entry.damageFormula)))) &&
     (entry.castingTime === undefined || validSpellDuration(entry.castingTime)) &&
     (entry.cooldown === undefined || validSpellDuration(entry.cooldown)) &&
+    (entry.stamina === undefined || (typeof entry.stamina === 'number' && Number.isSafeInteger(entry.stamina) && entry.stamina >= 0)) &&
+    (entry.armorBonus === undefined || (typeof entry.armorBonus === 'number' && Number.isSafeInteger(entry.armorBonus) && entry.armorBonus >= 0)) &&
+    (entry.statBonuses === undefined || validAbilityScores(entry.statBonuses)) &&
     (entry.mana === null || (typeof entry.mana === 'number' && Number.isSafeInteger(entry.mana) && entry.mana >= 0)) &&
     strings(entry.components) && entry.components.every((component) => spellComponents.some((item) => item === component)) &&
     new Set(entry.components).size === entry.components.length
@@ -282,7 +290,7 @@ export function validLore(value: unknown, timeline: Timeline): value is WorldLor
     typeof item.type === 'string' && typeof item.description === 'string' &&
     typeof item.image === 'string' && (item.image === '' || (item.image.length <= 900_000 &&
       /^data:image\/(webp|png);base64,[A-Za-z0-9+/]+={0,2}$/.test(item.image))) &&
-    validAbilityScores(item.abilities) &&
+    validAbilityNames(item.abilityNames) && validAbilityScores(item.abilities) &&
     (item.combat === undefined || (record(item.combat) && Object.entries(item.combat).every(([key, value]) =>
       beastCombatFields.some(([field]) => field === key) && typeof value === 'string'))),
   )) return false
@@ -351,6 +359,25 @@ export function validFamily(characters: NonNullable<Timeline['characters']>): bo
     }
   }
   return roots.length === characters.length
+}
+
+export function appliedAbilityEffects(lore?: WorldLore, names?: string[], base?: AbilityScores, race?: RaceDetails) {
+  const knownNames = new Set([...(names ?? []), ...(race?.abilityNames ?? [])])
+  const powers = (lore?.abilityDetails ?? []).filter(({ name }) => knownNames.has(name))
+  const bonuses = { ...race?.abilityBonuses }
+  let armorBonus = 0
+  let hasStatBonuses = false
+  for (const power of powers) {
+    armorBonus += power.armorBonus ?? 0
+    for (const [key] of abilities) {
+      const bonus = power.statBonuses?.[key] ?? 0
+      if (bonus) {
+        hasStatBonuses = true
+        bonuses[key] = (bonuses[key] ?? 0) + bonus
+      }
+    }
+  }
+  return { powers, armorBonus, hasStatBonuses, scores: adjustedAbilities(base, bonuses, race?.abilityPenalties) }
 }
 
 export function raceDetailsFor(lore: WorldLore | undefined, name?: string) {

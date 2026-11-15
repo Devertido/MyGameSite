@@ -505,6 +505,20 @@ button:focus-visible {
   border: 1px solid #4d9ac0;
 }
 
+.ability-stamina-field,
+.ability-stamina-field input {
+  color: #366c35;
+}
+
+.ability-stamina-field input {
+  background: #ebf8e4;
+  border: 1px solid #79a66c;
+}
+
+.lore-magic-card .item-rarity.lore-stamina {
+  color: #a8df8c;
+}
+
 .lore-magic-card .item-rarity.lore-mana {
   color: #a9d3ff;
 }
@@ -1098,12 +1112,20 @@ button.event-action:hover:enabled {
 }
 
 .item-damage code {
-  color: #a8a8b0;
+  color: #57545b;
 }
 
 .item-damage output {
-  color: #f2d38e;
+  color: inherit;
   font-weight: 700;
+}
+
+.item-tooltip .item-damage code {
+  color: #a8a8b0;
+}
+
+.item-tooltip .item-damage output {
+  color: #f2d38e;
 }
 
 .item-damage input {

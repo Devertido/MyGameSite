@@ -12,7 +12,7 @@ import { toCalendarYear } from '../src/domain/calendarYear.ts'
 import { calendarDay, eventDays, validateEvent, validateTimelineBounds } from '../src/domain/timeline.ts'
 import { timelineSnapshot, deleteTimeline, exportTimeline, importTimeline, loadTimelines, rememberSelection, restoreSelection, saveTimeline } from '../src/data/timelineStorage.ts'
 
-import { emptyLore, parseRaceMeasure, readRaceMeasure, removeMissingLoreLinks } from '../src/domain/lore.ts'
+import { appliedAbilityEffects, emptyLore, parseRaceMeasure, readRaceMeasure, removeMissingLoreLinks } from '../src/domain/lore.ts'
 import { addHouseRelationship, houseGenerations, removeHouseRelationship } from '../src/domain/houseTree.ts'
 
 const era = { systemAnchorYear: 100, calendarAnchorYear: 1, hasYearZero: false }
@@ -420,11 +420,17 @@ test('Правки планировки, родство, бестиарий и �
     { level: 1, skills: 'Arcana', abilities: '', spells: [] },
     { level: 20, skills: '', abilities: 'Mastery', spells: [spell.name] },
   ] }]
-  const ability = { ...spell, name: 'Arcane pulse' }
+  const ability = { ...spell, name: 'Arcane pulse', stamina: 0, armorBonus: 2, statBonuses: { strength: 3 } }
   timeline.lore.abilities = [ability.name]
   timeline.lore.abilityDetails = [ability]
   timeline.lore.classProgression[0].levels[1].abilityNames = [ability.name]
   race.abilityNames = [ability.name]
+  beast.abilityNames = [ability.name]
+  const effects = appliedAbilityEffects(timeline.lore, [ability.name], { strength: 28 }, race)
+  assert.equal(effects.armorBonus, 2)
+  assert.equal(effects.scores.strength, 30)
+  assert.equal(effects.powers.length, 1)
+  assert.deepEqual(damageRange(effects.powers[0].damageFormula, effects.scores.strength), [5, 15])
   characters[0].abilityNames = [ability.name]
   const invalidClass = structuredClone(timeline)
   invalidClass.lore.classProgression[0].levels[1].level = 21

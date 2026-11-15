@@ -56,9 +56,16 @@ export function SpellFields({ spell, ability = false }: { spell?: SpellDetails; 
     <ImageField name="lore-image" label={t(ability ? 'Изображение способности' : 'Изображение заклинания')} initial={spell?.image} />
     <p><label>{t('Школа магии')} <input name="spell-school" maxLength={120} defaultValue={spell?.school} /></label></p>
     <p><label>{t('Формула урона')} (1d8 + СИЛ + 5) <input name="spell-damage" maxLength={120} defaultValue={spell?.damageFormula} /></label></p>
+    {ability && <>
+      <p><label>{t('Бонус к защите')} <input type="number" name="power-armor-bonus" min={0} step={1} defaultValue={spell?.armorBonus} /></label></p>
+      <AbilityFields label={t('Бонусы к характеристикам')} prefix="power-stat-" scores={spell?.statBonuses} />
+    </>}
     <SpellTimeFields name="spell-casting" label="Время произнесения" duration={spell?.castingTime} />
     <SpellTimeFields name="spell-cooldown" label="Время восстановления" duration={spell?.cooldown} />
     <p><label className="spell-mana-field">{t("Цена в мане ")}<input name="mana" type="number" min={0} step={1} defaultValue={spell?.mana ?? ''} /></label></p>
+    {ability && <p><label className="ability-stamina-field">{t('Цена в выносливости')}{' '}
+      <input name="stamina" type="number" min={0} step={1} defaultValue={spell?.stamina} />
+    </label></p>}
     <fieldset>
       <legend>{t(ability ? 'Компоненты способности' : 'Компоненты заклинания')}</legend>
       <div className="directory-actions">

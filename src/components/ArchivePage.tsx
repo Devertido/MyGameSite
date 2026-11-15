@@ -1,6 +1,5 @@
-import { adjustedAbilities } from '../domain/abilities'
 import { itemMaterials, itemTypes, parseDamageFormula } from '../domain/itemDamage'
-import { raceDetailsFor } from '../domain/lore'
+import { appliedAbilityEffects, raceDetailsFor } from '../domain/lore'
 import { ItemDamage } from './ItemDamage'
 import { LocationMapZoom } from './LocationMapZoom'
 import { validLocationMapPlan } from '../domain/locationMapPlan'
@@ -48,7 +47,7 @@ export function ArchivePage({ kind, entries, entryId, timeline, save, embedded =
   const selected = entryId === undefined ? entries.find(matchesStatus) : entries.find(({ id }) => id === entryId)
   const owner = selected?.ownerId ? timeline.characters?.find(({ id }) => id === selected.ownerId) : undefined
   const ownerRace = raceDetailsFor(timeline.lore, owner?.race)
-  const ownerStrength = adjustedAbilities(owner?.abilities, ownerRace?.abilityBonuses, ownerRace?.abilityPenalties).strength
+  const ownerStrength = appliedAbilityEffects(timeline.lore, owner?.abilityNames, owner?.abilities, ownerRace).scores.strength
   const matches = entries.filter(matchesStatus).filter(({ title }) => title.toLocaleLowerCase('ru').includes(query.trim().toLocaleLowerCase('ru')))
 
   function submit(event: FormEvent<HTMLFormElement>) {

@@ -1,5 +1,5 @@
 import { sameHouse } from '../domain/houseTree'
-import { AbilityPicker, AbilityLinks } from './AbilityPicker'
+import { AppliedAbilities, AbilityPicker } from './AbilityPicker'
 import { ClassProgressionDetails, ClassProgressionFields } from './ClassProgression'
 import { ItemDamage } from './ItemDamage'
 import { parseDamageFormula } from '../domain/itemDamage'
@@ -9,13 +9,13 @@ import { TrashIcon } from './TrashIcon'
 import { HouseTree } from './HouseTree'
 import { t } from '../i18n.ts'
 import { BestiaryCard, BeastCombatFields } from './BestiaryCard'
-import { AbilityFields } from './AbilityScores'
+import { AbilityBonuses, AbilityFields } from './AbilityScores'
 import { readAbilityScores } from '../domain/abilities'
 import { ImageField } from './ImageField'
 import { useState, type CSSProperties, type FormEvent, type ReactNode } from 'react'
 import { MagicDetails, RaceFields, SpellFields } from './LoreDetails'
 import { CreationDialog } from './CreationDialog'
-import { emptyLore, glossaryDescription, isGlossarySection, beastCombatFields, readRaceMeasure, surnameOrigins, spellComponents, validSpellDuration, formatSpellDuration, loreTargets, updateLoreAbilityLinks, validHouseYears, validLore, type HouseDetails, type LinkKind, type WorldLore } from '../domain/lore'
+import { appliedAbilityEffects, emptyLore, glossaryDescription, isGlossarySection, beastCombatFields, readRaceMeasure, surnameOrigins, spellComponents, validSpellDuration, formatSpellDuration, loreTargets, updateLoreAbilityLinks, validHouseYears, validLore, type HouseDetails, type LinkKind, type WorldLore } from '../domain/lore'
 import type { Timeline } from '../domain/timeline'
 
 const sections = [
@@ -105,7 +105,7 @@ export function LorePage({ timeline, save, initialSection, initialEntry, archive
       persist({ ...lore, [traditionKind]: tradition
         ? lore[traditionKind].map((item) => item.id === id ? entry : item) : [...lore[traditionKind], entry] })
     } else if (section === 'bestiary') {
-      const entry = { id, name, type: read('beast-type'), description: read('description'),
+      const entry = { id, name, abilityNames: data.getAll('ability-names').map(String), type: read('beast-type'), description: read('description'),
         image: read('beast-image'), abilities: readAbilityScores(data),
         combat: Object.fromEntries(beastCombatFields.flatMap(([key]) => {
           const value = read('beast-' + key)
@@ -183,6 +183,11 @@ export function LorePage({ timeline, save, initialSection, initialEntry, archive
           name, image: read('lore-image'), mana: read('mana') ? Number(read('mana')) : null,
           school: read('spell-school') || undefined, damageFormula: damageFormula || undefined,
           castingTime, cooldown,
+          ...(abilitySection ? {
+            stamina: read('stamina') ? Number(read('stamina')) : undefined,
+            armorBonus: read('power-armor-bonus') ? Number(read('power-armor-bonus')) : undefined,
+            statBonuses: readAbilityScores(data, 'power-stat-'),
+          } : {}),
           components: spellComponents.filter((component) => data.getAll('components').includes(component)),
         }]
       }
@@ -255,12 +260,14 @@ export function LorePage({ timeline, save, initialSection, initialEntry, archive
               onClick={() => remove(id)}>{spellSection ? <TrashIcon /> : t('Удалить')}</button>
           </>
           if (typeof entry !== 'string' && 'abilities' in entry) {
-            return <BestiaryCard key={id} beast={entry} controls={controls} />
+            return <BestiaryCard key={id} beast={entry} controls={controls} lore={lore} />
           }
           const name = entryName(entry)
           const details = section === 'surnames' ? lore.surnameDetails?.find((item) => item.name === name) : undefined
           const location = timeline.locations?.find((item) => item.id === details?.locationId)
           const spell = spellSection ? spellDetails.get(name) : undefined
+          const race = section === 'races' ? lore.raceDetails?.find((item) => item.name === name) : undefined
+          const raceEffects = race && appliedAbilityEffects(lore, undefined, undefined, race)
           const magic = section === 'races' || spellSection
           return <article key={id} className={magic ? 'archive-card item-card item-tooltip lore-magic-card' : 'directory-card'}
             style={magic ? { '--item-accent': '#f4d28d' } as CSSProperties : undefined}>
@@ -272,6 +279,9 @@ export function LorePage({ timeline, save, initialSection, initialEntry, archive
             {spellSection && spell?.mana != null && <p className="item-rarity lore-mana">
               {t('Мана · ')}{spell?.mana}
             </p>}
+            {abilitySection && spell?.stamina !== undefined && <p className="item-rarity lore-stamina">
+              {t('Выносливость')} · {spell.stamina}
+            </p>}
             {spellSection && spell && spell.components.length > 0 && <div className="spell-components">
               <span>{t('Компоненты')}</span>
               <ul className="spell-component-list">
@@ -281,7 +291,9 @@ export function LorePage({ timeline, save, initialSection, initialEntry, archive
             {spell?.castingTime && <p>{t('Время произнесения')} · {formatSpellDuration(spell.castingTime)}</p>}
             {spell?.cooldown && <p>{t('Время восстановления')} · {formatSpellDuration(spell.cooldown)}</p>}
             {spell?.damageFormula && <ItemDamage key={spell.damageFormula} formula={spell.damageFormula} />}
-            {section === 'races' && <MagicDetails race={lore.raceDetails?.find((item) => item.name === name)} />}
+            {abilitySection && !!spell?.armorBonus && <p>{t('Бонус к защите')} · +{spell.armorBonus}</p>}
+            {abilitySection && <AbilityBonuses scores={spell?.statBonuses} />}
+            {race && <MagicDetails race={race} />}
             {isGlossarySection(section) && <p className={spellSection ? 'archive-copy' : undefined} hidden={!glossaryDescription(lore, section, name)}>
               {glossaryDescription(lore, section, name)}
             </p>}
@@ -297,7 +309,7 @@ export function LorePage({ timeline, save, initialSection, initialEntry, archive
                 </li>)}</ul>
               </section>}
             </>}
-            {section === 'races' && <AbilityLinks names={lore.raceDetails?.find((entry) => entry.name === name)?.abilityNames} />}
+            {raceEffects && <AppliedAbilities effects={raceEffects} showStats />}
             {section === 'classes' && <ClassProgressionDetails
               levels={lore.classProgression?.find((entry) => entry.name === name)?.levels ?? []} />}
             {details?.dynasty && <p><strong>{t("Род")}</strong> · {details.dynasty}</p>}
@@ -433,6 +445,7 @@ export function LorePage({ timeline, save, initialSection, initialEntry, archive
                 <ImageField name="beast-image" label={t("Изображение существа")} initial={beast?.image} largeIllustration />
                 <p><label>{t("Вид существа ")}<input name="beast-type" defaultValue={beast?.type} /></label></p>
                 <p><label>{t("Описание")}<br /><textarea name="description" rows={4} defaultValue={beast?.description} /></label></p>
+                <AbilityPicker initial={beast?.abilityNames} options={lore.abilities} />
                 <AbilityFields scores={beast?.abilities} />
                 <BeastCombatFields combat={beast?.combat} />
               </>

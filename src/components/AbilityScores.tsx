@@ -34,6 +34,12 @@ export function AbilityFields({ scores, race, prefix = 'ability-', label = t('Х
   )
 }
 
+export function AbilityBonuses({ scores }: { scores?: AbilityScores }) {
+  const bonuses = abilities.flatMap(([key, label]) => scores?.[key] ? [t(label) + ' +' + scores[key]] : [])
+  if (!bonuses.length) return null
+  return <p>{t('Бонусы к характеристикам')} · {bonuses.join(' · ')}</p>
+}
+
 export function AbilityDetails({ scores }: { scores?: AbilityScores }) {
   if (!scores || !Object.keys(scores).length) return null
   return (
