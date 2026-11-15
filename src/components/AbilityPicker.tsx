@@ -1,3 +1,4 @@
+import { EntryLink } from './WikiText'
 import type { appliedAbilityEffects } from '../domain/lore'
 import { AbilityBonuses, AbilityDetails } from './AbilityScores'
 import { ItemDamage } from './ItemDamage'
@@ -49,7 +50,7 @@ export function AppliedAbilities({ effects, showStats = false }: {
     {!!effects.armorBonus && <p>{t('Бонус к защите')} · +{effects.armorBonus}</p>}
     {showStats && effects.hasStatBonuses && <AbilityDetails scores={effects.scores} />}
     <ul>{effects.powers.map((power) => <li key={power.name}>
-      <a href={'#lore?section=abilities&entry=' + encodeURIComponent(power.name)}>{power.name}</a>
+      <EntryLink href={'#lore?section=abilities&entry=' + encodeURIComponent(power.name)}>{power.name}</EntryLink>
       <AbilityBonuses scores={power.statBonuses} />
       {power.damageFormula && <ItemDamage formula={power.damageFormula} ownerStrength={effects.scores.strength} />}
     </li>)}</ul>
@@ -61,7 +62,7 @@ export function AbilityLinks({ names, heading = true }: { names?: string[]; head
   return <div>
     {heading && <h3>{t('Способности')}</h3>}
     <ul>{names.map((name) => <li key={name}>
-      <a href={'#lore?section=abilities&entry=' + encodeURIComponent(name)}>{name}</a>
+      <EntryLink href={'#lore?section=abilities&entry=' + encodeURIComponent(name)}>{name}</EntryLink>
     </li>)}</ul>
   </div>
 }

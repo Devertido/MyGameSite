@@ -1,3 +1,4 @@
+import { shortWikiDescription } from '../domain/wikiLinks'
 import { WikiText } from './WikiText'
 import { itemMaterials, itemTypes, parseDamageFormula } from '../domain/itemDamage'
 import { appliedAbilityEffects, raceDetailsFor } from '../domain/lore'
@@ -169,7 +170,7 @@ export function ArchivePage({ kind, entries, entryId, timeline, save, embedded =
           {selected && (
             <article className={chronicle ? 'archive-card parchment' : 'archive-card item-card item-tooltip' + (kind === 'items' ? ' item-wow-card' : '')} style={chronicle ? undefined : itemAccent(selected)}>
               {!chronicle && <ItemImage entry={selected} />}
-              <h2>{selected.title}</h2>
+              <h2 title={kind === 'items' ? shortWikiDescription(selected.summary || selected.body) : undefined}>{selected.title}</h2>
               {location && <p className="item-rarity">{[selected.type && t(selected.type), selected.rarity && t(selected.rarity)].filter(Boolean).join(' · ')}</p>}
               {kind === 'items' && (selected.type || selected.rarity) && <div className="item-wow-meta">
                 {selected.rarity && <p>{t(selected.rarity)}</p>}
@@ -253,6 +254,7 @@ export function ArchivePage({ kind, entries, entryId, timeline, save, embedded =
                     <tr key={entry.id} data-selected={entry.id === selected?.id}>
                       {kind === 'items' && <DirectoryImage src={entry.image} />}
                       <td><a href={'#' + entryRoute + encodeURIComponent(entry.id)}
+                        title={kind === 'items' ? shortWikiDescription(entry.summary || entry.body) : undefined}
                         aria-current={entry.id === selected?.id ? 'true' : undefined}
                         onClick={() => { setDeleting(null); setError('') }}>{entry.title}</a></td>
                       {!chronicle && <td>{entry.type ? t(entry.type) : '—'}</td>}

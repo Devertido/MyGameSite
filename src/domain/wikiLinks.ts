@@ -61,6 +61,12 @@ export function wikiIndex(timeline?: Timeline) {
   return targets
 }
 
+export function shortWikiDescription(description?: string) {
+  const text = description?.replace(linkPattern, (_, content: string) => content.split('|').at(-1)!.trim())
+    .replace(/\s+/g, ' ').trim()
+  return text ? text.slice(0, 220) + (text.length > 220 ? '…' : '') : undefined
+}
+
 export function wikiParts(text: string, index: ReturnType<typeof wikiIndex>) {
   const parts: { text: string; href?: string; preview?: string }[] = []
   let offset = 0
@@ -72,10 +78,9 @@ export function wikiParts(text: string, index: ReturnType<typeof wikiIndex>) {
     const exact = candidates.filter(({ name }) => normalize(name) === normalize(reference ?? ''))
     const target = exact.length === 1 ? exact[0] : candidates.length === 1 ? candidates[0] : undefined
     if (target) {
-      const blurb = target.description?.replace(linkPattern, (_, content: string) => content.split('|').at(-1)!.trim())
-        .replace(/\s+/g, ' ').trim()
+      const blurb = shortWikiDescription(target.description)
       parts.push({ text: alias || target.name, href: target.href,
-        preview: blurb ? target.name + ' — ' + blurb.slice(0, 220) + (blurb.length > 220 ? '…' : '') : target.name + ' · ' + t(target.section) })
+        preview: blurb ? target.name + ' — ' + blurb : target.name + ' · ' + t(target.section) })
     } else parts.push({ text: match[0] })
     offset = position + match[0].length
   }

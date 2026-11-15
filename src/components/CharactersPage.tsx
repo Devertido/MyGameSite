@@ -1,5 +1,5 @@
 import { sameHouse } from '../domain/houseTree'
-import { WikiText } from './WikiText'
+import { EntryLink, WikiText } from './WikiText'
 import { CharacterEditor } from './CharacterEditor'
 import { t } from '../i18n.ts'
 import { AppliedAbilities } from './AbilityPicker'
@@ -137,13 +137,13 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
                     <ul>
                       {items.map(({ id, title, image, type, rarity }) => (
                         <li key={id}>
-                          <a href={'#lore?section=items&entry=' + encodeURIComponent(id)}>
+                          <EntryLink href={'#lore?section=items&entry=' + encodeURIComponent(id)}>
                             {image && <img src={image} alt="" loading="lazy" />}
                             <span>
                               <strong>{title}</strong>
                               {(type || rarity) && <small>{[type, rarity && t(rarity)].filter(Boolean).join(' · ')}</small>}
                             </span>
-                          </a>
+                          </EntryLink>
                         </li>
                       ))}
                     </ul>

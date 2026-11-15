@@ -1,4 +1,4 @@
-import { WikiText } from './WikiText'
+import { EntryLink, WikiText } from './WikiText'
 import { AbilityLinks, AbilitySelection } from './AbilityPicker'
 import { useState } from 'react'
 import { t } from '../i18n.ts'
@@ -51,7 +51,9 @@ export function ClassProgressionDetails({ levels }: { levels: ClassLevel[] }) {
         {['Уровень', 'Навыки', 'Способности', 'Заклинания'].map((label) => <th key={label} scope="col">{t(label)}</th>)}
       </tr></thead>
       <tbody>{levels.map(({ level, skills, abilities, spells, abilityNames }) => <tr key={level}>
-        <th scope="row">{level}</th><td><WikiText text={skills || '—'} /></td><td><WikiText text={abilities || (abilityNames?.length ? '' : '—')} /><AbilityLinks names={abilityNames} heading={false} /></td><td>{spells.join(', ') || '—'}</td>
+        <th scope="row">{level}</th><td><WikiText text={skills || '—'} /></td><td><WikiText text={abilities || (abilityNames?.length ? '' : '—')} /><AbilityLinks names={abilityNames} heading={false} /></td><td>{spells.length ? spells.map((name, index) => <span key={name}>
+          {index > 0 && ', '}<EntryLink href={'#lore?section=spells&entry=' + encodeURIComponent(name)}>{name}</EntryLink>
+        </span>) : '—'}</td>
       </tr>)}</tbody>
     </table></div>
   </section>

@@ -1,3 +1,4 @@
+import { shortWikiDescription } from '../domain/wikiLinks'
 import { WikiText } from './WikiText'
 import { sameHouse } from '../domain/houseTree'
 import { AppliedAbilities, AbilityPicker } from './AbilityPicker'
@@ -277,7 +278,7 @@ export function LorePage({ timeline, save, initialSection, initialEntry, archive
             {spellSection && <div className="item-image-frame">
               {spell?.image && <img className="atlas-entry-image" src={spell?.image} alt="" />}
             </div>}
-            <h2>{name}</h2>
+            <h2 title={spellSection ? shortWikiDescription(glossaryDescription(lore, abilitySection ? 'abilities' : 'spells', name)) : undefined}>{name}</h2>
             {spell?.school && <p className="item-rarity">{t('Школа магии')} · {spell.school}</p>}
             {spellSection && spell?.mana != null && <p className="item-rarity lore-mana">
               {t('Мана · ')}{spell?.mana}
@@ -364,6 +365,7 @@ export function LorePage({ timeline, save, initialSection, initialEntry, archive
                   return <tr key={entryId(entry)} data-selected={entry === selected}>
                     {spellSection && <DirectoryImage src={spell?.image} />}
                     <td><button className={spellSection ? 'directory-select directory-select-link' : 'directory-select'} type="button" aria-pressed={entry === selected}
+                      title={spellSection ? shortWikiDescription(glossaryDescription(lore, abilitySection ? 'abilities' : 'spells', name)) : undefined}
                       onClick={() => setSelectedId(entryId(entry))}>{name}</button></td>
                     {spellSection && <>
                       <td>{spell?.school || '—'}</td>
