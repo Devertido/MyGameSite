@@ -664,6 +664,38 @@ button:focus-visible {
   margin-block: 0.75rem;
 }
 
+.character-name {
+  margin: 0.5rem 0 0.65rem;
+}
+
+.character-facts {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+}
+
+.character-facts:empty {
+  display: none;
+}
+
+.character-facts > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.5rem;
+  padding: 0.35rem 0.55rem;
+  border-radius: 0.25rem;
+  background: #e6f0ec;
+}
+
+.character-facts dt {
+  font-weight: 700;
+  color: #174b43;
+}
+
+.character-facts dd {
+  margin: 0;
+}
+
 .character-heading {
   display: flex;
   align-items: center;

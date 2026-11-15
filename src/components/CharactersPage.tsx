@@ -194,6 +194,7 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
         <ul className="event-list">
           {(selected ? [selected] : []).map((character) => {
             const fullName = [character.name, character.surname].filter(Boolean).join(' ')
+            const lifespan = character.birth && character.death ? formatLifespan(character.birth, character.death) : null
             const events = (timeline.events ?? []).filter(({ characterIds }) => characterIds?.includes(character.id))
             return (
               <li key={character.id} className="directory-card">
@@ -206,18 +207,23 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
                       {character.color && <span className="atlas-color" style={{ backgroundColor: character.color }} aria-hidden="true" />}
                       <button className="event-action" type="button" disabled={busy} onClick={() => setDraft(character)} aria-label="Редактировать" title="Редактировать"><EditIcon /></button>
                       <button className="event-action" type="button" disabled={busy} onClick={() => setDeleting(character)} aria-label="Удалить персонажа" title="Удалить персонажа"><TrashIcon /></button>
-                      <h2>{character.name}{character.surname && (
-                        <> <span title={glossaryDescription(timeline.lore, 'surnames', character.surname)}>{character.surname}</span></>
-                      )}</h2>
                       <button className="family-tree-button" type="button" onClick={() => { window.location.hash = 'characters?character=' + encodeURIComponent(character.id) + '&family=1' }}>Родословная</button>
                     </div>
-                    {(character.birth || character.death) && (
-                      <p>Годы жизни · {character.birth?.year ?? '?'} — {character.death?.year ?? '…'}</p>
-                    )}
+                    <h2 className="character-name">{character.name}{character.surname && (
+                      <> <span title={glossaryDescription(timeline.lore, 'surnames', character.surname)}>{character.surname}</span></>
+                    )}</h2>
+                    <dl className="character-facts">
+                      {character.sex && <div><dt>Пол</dt><dd>{character.sex}</dd></div>}
+                      {character.characterClass && <div><dt>Класс</dt><dd title={glossaryDescription(timeline.lore, 'classes', character.characterClass)}>{character.characterClass}</dd></div>}
+                      {character.race && <div><dt>Раса</dt><dd title={glossaryDescription(timeline.lore, 'races', character.race)}>{character.race}</dd></div>}
+                      {character.dynasty && <div><dt>Династия</dt><dd title={glossaryDescription(timeline.lore, 'dynasties', character.dynasty)}>{character.dynasty}</dd></div>}
+                      {(character.birth || character.death) && (
+                        <div><dt>Годы жизни</dt><dd>{character.birth?.year ?? '?'} — {character.death?.year ?? '…'}
+                          {lifespan && ' (' + lifespan + ')'}
+                        </dd></div>
+                      )}
+                    </dl>
                     {character.description && <p>{character.description}</p>}
-                    {character.race && <p>Раса · <span title={glossaryDescription(timeline.lore, 'races', character.race)}>{character.race}</span></p>}
-                    {character.characterClass && <p>Класс · <span title={glossaryDescription(timeline.lore, 'classes', character.characterClass)}>{character.characterClass}</span></p>}
-                    {character.sex && <p>Пол · {character.sex}</p>}
                   </div>
                 </div>
                 {character.birth && (
@@ -228,7 +234,6 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
                 )}
                 {(
                   <>
-                    {character.dynasty && <p>Династия · <span title={glossaryDescription(timeline.lore, 'dynasties', character.dynasty)}>{character.dynasty}</span></p>}
                   <EntryStatusLabel entry={character} />
                   <EntryGallery key={character.id} entry={character} />
                   <LoreLinks timeline={timeline} kind="characters" id={character.id} />
@@ -320,6 +325,14 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
       }} />}
     </main>
   )
+}
+
+function formatLifespan(birth: CharacterDate, death: CharacterDate) {
+  const years = BigInt(death.year) - BigInt(birth.year) - (death.dayOfYear < birth.dayOfYear ? 1n : 0n)
+  const last = years % 10n
+  const lastTwo = years % 100n
+  const unit = lastTwo >= 11n && lastTwo <= 14n ? 'лет' : last === 1n ? 'год' : last >= 2n && last <= 4n ? 'года' : 'лет'
+  return years.toString() + ' ' + unit
 }
 
 function readDate(fields: FormData, prefix: string, months: TimelineCalendar['months'], daysPerYear: number) {

@@ -1,5 +1,5 @@
 import { useStatusMatch } from './EntryMedia'
-import { useLayoutEffect, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from 'react'
 import { toCalendarYear } from '../domain/calendarYear'
 import { defaultOrganizationColor, type Timeline, type TimelineCalendar } from '../domain/timeline'
 
@@ -21,6 +21,23 @@ export function TimelineScale({ timeline, calendar }: { timeline: Timeline; cale
     const offset = (year - start) * daysPerYear + BigInt(elapsedDays)
     return Number(offset) / Number(totalDays) * 100
   }
+
+  useEffect(() => {
+    const scroll = scrollRef.current
+    if (!scroll) return
+
+    function scrollWithWheel(event: WheelEvent) {
+      if (!scroll || event.ctrlKey || event.shiftKey || Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return
+      if (scroll.scrollWidth <= scroll.clientWidth) return
+
+      event.preventDefault()
+      const step = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? scroll.clientWidth : 1
+      scroll.scrollLeft += event.deltaY * step
+    }
+
+    scroll.addEventListener('wheel', scrollWithWheel, { passive: false })
+    return () => scroll.removeEventListener('wheel', scrollWithWheel)
+  }, [])
 
   useLayoutEffect(() => {
     const scroll = scrollRef.current
