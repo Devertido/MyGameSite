@@ -43,6 +43,7 @@ export default function SiteNavigation() {
   const [largeText, setLargeText] = useState(() => readPreference('large-text') === 'true')
   const languageDialog = useRef<HTMLDialogElement>(null)
   const [musicButtonTarget, setMusicButtonTarget] = useState<HTMLDivElement | null>(null)
+  const [musicAnimationTarget, setMusicAnimationTarget] = useState<HTMLDivElement | null>(null)
   const settingsDialog = useRef<HTMLDialogElement>(null)
   const [backupTools, setBackupTools] = useState<HTMLDivElement | null>(null)
   const helpDialog = useRef<HTMLDialogElement>(null)
@@ -111,11 +112,11 @@ export default function SiteNavigation() {
         </span>
         <nav lang={language} aria-label={english ? "Atlas sections" : "Разделы Атласа"}>
           <div className="site-nav-group">
-            {renderLinks(pages.slice(0, 4))}
+            {renderLinks(pages.slice(0, 3))}
           </div>
           <a className="site-brand" href="#timeline">{english ? 'Atlas' : 'Атлас'}</a>
           <div className="site-nav-group">
-            {renderLinks(pages.slice(4))}
+            {renderLinks(pages.slice(3))}
           </div>
         </nav>
         <div className="site-tools" lang={language}>
@@ -138,6 +139,7 @@ export default function SiteNavigation() {
             onClick={() => void toggleFullscreen()}>F11</button>
         </div>
       </header>
+      <div className="site-music-visual" ref={setMusicAnimationTarget} />
       {fullscreenError && <p className="backup-status" role="status">
         {english ? 'Fullscreen is unavailable. Try pressing F11 in your browser.' : 'Полноэкранный режим недоступен. Попробуйте нажать F11 в браузере.'}
       </p>}
@@ -186,7 +188,7 @@ export default function SiteNavigation() {
           setLargeText(enabled)
           writePreference('large-text', String(enabled))
         }} />{' '}{english ? 'Larger text' : 'Увеличенный текст'}</label></p>
-        <MusicSettings buttonTarget={musicButtonTarget} english={english} initialVolume={readMusicVolume()}
+        <MusicSettings buttonTarget={musicButtonTarget} animationTarget={musicAnimationTarget} english={english} initialVolume={readMusicVolume()}
           rememberVolume={(volume) => writePreference('music-volume', String(volume))} />
         <button type="button" onClick={() => settingsDialog.current?.close()}>{english ? 'Close' : 'Закрыть'}</button>
       </dialog>

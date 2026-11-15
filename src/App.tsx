@@ -1,3 +1,4 @@
+import { sameHouse } from './domain/houseTree'
 import { t } from './i18n.ts'
 import { useRef, useState, type FormEvent } from 'react'
 import { StatusFilter } from './components/EntryMedia'
@@ -365,7 +366,14 @@ function App({ backupTools, english, page, eventYear, eventId, characterId, orga
                 } : {}),
               }))
             }} />}
-          timeline={selected.timeline} save={(lore) => saveSelectedContent((timeline) => ({ ...timeline, lore }))} />
+          timeline={selected.timeline} save={(lore, rename) => saveSelectedContent((timeline) => ({
+            ...timeline,
+            lore,
+            ...(rename && timeline.characters ? {
+              characters: timeline.characters.map((character) => sameHouse(character.dynasty, rename.from)
+                ? { ...character, dynasty: rename.to } : character),
+            } : {}),
+          }))} />
       }
 
       if (page === 'chronicles') {

@@ -3,10 +3,15 @@ import { createPortal } from 'react-dom'
 import { loadMusic, saveMusic } from '../data/musicStorage'
 import defaultTrackUrl from '../assets/mystical-glade_94962.mp3?url'
 
+const musicAnimation = Object.values(import.meta.glob<string>('../assets/music-ensemble*.gif', {
+  eager: true, query: '?url', import: 'default',
+}))[0]
+
 const maxTrackSize = 20 * 1024 * 1024
 
-export function MusicSettings({ english, initialVolume, rememberVolume, buttonTarget }: {
+export function MusicSettings({ english, initialVolume, rememberVolume, buttonTarget, animationTarget }: {
   buttonTarget: HTMLDivElement | null
+  animationTarget: HTMLDivElement | null
   english: boolean
   initialVolume: number
   rememberVolume: (volume: number) => void
@@ -93,13 +98,18 @@ export function MusicSettings({ english, initialVolume, rememberVolume, buttonTa
 
   return (
     <fieldset>
+      {playing && musicAnimation && animationTarget && createPortal(
+        <img className="site-music-animation" src={musicAnimation} alt="" />,
+        animationTarget,
+      )}
       {buttonTarget && createPortal(
         <button className="site-music" type="button" disabled={busy} aria-pressed={playing}
           aria-label={musicLabel} title={musicLabel} onClick={() => void togglePlayback()}>♪</button>,
         buttonTarget,
       )}
       <legend>{english ? 'Background music' : 'Фоновая музыка'}</legend>
-      <audio ref={player} preload="none" loop onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)}
+      <audio ref={player} preload="none" loop onPlaying={() => setPlaying(true)} onPause={() => setPlaying(false)}
+        onWaiting={() => setPlaying(false)} onEnded={() => setPlaying(false)}
         onError={() => { setPlaying(false); setError('playback') }} />
       <p><label>{english ? 'MP3 file (up to 20 MB)' : 'MP3-файл (до 20 МБ)'}{' '}
         <input type="file" accept=".mp3,audio/mpeg" disabled={busy} onChange={(event) => {

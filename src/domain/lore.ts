@@ -88,7 +88,7 @@ export function surnameTooltip(timeline: Timeline, name?: string) {
     glossaryDescription(lore, 'surnames', name),
     details?.origin && t('Происхождение · ') + t(details.origin),
     location && t('Локация · ') + location.title,
-    details?.dynasty && t('Династия · ') + details.dynasty,
+    details?.dynasty && t('Род · ') + details.dynasty,
     details?.usage,
   ].filter(Boolean).join('\n') || undefined
 }

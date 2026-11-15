@@ -146,6 +146,7 @@ function parseTimeline(value: unknown): Timeline | null {
     if (entries.some((entry) =>
       entry.chronicleIds?.some((id) => field !== 'chronicles' || id === entry.id || !entries.some((note) => note.id === id)) ||
       entry.characterIds?.some((id) => !characterIds.has(id)) ||
+      (entry.mapImage !== undefined && field !== 'locations') ||
       (entry.ownerId !== undefined && !characterIds.has(entry.ownerId)) ||
       entry.eventIds?.some((id) => !timeline.events?.some((event) => event.id === id))
     )) return null
@@ -194,6 +195,7 @@ function isArchiveEntry(entry: unknown): entry is ArchiveEntry {
     (!('ownerId' in entry) || typeof entry.ownerId === 'string') &&
     (!('type' in entry) || typeof entry.type === 'string') &&
     (!('image' in entry) || isStoredImage(entry.image)) &&
+    (entry.mapImage === undefined || isStoredImage(entry.mapImage)) &&
     (!('rarity' in entry) || typeof entry.rarity === 'string')
 }
 

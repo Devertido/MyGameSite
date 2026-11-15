@@ -147,7 +147,7 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
             <p><label>{t("Раса")}<br /><input name="race" list="lore-races" value={draftRace}
                 title={glossaryDescription(timeline.lore, 'races', draftRace)}
                 onChange={(event) => setDraftRace(event.currentTarget.value)} /></label></p>
-            <p><label>{t("Династия")}<br /><input name="dynasty" list="lore-dynasties" defaultValue={original?.dynasty}
+            <p><label>{t("Род")}<br /><input name="dynasty" list="lore-dynasties" defaultValue={original?.dynasty}
                 title={glossaryDescription(timeline.lore, 'dynasties', original?.dynasty)}
                 onInput={(event) => { event.currentTarget.title = glossaryDescription(timeline.lore, 'dynasties', event.currentTarget.value) ?? '' }} /></label></p>
             <p><label>{t("Класс")}<br /><input name="characterClass" list="lore-classes" defaultValue={original?.characterClass}
@@ -227,7 +227,7 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
                       {character.sex && <div><dt>{t("Пол")}</dt><dd>{t(character.sex)}</dd></div>}
                       {character.characterClass && <div><dt>{t("Класс")}</dt><dd title={glossaryDescription(timeline.lore, 'classes', character.characterClass)}>{character.characterClass}</dd></div>}
                       {character.race && <div><dt>{t("Раса")}</dt><dd title={glossaryDescription(timeline.lore, 'races', character.race)}>{character.race}</dd></div>}
-                      {character.dynasty && <div><dt>{t("Династия")}</dt><dd title={glossaryDescription(timeline.lore, 'dynasties', character.dynasty)}>{character.dynasty}</dd></div>}
+                      {character.dynasty && <div><dt>{t("Род")}</dt><dd title={glossaryDescription(timeline.lore, 'dynasties', character.dynasty)}>{character.dynasty}</dd></div>}
                       {(character.birth || character.death) && (
                         <div><dt>{t("Годы жизни")}</dt><dd>{character.birth?.year ?? '?'} — {character.death?.year ?? '…'}
                           {lifespan && ' (' + lifespan + ')'}

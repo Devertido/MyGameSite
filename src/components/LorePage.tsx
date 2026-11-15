@@ -1,3 +1,4 @@
+import { HouseTree } from './HouseTree'
 import { t } from '../i18n.ts'
 import { AbilityDetails, AbilityFields } from './AbilityScores'
 import { readAbilityScores } from '../domain/abilities'
@@ -9,7 +10,7 @@ import { emptyLore, glossaryDescription, isGlossarySection, surnameOrigins, spel
 import type { Timeline } from '../domain/timeline'
 
 const sections = [
-  ['surnames', 'Фамилии'], ['races', 'Расы'], ['dynasties', 'Династии'],
+  ['surnames', 'Фамилии'], ['races', 'Расы'], ['dynasties', 'Род'],
   ['classes', 'Классы'], ['spells', 'Заклинания'],
   ['cultures', 'Культуры'], ['faiths', 'Верования'], ['bestiary', 'Бестиарий'], ['items', 'Предметы'], ['locations', 'Локации'],
 ] as const
@@ -29,7 +30,7 @@ function entryName(entry: string | { name: string } | { title: string }) {
   return typeof entry === 'string' ? entry : 'title' in entry ? entry.title : entry.name
 }
 
-export function LorePage({ timeline, save, initialSection, archive }: { timeline: Timeline; save: (lore: WorldLore) => void; initialSection?: string; archive: ReactNode }) {
+export function LorePage({ timeline, save, initialSection, archive }: { timeline: Timeline; save: (lore: WorldLore, rename?: { from: string; to: string }) => void; initialSection?: string; archive: ReactNode }) {
   const lore = { ...emptyLore, ...timeline.lore, bestiary: timeline.lore?.bestiary ?? [], classes: timeline.lore?.classes ?? [], spells: timeline.lore?.spells ?? [] }
   const section = sections.find(([key]) => key === initialSection)?.[0] ?? 'surnames'
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -44,10 +45,10 @@ export function LorePage({ timeline, save, initialSection, archive }: { timeline
   const surname = section === 'surnames' ? lore.surnameDetails?.find(({ name }) => name === editing) : undefined
   const beast = section === 'bestiary' ? lore.bestiary.find(({ id }) => id === editing) : undefined
 
-  function persist(next: WorldLore) {
+  function persist(next: WorldLore, rename?: { from: string; to: string }) {
     try {
       if (!validLore(next, timeline)) throw new Error(t('Проверьте поля записи и годы в пределах таймлайна.'))
-      save(next)
+      save(next, rename)
       setEditing(null)
       setError('')
     } catch (issue) {
@@ -116,7 +117,7 @@ export function LorePage({ timeline, save, initialSection, archive }: { timeline
         }]
       }
       setSelectedId(name)
-      persist(next)
+      persist(next, section === 'dynasties' && editing && name !== editing ? { from: editing, to: name } : undefined)
     }
   }
 
@@ -139,7 +140,7 @@ export function LorePage({ timeline, save, initialSection, archive }: { timeline
   }
 
   return (
-    <main className="section-page">
+    <main className="section-page lore-page">
       <h1>{t("Справочник мира")}</h1>
       <nav className="directory-actions lore-sections" aria-label={t("Разделы справочника")}>
         {sections.map(([key, title]) => (
@@ -169,7 +170,7 @@ export function LorePage({ timeline, save, initialSection, archive }: { timeline
             </p>}
             {details?.origin && <p><strong>{t("Происхождение")}</strong> · {t(details.origin)}</p>}
             {location && <p><strong>{t("Локация")}</strong> · <a href={'#lore?section=locations&entry=' + encodeURIComponent(location.id)}>{location.title}</a></p>}
-            {details?.dynasty && <p><strong>{t("Династия")}</strong> · {details.dynasty}</p>}
+            {details?.dynasty && <p><strong>{t("Род")}</strong> · {details.dynasty}</p>}
             {details?.usage && <p className="archive-copy"><strong>{t("Значение и правила ношения")}</strong><br />{details.usage}</p>}
             {typeof entry !== 'string' && 'abilities' in entry && (
               <>
@@ -211,6 +212,7 @@ export function LorePage({ timeline, save, initialSection, archive }: { timeline
           )}
         </section>
       </div>
+      {section === 'dynasties' && typeof selected === 'string' && <HouseTree house={selected} characters={timeline.characters ?? []} />}
       {editing !== null && (
         <CreationDialog onCancel={() => { setEditing(null); setError('') }}>
           <h2 id="creation-dialog-title">{label && t(label)}</h2>
@@ -231,7 +233,7 @@ export function LorePage({ timeline, save, initialSection, archive }: { timeline
                   <option value="">{t("Не указана")}</option>
                   {(timeline.locations ?? []).map(({ id, title }) => <option key={id} value={id}>{title}</option>)}
                 </select></label></p>
-                <p><label>{t("Связанная династия ")}<select name="surname-dynasty" defaultValue={surname?.dynasty ?? ''}>
+                <p><label>{t("Связанный род ")}<select name="surname-dynasty" defaultValue={surname?.dynasty ?? ''}>
                   <option value="">{t("Не указана")}</option>
                   {lore.dynasties.map((dynasty) => <option key={dynasty}>{dynasty}</option>)}
                 </select></label></p>

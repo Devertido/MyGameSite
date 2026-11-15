@@ -1,9 +1,10 @@
 import { t } from '../i18n.ts'
 import { useRef, useState, type ChangeEvent } from 'react'
+import { LocationMapGenerator } from './LocationMapGenerator'
 import { prepareImage } from './prepareImage'
 
-export function ImageField({ name, label, initial, allowGif = false }: {
-  name: string; label: string; initial?: string; allowGif?: boolean
+export function ImageField({ name, label, initial, allowGif = false, generateMap = false }: {
+  name: string; label: string; initial?: string; allowGif?: boolean; generateMap?: boolean
 }) {
   const [image, setImage] = useState(initial ?? '')
   const [error, setError] = useState('')
@@ -48,10 +49,15 @@ export function ImageField({ name, label, initial, allowGif = false }: {
     <fieldset className="atlas-image-field">
       <legend>{label}</legend>
       <label>{t("Выбрать файл ")}<input type="file" accept={allowGif ? "image/png,image/jpeg,image/webp,image/gif,.gif" : "image/png,image/jpeg,image/webp"} onChange={choose} /></label>
+      {generateMap && <LocationMapGenerator onGenerate={(map) => {
+        revision.current++
+        setImage(map)
+        setError('')
+      }} />}
       {allowGif && <small>{t(" GIF до 650 КБ")}</small>}
       <input type="hidden" name={name} value={image} />
       {image && (
-        <div className="image-preview">
+        <div className={generateMap ? "image-preview location-map-preview" : "image-preview"}>
           <img className="atlas-entry-image" src={image} alt={t("Предпросмотр")} />
           <button className="form-icon-button form-icon-remove image-remove" type="button" aria-label={t("Убрать изображение")} title={t("Убрать изображение")}
             onClick={() => { revision.current++; setImage(''); setError('') }}>×</button>
