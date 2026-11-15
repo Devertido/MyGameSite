@@ -38,6 +38,7 @@ export default function SiteNavigation() {
   const [language, setLanguage] = useState(() => readPreference('language') === 'en' ? 'en' : 'ru')
   const [largeText, setLargeText] = useState(() => readPreference('large-text') === 'true')
   const languageDialog = useRef<HTMLDialogElement>(null)
+  const [musicButtonTarget, setMusicButtonTarget] = useState<HTMLDivElement | null>(null)
   const settingsDialog = useRef<HTMLDialogElement>(null)
   const [backupTools, setBackupTools] = useState<HTMLDivElement | null>(null)
   const helpDialog = useRef<HTMLDialogElement>(null)
@@ -87,7 +88,10 @@ export default function SiteNavigation() {
   return (
     <>
       <header className="site-header">
-        <span className="site-version">{version}</span>
+        <span className="site-version">
+          <span>{english ? 'F11 — fullscreen' : 'F11 — на весь экран'}</span>
+          <span lang="en">Version {version}</span>
+        </span>
         <a className="site-brand" href="#timeline">{english ? 'Atlas' : 'Атлас'}</a>
         <nav lang={language} aria-label={english ? "Atlas sections" : "Разделы Атласа"}>
           {pages.map(({ id, title }) => (
@@ -98,6 +102,7 @@ export default function SiteNavigation() {
         </nav>
         <div className="site-tools" lang={language}>
           <div className="site-backup-tools" ref={setBackupTools} />
+          <div className="site-backup-tools" ref={setMusicButtonTarget} />
           <button type="button" aria-label={english ? 'Help' : 'Справка'}
             title={english ? 'Help' : 'Справка'} onClick={() => helpDialog.current?.showModal()}>
             <span aria-hidden="true">?</span>
@@ -162,7 +167,7 @@ export default function SiteNavigation() {
           setLargeText(enabled)
           writePreference('large-text', String(enabled))
         }} />{' '}{english ? 'Larger text' : 'Увеличенный текст'}</label></p>
-        <MusicSettings english={english} initialVolume={readMusicVolume()}
+        <MusicSettings buttonTarget={musicButtonTarget} english={english} initialVolume={readMusicVolume()}
           rememberVolume={(volume) => writePreference('music-volume', String(volume))} />
         <button type="button" onClick={() => settingsDialog.current?.close()}>{english ? 'Close' : 'Закрыть'}</button>
       </dialog>

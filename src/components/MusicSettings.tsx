@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { loadMusic, saveMusic } from '../data/musicStorage'
 import defaultTrackUrl from '../assets/mystical-glade_94962.mp3?url'
 
 const maxTrackSize = 20 * 1024 * 1024
 
-export function MusicSettings({ english, initialVolume, rememberVolume }: {
+export function MusicSettings({ english, initialVolume, rememberVolume, buttonTarget }: {
+  buttonTarget: HTMLDivElement | null
   english: boolean
   initialVolume: number
   rememberVolume: (volume: number) => void
@@ -85,8 +87,17 @@ export function MusicSettings({ english, initialVolume, rememberVolume }: {
     playback: english ? 'Could not play this audio file.' : 'Не удалось воспроизвести этот аудиофайл.',
   }
 
+  const musicLabel = playing
+    ? (english ? 'Pause music' : 'Приостановить музыку')
+    : (english ? 'Play music' : 'Включить музыку')
+
   return (
     <fieldset>
+      {buttonTarget && createPortal(
+        <button className="site-music" type="button" disabled={busy} aria-pressed={playing}
+          aria-label={musicLabel} title={musicLabel} onClick={() => void togglePlayback()}>♪</button>,
+        buttonTarget,
+      )}
       <legend>{english ? 'Background music' : 'Фоновая музыка'}</legend>
       <audio ref={player} preload="none" loop onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)}
         onError={() => { setPlaying(false); setError('playback') }} />
@@ -118,6 +129,8 @@ export function MusicSettings({ english, initialVolume, rememberVolume }: {
         <output>{volume}%</output>
       </label></p>
       {error && <p role="alert">{errors[error]}</p>}
+      {error === 'playback' && buttonTarget?.parentElement &&
+        createPortal(<span className="site-music-error" role="status">{errors.playback}</span>, buttonTarget.parentElement)}
     </fieldset>
   )
 }

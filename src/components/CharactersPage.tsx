@@ -1,7 +1,7 @@
 import { RelativePicker } from './RelativePicker'
 import { FamilyTree } from './FamilyTree'
 import { LoreLinks } from './LoreLinks'
-import { glossaryDescription, validFamily } from '../domain/lore'
+import { glossaryDescription, surnameTooltip, validFamily } from '../domain/lore'
 import { EntryFields, EntryGallery, EntryStatusLabel, readEntryMetadata, useStatusMatch } from './EntryMedia'
 import { CreationDialog } from './CreationDialog'
 import { EditIcon } from './EditIcon'
@@ -130,8 +130,8 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
             <div className="character-name-fields">
               <label>Имя<br /><input name="name" defaultValue={original?.name} required /></label>
               <label>Фамилия<br /><input name="surname" list="lore-surnames" defaultValue={original?.surname}
-                title={glossaryDescription(timeline.lore, 'surnames', original?.surname)}
-                onInput={(event) => { event.currentTarget.title = glossaryDescription(timeline.lore, 'surnames', event.currentTarget.value) ?? '' }} /></label>
+                title={surnameTooltip(timeline, original?.surname)}
+                onInput={(event) => { event.currentTarget.title = surnameTooltip(timeline, event.currentTarget.value) ?? '' }} /></label>
             </div>
             <p><label>Раса<br /><input name="race" list="lore-races" defaultValue={original?.race}
                 title={glossaryDescription(timeline.lore, 'races', original?.race)}
@@ -210,7 +210,7 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
                       <button className="family-tree-button" type="button" onClick={() => { window.location.hash = 'characters?character=' + encodeURIComponent(character.id) + '&family=1' }}>Родословная</button>
                     </div>
                     <h2 className="character-name">{character.name}{character.surname && (
-                      <> <span title={glossaryDescription(timeline.lore, 'surnames', character.surname)}>{character.surname}</span></>
+                      <> <span title={surnameTooltip(timeline, character.surname)}>{character.surname}</span></>
                     )}</h2>
                     <dl className="character-facts">
                       {character.sex && <div><dt>Пол</dt><dd>{character.sex}</dd></div>}
@@ -310,7 +310,7 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
                         {character.name}
                       </a>
                     </td>
-                    <td><span title={glossaryDescription(timeline.lore, 'surnames', character.surname)}>{character.surname || '—'}</span></td>
+                    <td><span title={surnameTooltip(timeline, character.surname)}>{character.surname || '—'}</span></td>
                     <td><span title={glossaryDescription(timeline.lore, 'races', character.race)}>{character.race || '—'}</span></td>
                     <td>{character.sex || '—'}</td>
                   </tr>

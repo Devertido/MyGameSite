@@ -148,6 +148,9 @@ button:focus-visible {
 
 .site-version {
   position: absolute;
+  display: flex;
+  gap: 0.75rem;
+  white-space: nowrap;
   top: -0.625rem;
   right: 0.75rem;
   transform: translateY(-50%);
@@ -985,8 +988,18 @@ button.event-action:hover:enabled {
   font-size: 0.75rem;
 }
 
-.site-tools .site-fullscreen[aria-pressed='true'] {
+.site-tools .site-fullscreen[aria-pressed='true'],
+.site-tools .site-music[aria-pressed='true'] {
   background: #24665b;
+}
+
+.site-music-error {
+  position: absolute;
+  right: 0.5rem;
+  top: 100%;
+  padding: 0.4rem 0.65rem;
+  background: #f3ead7;
+  color: #702222;
 }
 
 .site-tools button:hover {

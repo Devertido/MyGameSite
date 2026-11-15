@@ -30,7 +30,17 @@ export type SpellComponent = typeof spellComponents[number]
 export type SpellDetails = { name: string; image: string; mana: number | null; components: SpellComponent[] }
 export type RaceDetails = { name: string; image: string; lifespan: string; height: string; size: string; bonuses: string; debuffs: string }
 
+export const surnameOrigins = ['', 'От места', 'От рода', 'От ремесла', 'От прозвища', 'Пожалованная', 'Другое'] as const
+export type SurnameDetails = {
+  name: string
+  origin: typeof surnameOrigins[number]
+  locationId?: string
+  dynasty?: string
+  usage: string
+}
+
 export type WorldLore = {
+  surnameDetails?: SurnameDetails[]
   spellDetails?: SpellDetails[]
   raceDetails?: RaceDetails[]
   descriptions?: { section: GlossarySection; name: string; text: string }[]
@@ -53,6 +63,20 @@ export function glossaryDescription(lore: WorldLore | undefined, section: Glossa
   const key = name.trim().toLocaleLowerCase('ru')
   return lore?.descriptions?.find((entry) =>
     entry.section === section && entry.name.toLocaleLowerCase('ru') === key)?.text
+}
+
+export function surnameTooltip(timeline: Timeline, name?: string) {
+  const lore = timeline.lore
+  const key = name?.trim().toLocaleLowerCase('ru')
+  const details = lore?.surnameDetails?.find((entry) => entry.name.toLocaleLowerCase('ru') === key)
+  const location = timeline.locations?.find(({ id }) => id === details?.locationId)
+  return [
+    glossaryDescription(lore, 'surnames', name),
+    details?.origin && 'Происхождение · ' + details.origin,
+    location && 'Локация · ' + location.title,
+    details?.dynasty && 'Династия · ' + details.dynasty,
+    details?.usage,
+  ].filter(Boolean).join('\n') || undefined
 }
 
 export const linkKinds: LinkKind[] = ['characters', 'locations', 'organizations', 'events']
@@ -80,6 +104,17 @@ export function validLore(value: unknown, timeline: Timeline): value is WorldLor
         typeof entry.name === 'string' && typeof entry.text === 'string' &&
         (value[entry.section] as string[] | undefined)?.includes(entry.name)))) return false
   if ([value.classes, value.spells].some((items) => items !== undefined && !strings(items))) return false
+  const locations = new Set(timeline.locations?.map(({ id }) => id))
+  const names = value.surnames as string[]
+  const dynasties = value.dynasties as string[]
+  if (value.surnameDetails !== undefined && (!Array.isArray(value.surnameDetails) ||
+      !value.surnameDetails.every((entry: unknown) => record(entry) &&
+        typeof entry.name === 'string' && names.includes(entry.name) &&
+        surnameOrigins.some((origin) => origin === entry.origin) &&
+        typeof entry.usage === 'string' &&
+        (entry.locationId === undefined || (typeof entry.locationId === 'string' && locations.has(entry.locationId))) &&
+        (entry.dynasty === undefined || (typeof entry.dynasty === 'string' && dynasties.includes(entry.dynasty)))) ||
+      new Set(value.surnameDetails.map(({ name }) => name)).size !== value.surnameDetails.length)) return false
   function validDetails(items: unknown, names: unknown, valid: (entry: Record<string, unknown>) => boolean) {
     return items === undefined || (Array.isArray(items) && strings(names) &&
       items.every((entry) => record(entry) && typeof entry.name === 'string' && names.includes(entry.name) &&
@@ -123,6 +158,8 @@ export function removeMissingLoreLinks(timeline: Timeline): Timeline {
   }))
   return { ...timeline, lore: {
     ...lore,
+    ...(lore.surnameDetails ? { surnameDetails: lore.surnameDetails.map((entry) =>
+      entry.locationId && !ids.get('locations')?.has(entry.locationId) ? { ...entry, locationId: undefined } : entry) } : {}),
     cultures: prune(lore.cultures),
     faiths: prune(lore.faiths),
     reigns: lore.reigns.filter(({ characterId, organizationId }) =>

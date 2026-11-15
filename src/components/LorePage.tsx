@@ -1,7 +1,7 @@
 import { useState, type CSSProperties, type FormEvent } from 'react'
 import { MagicDetails, RaceFields, SpellFields } from './LoreDetails'
 import { CreationDialog } from './CreationDialog'
-import { emptyLore, glossaryDescription, isGlossarySection, spellComponents, loreTargets, validLore, type LinkKind, type WorldLore } from '../domain/lore'
+import { emptyLore, glossaryDescription, isGlossarySection, surnameOrigins, spellComponents, loreTargets, validLore, type LinkKind, type WorldLore } from '../domain/lore'
 import type { Timeline } from '../domain/timeline'
 
 const sections = [
@@ -36,6 +36,7 @@ export function LorePage({ timeline, save, initialSection }: { timeline: Timelin
   const label = sections.find(([key]) => key === section)?.[1]
   const traditionKind = section === 'cultures' || section === 'faiths' ? section : null
   const tradition = traditionKind ? lore[traditionKind].find(({ id }) => id === editing) : undefined
+  const surname = section === 'surnames' ? lore.surnameDetails?.find(({ name }) => name === editing) : undefined
   const reign = section === 'reigns' ? lore.reigns.find(({ id }) => id === editing) : undefined
 
   function persist(next: WorldLore) {
@@ -79,6 +80,20 @@ export function LorePage({ timeline, save, initialSection }: { timeline: Timelin
       const descriptions = (lore.descriptions ?? []).filter((entry) => entry.section !== section || entry.name !== editing)
       if (text) descriptions.push({ section, name, text })
       const next = { ...lore, descriptions, [section]: [...lore[section].filter((item) => item !== editing), name] }
+      if (section === 'surnames') {
+        const origin = surnameOrigins.find((item) => item === read('surname-origin')) ?? ''
+        const locationId = read('surname-location')
+        const dynasty = read('surname-dynasty')
+        next.surnameDetails = [...(lore.surnameDetails ?? []).filter((entry) => entry.name !== editing), {
+          name, origin, usage: read('surname-usage'),
+          ...(locationId ? { locationId } : {}),
+          ...(dynasty ? { dynasty } : {}),
+        }]
+      }
+      if (section === 'dynasties' && editing && name !== editing && lore.surnameDetails) {
+        next.surnameDetails = lore.surnameDetails.map((entry) =>
+          entry.dynasty === editing ? { ...entry, dynasty: name } : entry)
+      }
       if (section === 'spells') {
         next.spellDetails = [...(lore.spellDetails ?? []).filter((entry) => entry.name !== editing), {
           name, image: read('lore-image'), mana: read('mana') ? Number(read('mana')) : null,
@@ -100,6 +115,9 @@ export function LorePage({ timeline, save, initialSection }: { timeline: Timelin
     if (!window.confirm('Удалить запись из справочника?')) return
     persist({
       ...lore,
+      ...(section === 'surnames' ? { surnameDetails: lore.surnameDetails?.filter((entry) => entry.name !== id) } : {}),
+      ...(section === 'dynasties' ? { surnameDetails: lore.surnameDetails?.map((entry) =>
+        entry.dynasty === id ? { ...entry, dynasty: undefined } : entry) } : {}),
       ...(section === 'races' ? { raceDetails: lore.raceDetails?.filter((entry) => entry.name !== id) } : {}),
       ...(section === 'spells' ? { spellDetails: lore.spellDetails?.filter((entry) => entry.name !== id) } : {}),
       descriptions: lore.descriptions?.filter((entry) => entry.section !== section || entry.name !== id),
@@ -129,6 +147,8 @@ export function LorePage({ timeline, save, initialSection }: { timeline: Timelin
         {selected === undefined ? <p>В разделе пока нет записей.</p> : [selected].map((entry) => {
           const id = entryId(entry)
           const name = entryName(entry)
+          const details = section === 'surnames' ? lore.surnameDetails?.find((item) => item.name === name) : undefined
+          const location = timeline.locations?.find((item) => item.id === details?.locationId)
           const magic = section === 'races' || section === 'spells'
           return <article key={id} className={magic ? 'archive-card item-card item-tooltip lore-magic-card' : 'directory-card'}
             style={magic ? { '--item-accent': '#f4d28d' } as CSSProperties : undefined}>
@@ -139,6 +159,10 @@ export function LorePage({ timeline, save, initialSection }: { timeline: Timelin
             {isGlossarySection(section) && <p hidden={!glossaryDescription(lore, section, name)}>
               {glossaryDescription(lore, section, name)}
             </p>}
+            {details?.origin && <p><strong>Происхождение</strong> · {details.origin}</p>}
+            {location && <p><strong>Локация</strong> · <a href={'#locations?entry=' + encodeURIComponent(location.id)}>{location.title}</a></p>}
+            {details?.dynasty && <p><strong>Династия</strong> · {details.dynasty}</p>}
+            {details?.usage && <p className="archive-copy"><strong>Значение и правила ношения</strong><br />{details.usage}</p>}
             {typeof entry !== 'string' && 'title' in entry && (
               <p>{linkedName('characters', entry.characterId)} · {linkedName('organizations', entry.organizationId)} · {entry.start} — {entry.end ?? '…'}{entry.accession && ' · ' + entry.accession}</p>
             )}
@@ -182,6 +206,26 @@ export function LorePage({ timeline, save, initialSection }: { timeline: Timelin
             {isGlossarySection(section) && (
               <p><label>Описание<br /><textarea name="description" rows={4}
                 defaultValue={glossaryDescription(lore, section, editing)} /></label></p>
+            )}
+            {section === 'surnames' && (
+              <fieldset>
+                <legend>Происхождение фамилии</legend>
+                <p><label>Тип происхождения <select name="surname-origin" defaultValue={surname?.origin ?? ''}>
+                  <option value="">Не указан</option>
+                  {surnameOrigins.filter(Boolean).map((origin) => <option key={origin}>{origin}</option>)}
+                </select></label></p>
+                <p><label>Связанная локация <select name="surname-location" defaultValue={surname?.locationId ?? ''}>
+                  <option value="">Не указана</option>
+                  {(timeline.locations ?? []).map(({ id, title }) => <option key={id} value={id}>{title}</option>)}
+                </select></label></p>
+                <p><label>Связанная династия <select name="surname-dynasty" defaultValue={surname?.dynasty ?? ''}>
+                  <option value="">Не указана</option>
+                  {lore.dynasties.map((dynasty) => <option key={dynasty}>{dynasty}</option>)}
+                </select></label></p>
+                <p><label>Значение и кто вправе носить фамилию<br />
+                  <textarea name="surname-usage" rows={3} defaultValue={surname?.usage} />
+                </label></p>
+              </fieldset>
             )}
             {section === 'races' && <RaceFields race={lore.raceDetails?.find(({ name }) => name === editing)} />}
             {section === 'spells' && <SpellFields spell={lore.spellDetails?.find(({ name }) => name === editing)} />}
