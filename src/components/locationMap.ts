@@ -1,6 +1,7 @@
 import { seededRandom, settlementFoundation, type SettlementSettings } from '../domain/settlementFoundation'
 
 import { settlementDistricts, type Point, type SettlementDistrict } from '../domain/settlementDistricts'
+import { settlementBuildings, type BuildingLot } from '../domain/settlementBuildings'
 import { settlementStreets } from '../domain/settlementStreets'
 import { t } from '../i18n.ts'
 
@@ -91,8 +92,16 @@ export function locationMap(mode: MapMode, terrain: Terrain, settings: Settlemen
 
   if (settlement) {
     const districts = settlementDistricts(settings)
+    const network = settlementStreets(districts, settings.size === 'city' ? 4 : 3)
+    const mainSegments = network.routes.flatMap(({ street }) => street.slice(1).map((point, index) =>
+      [street[index]!, point] as const))
+    const blocks = settlementBuildings(districts, mainSegments, settings, fortified)
     drawDistricts(context, districts)
-    drawSettlementRoutes(context, districts, settings, fortified, bank)
+    for (const { lots, alleys } of blocks) {
+      for (const alley of alleys) drawPath(context, [...alley], '#e6c99a', 2)
+      for (const lot of lots) drawBuilding(context, lot)
+    }
+    drawSettlementRoutes(context, network, settings, fortified, bank)
     drawDistrictLegend(context)
   } else {
     const roads: Point[][] = [
@@ -176,9 +185,9 @@ function drawDistrictLegend(context: CanvasRenderingContext2D) {
 }
 
 function drawSettlementRoutes(
-  context: CanvasRenderingContext2D, districts: SettlementDistrict[], settings: SettlementSettings, fortified: boolean, bank: number,
+  context: CanvasRenderingContext2D, network: ReturnType<typeof settlementStreets>, settings: SettlementSettings, fortified: boolean, bank: number,
 ) {
-  const { interior, routes, walls, towers } = settlementStreets(districts, settings.size === 'city' ? 4 : 3)
+  const { interior, routes, walls, towers } = network
   const { water, waterline } = settlementFoundation(settings)
   for (const segment of interior) {
     drawPath(context, [...segment], '#94704f', 3.5)
@@ -199,6 +208,12 @@ function drawSettlementRoutes(
       const bridge: Point[] = [[crossing - bank - 5, y], [crossing + bank + 5, y]]
       drawPath(context, bridge, '#4c3f35', 10)
       drawPath(context, bridge, '#d9b88c', 6)
+    } else if (direction === 'east' && water === 'coast') {
+      const pier: Point[] = [[east, y], [east + 39, y]]
+      drawPath(context, pier, '#503d30', 8)
+      drawPath(context, pier, '#b2875a', 5)
+      drawPath(context, [[east + 39, y - 8], [east + 39, y + 8]], '#503d30', 8)
+      drawPath(context, [[east + 39, y - 8], [east + 39, y + 8]], '#b2875a', 5)
     }
   }
 
@@ -215,6 +230,35 @@ function drawSettlementRoutes(
       context.strokeStyle = '#4b433b'
       context.lineWidth = 1.5
       context.stroke()
+    }
+  }
+}
+
+const buildingColors = {
+  house: '#8e503c', workshop: '#6b6250', stall: '#b55c33', citadel: '#716d69', courtyard: '#b6a477',
+} as const
+
+function drawBuilding(context: CanvasRenderingContext2D, { kind, footprint }: BuildingLot) {
+  const [a, b, c, d] = footprint
+  if (!a || !b || !c || !d) return
+  context.beginPath()
+  context.moveTo(...a)
+  for (const point of footprint.slice(1)) context.lineTo(...point)
+  context.closePath()
+  context.fillStyle = buildingColors[kind]
+  context.fill()
+  context.strokeStyle = '#503d31'
+  context.lineWidth = kind === 'citadel' ? 2 : 0.7
+  context.stroke()
+  if (kind === 'courtyard') return
+
+  const ridgeStart: Point = [(a[0] + d[0]) / 2, (a[1] + d[1]) / 2]
+  const ridgeEnd: Point = [(b[0] + c[0]) / 2, (b[1] + c[1]) / 2]
+  drawPath(context, [ridgeStart, ridgeEnd], '#e2bd92', kind === 'citadel' ? 1.5 : 0.8)
+  if (kind === 'citadel') {
+    for (const [x, y] of footprint) {
+      context.fillStyle = '#a89c8e'
+      context.fillRect(x - 1.4, y - 1.4, 2.8, 2.8)
     }
   }
 }

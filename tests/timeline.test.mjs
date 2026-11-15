@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
+import { insideDistrict, settlementBuildings } from '../src/domain/settlementBuildings.ts'
 import { settlementStreets } from '../src/domain/settlementStreets.ts'
 import { settlementDistricts } from '../src/domain/settlementDistricts.ts'
 import { settlementFoundation } from '../src/domain/settlementFoundation.ts'
@@ -259,4 +260,22 @@ test('Подъезды входят через ворота, улицы веду
       }
     }
   }
+})
+
+test('Застройка помещается в кварталы, а укреплённый город получает цитадель', () => {
+  const settings = { seed: 42, size: 'city', water: 'coast' }
+  const districts = settlementDistricts(settings)
+  const { routes } = settlementStreets(districts, 4)
+  const streets = routes.flatMap(({ street }) => street.slice(1).map((point, i) => [street[i], point]))
+  const blocks = settlementBuildings(districts, streets, settings, true)
+  assert.deepEqual(blocks, settlementBuildings(districts, streets, settings, true))
+  const kinds = new Set(blocks.flatMap(({ lots }) => lots.map(({ kind }) => kind)))
+  for (const kind of ['house', 'workshop', 'stall', 'citadel', 'courtyard']) assert.ok(kinds.has(kind), kind)
+  assert.ok(blocks.some(({ alleys }) => alleys.length > 0))
+  for (const [index, { lots }] of blocks.entries()) {
+    const { vertices } = districts[index]
+    assert.ok(lots.every(({ footprint }) => footprint.every((point) => insideDistrict(point, vertices, 1))))
+  }
+  assert.ok(!settlementBuildings(districts, streets, settings, false).some(({ lots }) =>
+    lots.some(({ kind }) => kind === 'citadel')))
 })
