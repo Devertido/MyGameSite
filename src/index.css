@@ -1494,6 +1494,24 @@ dl.ability-grid > div {
   pointer-events: none;
 }
 
+.house-tree-relationship-label {
+  position: absolute;
+  z-index: 1;
+  translate: -50% calc(-100% - 13px);
+  pointer-events: none;
+  white-space: nowrap;
+  border-radius: 0.25rem;
+  padding: 0.1rem 0.35rem;
+  background: #fff8e9;
+  color: #5a432e;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.house-tree-relationship-label[data-kind='lover'] {
+  color: #784760;
+}
+
 .house-tree-lover-line {
   stroke: #784760;
   stroke-dasharray: 6 3 2 3;

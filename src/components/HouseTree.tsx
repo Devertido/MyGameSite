@@ -9,6 +9,7 @@ const cardHeight = 174
 const columnGap = 44
 const rowGap = 76
 const padding = 46
+const topPadding = 66
 
 const relationshipLabels = {
   parent: 'Добавить родителя',
@@ -58,11 +59,11 @@ export function HouseTree({ house, characters, save }: {
   const { generations, linkedParents, membersById } = houseGenerations(characters, house)
   const widestRow = Math.max(1, ...generations.map((row) => row.length))
   const width = widestRow * (cardWidth + columnGap) - columnGap + 2 * padding
-  const height = generations.length * (cardHeight + rowGap) - rowGap + 2 * padding
+  const height = generations.length * (cardHeight + rowGap) - rowGap + topPadding + padding
   const nodes = generations.flatMap((row, generation) => row.map((person, column) => ({
     person,
     x: (width - (row.length * (cardWidth + columnGap) - columnGap)) / 2 + column * (cardWidth + columnGap),
-    y: padding + generation * (cardHeight + rowGap),
+    y: topPadding + generation * (cardHeight + rowGap),
   })))
   const byId = new Map(nodes.map((node) => [node.person.id, node]))
   const connections: Connection[] = nodes.flatMap(({ person, x, y }) => {
@@ -123,6 +124,12 @@ export function HouseTree({ house, characters, save }: {
             {connections.map(({ first, second, kind, path }) => <path key={JSON.stringify([kind, first.id, second.id])}
               className={kind === 'child' ? undefined : 'house-tree-' + kind + '-line'} d={path} />)}
           </svg>
+          {connections.map(({ first, second, kind, x, y }) => kind !== 'child' && (
+            <span key={JSON.stringify(['label', kind, first.id, second.id])} className="house-tree-relationship-label"
+              data-kind={kind} style={{ left: x, top: y }}>
+              {t(kind === 'spouse' ? 'Брак' : 'Любовники')}
+            </span>
+          ))}
           {connections.map((connection) => {
             const { first, second, kind, x, y } = connection
             const action = t(removalLabels[kind])
