@@ -241,9 +241,11 @@ function App({ backupTools, english, page, eventYear, eventId, characterId, orga
     const ids = new Set(characters.map(({ id }) => id))
     saveSelectedContent((timeline) => ({
       ...timeline,
-      characters: characters.map((character) => character.parentIds ? {
-        ...character, parentIds: character.parentIds.filter((id) => ids.has(id)),
-      } : character),
+      characters: characters.map((character) => ({
+        ...character,
+        parentIds: character.parentIds?.filter((id) => ids.has(id)),
+        spouseId: character.spouseId && ids.has(character.spouseId) ? character.spouseId : undefined,
+      })),
       chronicles: timeline.chronicles?.map((entry) => ({
         ...entry,
         characterIds: entry.characterIds?.filter((id) => ids.has(id)),
@@ -352,7 +354,7 @@ function App({ backupTools, english, page, eventYear, eventId, characterId, orga
 
       if (page === 'lore') {
         const kind = loreSection === 'items' || loreSection === 'locations' ? loreSection : undefined
-        return <LorePage key={JSON.stringify([selected.id, loreSection, loreSection === 'dynasties' ? entryId : null])} initialSection={loreSection} initialEntry={entryId}
+        return <LorePage key={JSON.stringify([selected.id, loreSection, loreSection === 'dynasties' ? entryId : null])} initialSection={loreSection} initialEntry={entryId} saveCharacters={saveCharacters}
           archive={kind && <ArchivePage embedded timeline={selected.timeline} kind={kind} entryId={entryId}
             entries={selected.timeline[kind] ?? []}
             save={(entries) => {

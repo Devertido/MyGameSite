@@ -1,4 +1,4 @@
-import { houseRoles, sameHouse, type HouseRole } from '../domain/houseTree'
+import { sameHouse, validSpouses } from '../domain/houseTree'
 import { displayMonthName } from '../domain/calendar.ts'
 import { t } from '../i18n.ts'
 import { AbilityDetails, AbilityFields } from './AbilityScores'
@@ -100,7 +100,6 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
 
     const characterClass = String(fields.get('characterClass') ?? '').trim()
     const dynasty = String(fields.get('dynasty') ?? '').trim()
-    const roles = (Object.keys(houseRoles) as HouseRole[]).filter((role) => fields.getAll('house-role').includes(role))
     const parentIds = fields.getAll('parents').map(String)
     const childIds = new Set(fields.getAll('children').map(String))
     const entry: TimelineCharacter = {
@@ -109,7 +108,7 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
       abilities: readAbilityScores(fields),
       ...(characterClass ? { characterClass } : {}),
       ...(dynasty ? { dynasty } : {}),
-      ...(roles.length ? { houseRoles: roles } : {}),
+      ...(original?.spouseId ? { spouseId: original.spouseId } : {}),
       id: original?.id ?? crypto.randomUUID(), name, description, biography, color: String(fields.get('color')),
       ...(surname ? { surname } : {}),
       ...(race ? { race } : {}),
@@ -127,6 +126,10 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
     next.splice(original ? characters.findIndex(({ id }) => id === original.id) : next.length, 0, entry)
     if (!validFamily(next)) {
       setError(t('Проверьте родство. Персонаж не может быть собственным предком.'))
+      return
+    }
+    if (!validSpouses(next)) {
+      setError(t('У супругов должен быть указан разный пол: Муж и Жен.'))
       return
     }
     persist(next)
@@ -157,13 +160,6 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
               {original?.dynasty && !timeline.lore?.dynasties.some((name) => sameHouse(original.dynasty, name)) &&
                 <option value={original.dynasty}>{original.dynasty}</option>}
             </select></label></p>
-            <fieldset className="house-role-fields">
-              <legend>{t('Роли в роду')}</legend>
-              {(Object.entries(houseRoles) as [HouseRole, string][]).map(([role, label]) => (
-                <label key={role}><input type="checkbox" name="house-role" value={role}
-                  defaultChecked={original?.houseRoles?.includes(role)} /> {t(label)}</label>
-              ))}
-            </fieldset>
             <p><label>{t("Класс")}<br /><input name="characterClass" list="lore-classes" defaultValue={original?.characterClass}
                 title={glossaryDescription(timeline.lore, 'classes', original?.characterClass)}
                 onInput={(event) => { event.currentTarget.title = glossaryDescription(timeline.lore, 'classes', event.currentTarget.value) ?? '' }} /></label></p>
@@ -246,9 +242,6 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
                         {timeline.lore?.dynasties.some((name) => sameHouse(character.dynasty, name))
                           ? <a href={'#lore?section=dynasties&entry=' + encodeURIComponent(character.dynasty)}>{character.dynasty}</a>
                           : character.dynasty}
-                      </dd></div>}
-                      {!!character.houseRoles?.length && <div><dt>{t('Роли в роду')}</dt><dd>
-                        {character.houseRoles.map((role) => t(houseRoles[role])).join(', ')}
                       </dd></div>}
                       {(character.birth || character.death) && (
                         <div><dt>{t("Годы жизни")}</dt><dd>{character.birth?.year ?? '?'} — {character.death?.year ?? '…'}

@@ -3,7 +3,8 @@ import { t } from '../i18n.ts'
 import { beastCombatFields, type Beast } from '../domain/lore'
 import { AbilityDetails } from './AbilityScores'
 
-const summaryFields = beastCombatFields.slice(0, 4)
+const summaryFields = beastCombatFields.filter(([key]) => key !== 'traits' && key !== 'actions')
+const narrativeFields = beastCombatFields.filter(([key]) => key === 'traits' || key === 'actions')
 
 export function BestiaryCard({ beast, controls }: { beast: Beast; controls: ReactNode }) {
   const stats = summaryFields.filter(([key]) => beast.combat?.[key])
@@ -50,7 +51,7 @@ export function BeastCombatFields({ combat }: { combat?: Beast['combat'] }) {
         <label key={key}>{t(label)}<input name={'beast-' + key} defaultValue={combat?.[key]} /></label>
       ))}
     </div>
-    {beastCombatFields.slice(4).map(([key, label]) => (
+    {narrativeFields.map(([key, label]) => (
       <p key={key}><label>{t(label)}<br /><textarea name={'beast-' + key} rows={4} defaultValue={combat?.[key]} /></label></p>
     ))}
   </fieldset>

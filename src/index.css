@@ -1494,6 +1494,29 @@ dl.ability-grid > div {
   pointer-events: none;
 }
 
+.house-tree-spouse-line {
+  stroke-dasharray: 4 3;
+}
+
+button.house-tree-add {
+  position: absolute;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  width: 28px;
+  height: 28px;
+  border: 1px solid #fff8e9;
+  border-radius: 50%;
+  font-size: 1.15rem;
+  line-height: 1;
+  translate: -50% -50%;
+}
+
+button.house-tree-add[data-relation='spouse'] {
+  translate: 20% -50%;
+}
+
 .house-tree-person {
   position: absolute;
   box-sizing: border-box;
@@ -1787,8 +1810,13 @@ dl.ability-grid > div {
 }
 
 .bestiary-layout {
-  grid-template-columns: minmax(0, 3fr) minmax(13rem, 1fr);
-  align-items: start;
+  column-gap: 0;
+}
+
+@media (min-width: 55.001rem) {
+  .bestiary-layout > div {
+    padding-inline-end: 1.25rem;
+  }
 }
 
 .bestiary-page {
@@ -1930,12 +1958,6 @@ dl.ability-grid > div {
 
 .bestiary-combat-fields textarea {
   width: min(100%, 34rem);
-}
-
-@media (max-width: 64rem) {
-  .bestiary-layout {
-    grid-template-columns: minmax(0, 1fr);
-  }
 }
 
 @media (max-width: 43rem) {

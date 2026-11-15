@@ -44,7 +44,7 @@ export type SurnameDetails = {
 }
 
 export const beastCombatFields = [
-  ['armor', 'Класс доспеха'], ['hitPoints', 'Хиты'], ['speed', 'Скорость'], ['challenge', 'Опасность'],
+  ['armor', 'Класс доспеха'], ['hitPoints', 'Хиты'], ['speed', 'Скорость'], ['challenge', 'Опасность'], ['level', 'Уровень'],
   ['traits', 'Особенности'], ['actions', 'Действия'],
 ] as const
 

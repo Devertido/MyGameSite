@@ -32,7 +32,7 @@ function entryName(entry: string | { name: string } | { title: string }) {
   return typeof entry === 'string' ? entry : 'title' in entry ? entry.title : entry.name
 }
 
-export function LorePage({ timeline, save, initialSection, initialEntry, archive }: { timeline: Timeline; save: (lore: WorldLore, rename?: { from: string; to: string }) => void; initialSection?: string; initialEntry?: string; archive: ReactNode }) {
+export function LorePage({ timeline, save, initialSection, initialEntry, archive, saveCharacters }: { timeline: Timeline; save: (lore: WorldLore, rename?: { from: string; to: string }) => void; initialSection?: string; initialEntry?: string; archive: ReactNode; saveCharacters: (characters: NonNullable<Timeline['characters']>) => void }) {
   const lore = { ...emptyLore, ...timeline.lore, bestiary: timeline.lore?.bestiary ?? [], classes: timeline.lore?.classes ?? [], spells: timeline.lore?.spells ?? [] }
   const section = sections.find(([key]) => key === initialSection)?.[0] ?? 'surnames'
   const [selectedId, setSelectedId] = useState<string | null>(() =>
@@ -206,11 +206,23 @@ export function LorePage({ timeline, save, initialSection, initialEntry, archive
           {entries.length > 0 && (
             <div className="directory-table-scroll">
               <table>
-                <thead><tr><th scope="col">{t("Название")}</th></tr></thead>
+                <thead><tr>
+                  <th scope="col">{t("Название")}</th>
+                  {section === 'bestiary' && <>
+                    <th scope="col">{t("Вид существа")}</th>
+                    <th scope="col">{t("Опасность")}</th>
+                    <th scope="col">{t("Уровень")}</th>
+                  </>}
+                </tr></thead>
                 <tbody>{entries.map((entry) => (
                   <tr key={entryId(entry)} data-selected={entry === selected}>
                     <td><button className="directory-select" type="button" aria-pressed={entry === selected}
                       onClick={() => setSelectedId(entryId(entry))}>{entryName(entry)}</button></td>
+                    {typeof entry !== 'string' && 'abilities' in entry && <>
+                      <td>{entry.type || '—'}</td>
+                      <td>{entry.combat?.challenge || '—'}</td>
+                      <td>{entry.combat?.level || '—'}</td>
+                    </>}
                   </tr>
                 ))}</tbody>
               </table>
@@ -218,7 +230,7 @@ export function LorePage({ timeline, save, initialSection, initialEntry, archive
           )}
         </section>
       </div>
-      {section === 'dynasties' && typeof selected === 'string' && <HouseTree house={selected} characters={timeline.characters ?? []} />}
+      {section === 'dynasties' && typeof selected === 'string' && <HouseTree house={selected} characters={timeline.characters ?? []} save={saveCharacters} />}
       {editing !== null && (
         <CreationDialog onCancel={() => { setEditing(null); setError('') }}>
           <h2 id="creation-dialog-title">{label && t(label)}</h2>
