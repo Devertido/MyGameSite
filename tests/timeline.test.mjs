@@ -12,7 +12,7 @@ import { calendarDay, eventDays, validateEvent, validateTimelineBounds } from '.
 import { timelineSnapshot, deleteTimeline, exportTimeline, importTimeline, loadTimelines, rememberSelection, restoreSelection, saveTimeline } from '../src/data/timelineStorage.ts'
 
 import { emptyLore, parseRaceMeasure, readRaceMeasure } from '../src/domain/lore.ts'
-import { addHouseRelationship } from '../src/domain/houseTree.ts'
+import { addHouseRelationship, houseGenerations, removeHouseRelationship } from '../src/domain/houseTree.ts'
 
 const era = { systemAnchorYear: 100, calendarAnchorYear: 1, hasYearZero: false }
 
@@ -419,4 +419,27 @@ test('Правки планировки, родство, бестиарий и �
     assert.deepEqual(restored.lore.raceDetails[0], race)
     assert.deepEqual(restored.lore.bestiary[0], beast)
   }
+})
+
+test('An affair can coexist with a marriage and the child keeps biological parents', () => {
+  const people = [
+    { id: 'mother', name: 'Mother', description: '', sex: 'Жен', dynasty: 'House', spouseId: 'spouse' },
+    { id: 'spouse', name: 'Spouse', description: '', sex: 'Муж', spouseId: 'mother' },
+    { id: 'father', name: 'Father', description: '' },
+    { id: 'child', name: 'Child', description: '', parentIds: ['mother', 'father'], bornOutsideMarriage: true },
+  ]
+  const characters = addHouseRelationship(people, people[0], people[2], 'lover')
+  assert.equal(characters[0].spouseId, 'spouse')
+  assert.deepEqual(characters[0].loverIds, ['father'])
+  assert.deepEqual(characters[2].loverIds, ['mother'])
+  assert.deepEqual(houseGenerations(characters, 'House').linkedParents.get('child'), ['mother', 'father'])
+  const { daysPerYear, ...calendar } = standardYear
+  const timeline = { name: 'Atlas', startYear: -10, endYear: 100, daysPerYear,
+    calendars: [{ ...calendar, name: 'Main', era }], characters }
+  assert.deepEqual(importTimeline(exportTimeline(timeline)).characters, characters)
+  const afterRemoval = removeHouseRelationship(characters, 'mother', 'father', 'lover')
+  assert.deepEqual(afterRemoval[0].loverIds, [])
+  assert.deepEqual(afterRemoval[2].loverIds, [])
+  assert.equal(afterRemoval[0].spouseId, 'spouse')
+  assert.deepEqual(afterRemoval[3].parentIds, ['mother', 'father'])
 })

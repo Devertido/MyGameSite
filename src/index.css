@@ -1494,6 +1494,21 @@ dl.ability-grid > div {
   pointer-events: none;
 }
 
+.house-tree-lover-line {
+  stroke: #784760;
+  stroke-dasharray: 6 3 2 3;
+}
+
+button.house-tree-add[data-relation='lover'] {
+  background: #784760;
+  color: white;
+}
+
+.house-tree-outside-marriage {
+  color: #784760;
+  font-weight: 700;
+}
+
 .house-tree-spouse-line {
   stroke-dasharray: 4 3;
 }
@@ -1887,7 +1902,7 @@ button.house-tree-add[data-relation='spouse'] {
 
 .bestiary-intro {
   display: grid;
-  align-items: end;
+  align-items: center;
   gap: clamp(1rem, 2vw, 2rem);
 }
 

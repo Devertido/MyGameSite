@@ -8,22 +8,29 @@ const cardWidth = 144
 const cardHeight = 174
 const columnGap = 44
 const rowGap = 76
-const padding = 34
+const padding = 46
 
 const relationshipLabels = {
   parent: 'Добавить родителя',
   child: 'Добавить ребёнка',
   spouse: 'Добавить супруга или супругу',
+  lover: 'Добавить любовную связь',
 } as const
 
 type Connection = {
   first: TimelineCharacter
   second: TimelineCharacter
-  kind: 'child' | 'spouse'
+  kind: 'child' | 'spouse' | 'lover'
   path: string
   x: number
   y: number
 }
+
+const removalLabels = {
+  child: 'Удалить связь родитель — ребёнок',
+  spouse: 'Удалить супружескую связь',
+  lover: 'Удалить любовную связь',
+} as const
 
 function fullName(person: TimelineCharacter) {
   return [person.name, person.surname].filter(Boolean).join(' ')
@@ -59,13 +66,15 @@ export function HouseTree({ house, characters, save }: {
   })))
   const byId = new Map(nodes.map((node) => [node.person.id, node]))
   const connections: Connection[] = nodes.flatMap(({ person, x, y }) => {
-    const parents = linkedParents.get(person.id) ?? []
-    const links: Connection[] = parents.map((id, index) => {
-      const parent = byId.get(id)!
+    const endX = x + cardWidth / 2
+    const parents = (linkedParents.get(person.id) ?? []).map((id) => byId.get(id)!)
+    const links: Connection[] = parents.map((parent) => {
       const startX = parent.x + cardWidth / 2
       const startY = parent.y + cardHeight
-      const endX = x + cardWidth / 2
-      const joint = y - rowGap * (parents.length === 1 ? 0.5 : 0.68 - 0.36 * index / (parents.length - 1))
+      const branch = Math.sign(startX - endX)
+      const sameBranch = parents.filter(({ x }) => Math.sign(x + cardWidth / 2 - endX) === branch)
+      const offset = sameBranch.length === 1 ? 0 : sameBranch.indexOf(parent) / (sameBranch.length - 1) - 0.5
+      const joint = y - rowGap / 2 + rowGap * 0.36 * offset
       return {
         first: parent.person, second: person, kind: 'child',
         path: `M ${startX} ${startY} V ${joint} H ${endX} V ${y}`,
@@ -85,21 +94,38 @@ export function HouseTree({ house, characters, save }: {
         x: turn, y: spouse.y === y ? middle : (middle + spouseMiddle) / 2,
       })
     }
+    for (const [index, loverId] of (person.loverIds ?? []).entries()) {
+      const lover = byId.get(loverId)
+      if (!lover || lover.y < y || (lover.y === y && lover.x <= x)) continue
+      const startX = x + cardWidth * 0.75
+      const endX = lover.x + cardWidth * 0.25
+      const lane = y - 28 - (index % 2) * 6
+      const turn = width - 14 - (index % 2) * 8
+      const sameRow = lover.y === y
+      links.push({
+        first: person, second: lover.person, kind: 'lover',
+        path: sameRow ? `M ${startX} ${y} V ${lane} H ${endX} V ${y}`
+          : `M ${startX} ${y} V ${lane} H ${turn} V ${lover.y - 28} H ${endX} V ${lover.y}`,
+        x: sameRow ? (startX + endX) / 2 : turn,
+        y: sameRow ? lane : (lane + lover.y - 28) / 2,
+      })
+    }
     return links
   })
 
   return <section className="house-tree">
     <h3 id={titleId}>{t('Родословное дерево')}</h3>
+    {membersById.size > 0 && <p className="house-tree-legend">{t('Фиолетовая линия — любовная связь. Фиолетовый «+» добавляет её.')}</p>}
     {membersById.size === 0 ? <p>{t('Выберите этот род в карточках персонажей, чтобы построить дерево.')}</p> :
       <div className="house-tree-scroll" role="region" tabIndex={0} aria-labelledby={titleId}>
         <div className="house-tree-chart" style={{ width, height }}>
           <svg className="house-tree-lines" width={width} height={height} aria-hidden="true">
             {connections.map(({ first, second, kind, path }) => <path key={JSON.stringify([kind, first.id, second.id])}
-              className={kind === 'spouse' ? 'house-tree-spouse-line' : undefined} d={path} />)}
+              className={kind === 'child' ? undefined : 'house-tree-' + kind + '-line'} d={path} />)}
           </svg>
           {connections.map((connection) => {
             const { first, second, kind, x, y } = connection
-            const action = t(kind === 'spouse' ? 'Удалить супружескую связь' : 'Удалить связь родитель — ребёнок')
+            const action = t(removalLabels[kind])
             const label = action + ' · ' + fullName(first) + ' → ' + fullName(second)
             return <button key={JSON.stringify([kind, first.id, second.id])} className="house-tree-add house-tree-remove"
               type="button" style={{ left: x, top: y }} aria-label={label} title={label} onClick={() => setRemoval(connection)}>−</button>
@@ -114,6 +140,7 @@ export function HouseTree({ house, characters, save }: {
               {person.portrait ? <img src={person.portrait} alt="" loading="lazy" /> :
                 <span className="house-tree-initial" aria-hidden="true">{person.name.slice(0, 1)}</span>}
               <span className="house-tree-name">{name}</span>
+              {person.bornOutsideMarriage && <small className="house-tree-outside-marriage">{t('Рождение вне брака')}</small>}
               {outside && person.dynasty && <small>{person.dynasty}</small>}
             </a>
               {(Object.keys(relationshipLabels) as HouseRelationship[]).map((relation) => {
@@ -121,7 +148,9 @@ export function HouseTree({ house, characters, save }: {
                 const label = t(relationshipLabels[relation]) + ' · ' + name
                 const style = relation === 'spouse'
                   ? { left: x + cardWidth, top: y + cardHeight / 2 }
-                  : { left: x + cardWidth / 2, top: relation === 'parent' ? y : y + cardHeight }
+                  : relation === 'lover'
+                    ? { left: x - 13, top: y + cardHeight / 2 + 34 }
+                    : { left: x + cardWidth / 2, top: relation === 'parent' ? y : y + cardHeight }
                 return <button key={relation} className="house-tree-add" data-relation={relation} style={style}
                   type="button" aria-label={label} title={label} onClick={() => setSelection({ id: person.id, relation })}>+</button>
               })}
@@ -130,7 +159,7 @@ export function HouseTree({ house, characters, save }: {
         </div>
       </div>}
     {removal && <CreationDialog titleId={dialogTitleId} onCancel={closePicker}>
-      <h2 id={dialogTitleId}>{t(removal.kind === 'spouse' ? 'Удалить супружескую связь' : 'Удалить связь родитель — ребёнок')}</h2>
+      <h2 id={dialogTitleId}>{t(removalLabels[removal.kind])}</h2>
       <p>{fullName(removal.first)} → {fullName(removal.second)}</p>
       {error && <p role="alert">{error}</p>}
       <button type="button" onClick={() => {

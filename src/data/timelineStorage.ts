@@ -1,5 +1,5 @@
 import { validLocationMapPlan } from '../domain/locationMapPlan.ts'
-import { validSpouses } from '../domain/houseTree.ts'
+import { validLovers, validSpouses } from '../domain/houseTree.ts'
 import { t } from '../i18n.ts'
 import { validAbilityScores } from '../domain/abilities.ts'
 import { validFamily, validLore } from '../domain/lore.ts'
@@ -67,10 +67,12 @@ function parseTimeline(value: unknown): Timeline | null {
           ('biography' in character && typeof character.biography !== 'string')) return null
       if (!validMetadata(character)) return null
       const { status, gallery } = character as TimelineCharacter
-      const { surname, race, sex, birth, death, portrait, parentIds, dynasty, characterClass, abilities, spouseId } = character
+      const { surname, race, sex, birth, death, portrait, parentIds, dynasty, characterClass, abilities, spouseId, loverIds, bornOutsideMarriage } = character
       if ((parentIds !== undefined && !isIdList(parentIds)) ||
           (abilities !== undefined && !validAbilityScores(abilities)) ||
           (characterClass !== undefined && typeof characterClass !== 'string') ||
+          (loverIds !== undefined && !isIdList(loverIds)) ||
+          (bornOutsideMarriage !== undefined && typeof bornOutsideMarriage !== 'boolean') ||
           (spouseId !== undefined && typeof spouseId !== 'string') ||
           (dynasty !== undefined && typeof dynasty !== 'string') ||
           (surname !== undefined && typeof surname !== 'string') ||
@@ -88,6 +90,8 @@ function parseTimeline(value: unknown): Timeline | null {
         ...(abilities !== undefined ? { abilities } : {}),
         ...(characterClass !== undefined ? { characterClass } : {}),
         ...(spouseId !== undefined ? { spouseId } : {}),
+        ...(loverIds !== undefined ? { loverIds } : {}),
+        ...(bornOutsideMarriage !== undefined ? { bornOutsideMarriage } : {}),
         ...(dynasty !== undefined ? { dynasty } : {}),
         ...(surname !== undefined ? { surname } : {}),
         ...(race !== undefined ? { race } : {}),
@@ -99,7 +103,7 @@ function parseTimeline(value: unknown): Timeline | null {
         ...(typeof character.biography === 'string' ? { biography: character.biography } : {}),
       })
     }
-    if (!validFamily(parsed) || !validSpouses(parsed)) return null
+    if (!validFamily(parsed) || !validSpouses(parsed) || !validLovers(parsed)) return null
     timeline.characters = parsed
   }
 

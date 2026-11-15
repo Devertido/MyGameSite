@@ -108,6 +108,8 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
       abilities: readAbilityScores(fields),
       ...(characterClass ? { characterClass } : {}),
       ...(dynasty ? { dynasty } : {}),
+      ...(original?.loverIds?.length ? { loverIds: original.loverIds } : {}),
+      ...(fields.has('born-outside-marriage') ? { bornOutsideMarriage: true } : {}),
       ...(original?.spouseId ? { spouseId: original.spouseId } : {}),
       id: original?.id ?? crypto.randomUUID(), name, description, biography, color: String(fields.get('color')),
       ...(surname ? { surname } : {}),
@@ -160,6 +162,7 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
               {original?.dynasty && !timeline.lore?.dynasties.some((name) => sameHouse(original.dynasty, name)) &&
                 <option value={original.dynasty}>{original.dynasty}</option>}
             </select></label></p>
+            <p><label><input type="checkbox" name="born-outside-marriage" defaultChecked={original?.bornOutsideMarriage} /> {t('Рождение вне брака')}</label></p>
             <p><label>{t("Класс")}<br /><input name="characterClass" list="lore-classes" defaultValue={original?.characterClass}
                 title={glossaryDescription(timeline.lore, 'classes', original?.characterClass)}
                 onInput={(event) => { event.currentTarget.title = glossaryDescription(timeline.lore, 'classes', event.currentTarget.value) ?? '' }} /></label></p>

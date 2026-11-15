@@ -1,7 +1,7 @@
 import { validFamily } from './lore.ts'
 import type { TimelineCharacter } from './timeline.ts'
 
-export type HouseRelationship = 'parent' | 'child' | 'spouse'
+export type HouseRelationship = 'parent' | 'child' | 'spouse' | 'lover'
 
 export function sameHouse(left: string | undefined, right: string): boolean {
   return left?.trim().toLocaleLowerCase('ru') === right.trim().toLocaleLowerCase('ru')
@@ -20,8 +20,22 @@ export function validSpouses(characters: readonly TimelineCharacter[]): boolean 
   })
 }
 
+export function validLovers(characters: readonly TimelineCharacter[]): boolean {
+  const byId = new Map(characters.map((person) => [person.id, person]))
+  return characters.every(({ id, loverIds = [] }) => new Set(loverIds).size === loverIds.length &&
+    loverIds.every((lover) => lover !== id && byId.get(lover)?.loverIds?.includes(id)))
+}
+
 export function addHouseRelationship(characters: TimelineCharacter[], person: TimelineCharacter, relative: TimelineCharacter, relation: HouseRelationship) {
   if (person.id === relative.id) return null
+  if (relation === 'lover') {
+    if (person.spouseId === relative.id || person.loverIds?.includes(relative.id)) return null
+    return characters.map((entry) => {
+      if (entry.id === person.id) return { ...entry, loverIds: [...(entry.loverIds ?? []), relative.id] }
+      if (entry.id === relative.id) return { ...entry, loverIds: [...(entry.loverIds ?? []), person.id] }
+      return entry
+    })
+  }
   if (relation === 'spouse') {
     if (person.spouseId || relative.spouseId || !oppositeSex(person.sex, relative.sex)) return null
     const next = characters.map((entry) => {
@@ -41,11 +55,15 @@ export function addHouseRelationship(characters: TimelineCharacter[], person: Ti
 }
 
 export function removeHouseRelationship(
-  characters: TimelineCharacter[], firstId: string, secondId: string, relation: 'child' | 'spouse',
+  characters: TimelineCharacter[], firstId: string, secondId: string, relation: 'child' | 'spouse' | 'lover',
 ): TimelineCharacter[] {
   return characters.map((person) => {
     if (relation === 'child' && person.id === secondId && person.parentIds?.includes(firstId)) {
       return { ...person, parentIds: person.parentIds.filter((id) => id !== firstId) }
+    }
+    if (relation === 'lover' && (person.id === firstId || person.id === secondId)) {
+      const otherId = person.id === firstId ? secondId : firstId
+      return { ...person, loverIds: person.loverIds?.filter((id) => id !== otherId) }
     }
     if (relation === 'spouse' && ((person.id === firstId && person.spouseId === secondId) ||
       (person.id === secondId && person.spouseId === firstId))) {
@@ -100,8 +118,8 @@ export function houseGenerations(characters: readonly TimelineCharacter[], house
   const membersById = new Set(characters.filter(({ dynasty }) => sameHouse(dynasty, house)).map(({ id }) => id))
   const included = new Set(membersById)
   const neighbors = new Map(characters.map(({ id }) => [id, new Set<string>()]))
-  for (const { id, parentIds, spouseId } of characters) {
-    for (const relative of [...(parentIds ?? []), ...(spouseId ? [spouseId] : [])]) {
+  for (const { id, parentIds, spouseId, loverIds } of characters) {
+    for (const relative of [...(parentIds ?? []), ...(loverIds ?? []), ...(spouseId ? [spouseId] : [])]) {
       neighbors.get(id)?.add(relative)
       neighbors.get(relative)?.add(id)
     }

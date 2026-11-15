@@ -244,6 +244,7 @@ function App({ backupTools, english, page, eventYear, eventId, characterId, orga
       characters: characters.map((character) => ({
         ...character,
         parentIds: character.parentIds?.filter((id) => ids.has(id)),
+        loverIds: character.loverIds?.filter((id) => ids.has(id)),
         spouseId: character.spouseId && ids.has(character.spouseId) ? character.spouseId : undefined,
       })),
       chronicles: timeline.chronicles?.map((entry) => ({
