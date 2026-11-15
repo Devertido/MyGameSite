@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { createLocationMapPlan, rerollDistrict, validLocationMapPlan } from '../src/domain/locationMapPlan.ts'
+import { createLocationMapPlan, moveDistrictCorner, rerollDistrict, validLocationMapPlan } from '../src/domain/locationMapPlan.ts'
 import { insideDistrict, settlementBuildings } from '../src/domain/settlementBuildings.ts'
 import { settlementStreets } from '../src/domain/settlementStreets.ts'
 import { settlementDistricts } from '../src/domain/settlementDistricts.ts'
@@ -314,5 +314,37 @@ test('Перестройка сохраняет остальные кварта�
   assert.deepEqual(updated.geometry.districts, plan.geometry.districts)
   assert.deepEqual(updated.geometry.network, plan.geometry.network)
   assert.deepEqual(updated.markers, plan.markers)
+  assert.ok(validLocationMapPlan(JSON.parse(JSON.stringify(updated))))
+})
+
+test('Новая география сохраняется, а кварталы на реке занимают оба берега', () => {
+  for (const water of ['gorge', 'cave', 'underground', 'island', 'peninsula', 'river-mouth', 'river-city']) {
+    const settings = { mode: 'settlement', terrain: 'mountains', seed: 42, size: 'city', water, fortified: true }
+    const plan = createLocationMapPlan(settings)
+    assert.ok(validLocationMapPlan(JSON.parse(JSON.stringify(plan))))
+    if (water === 'river-city') {
+      const riverX = settlementFoundation(settings).waterline(250)
+      const banks = new Set(plan.geometry.districts.map(({ vertices }) => {
+        assert.ok(vertices.every(([x]) => Math.abs(x - riverX) >= 16 - 1e-6))
+        const bank = Math.sign(vertices[0][0] - riverX)
+        assert.ok(vertices.every(([x]) => Math.sign(x - riverX) === bank))
+        return bank
+      }))
+      assert.deepEqual(new Set([-1, 1]), banks)
+      assert.ok(plan.geometry.network.crossing.west && plan.geometry.network.crossing.east)
+    }
+  }
+})
+
+test('Перетаскивание меняет общий угол во всех примыкающих кварталах', () => {
+  const plan = createLocationMapPlan({ mode: 'settlement', terrain: 'forest', seed: 42, size: 'city', water: 'river', fortified: true })
+  const [x, y] = plan.geometry.districts[0].vertices[0]
+  const updated = moveDistrictCorner(plan, [x, y], [x + 4, y + 3])
+  assert.notEqual(updated, plan)
+  const touches = (district) => district.vertices.some(([a, b]) => Math.hypot(a - x, b - y) < 1e-5)
+  const affected = plan.geometry.districts.map((district, i) => touches(district) ? i : -1).filter((i) => i >= 0)
+  assert.ok(affected.length >= 2)
+  const target = updated.geometry.districts[0].vertices[0]
+  for (const i of affected) assert.ok(updated.geometry.districts[i].vertices.some((vertex) => vertex === target))
   assert.ok(validLocationMapPlan(JSON.parse(JSON.stringify(updated))))
 })

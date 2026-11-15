@@ -1,5 +1,5 @@
 export const settlementSizes = ['village', 'town', 'city', 'metropolis', 'megalopolis', 'ecumenopolis'] as const
-export const waterTypes = ['inland', 'river', 'coast'] as const
+export const waterTypes = ['inland', 'river', 'coast', 'gorge', 'cave', 'underground', 'island', 'peninsula', 'river-mouth', 'river-city'] as const
 
 export type SettlementSize = typeof settlementSizes[number]
 export type WaterType = typeof waterTypes[number]
@@ -22,10 +22,13 @@ export function settlementFoundation({ seed, size, water }: SettlementSettings) 
   const random = seededRandom(seed)
   const phase = random() * Math.PI * 2
   const waterCenter = 535 + random() * 25
-  const waterline = (y: number) => waterCenter + 30 * Math.sin(y / 89 + phase) + 12 * Math.cos(y / 57)
   const scale = scales[size]
-  const sampledCenter = 260 + random() * (water === 'inland' ? 205 : 55)
-  const centerX = water !== 'inland' && scale > 1.18 ? Math.min(sampledCenter, 458 - 124 * scale) : sampledCenter
+  const coastal = water === 'river' || water === 'coast' || water === 'river-mouth'
+  const sampledCenter = 260 + random() * (coastal ? 55 : 205)
+  const centerX = coastal && scale > 1.18 ? Math.min(sampledCenter, 458 - 124 * scale) : sampledCenter
   const centerY = 200 + random() * 100
+  const waterline = (y: number) => water === 'river-city'
+    ? centerX + 31 * scale
+    : waterCenter + 30 * Math.sin(y / 89 + phase) + 12 * Math.cos(y / 57)
   return { centerX, centerY, waterline, scale, water }
 }

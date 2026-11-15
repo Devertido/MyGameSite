@@ -1,5 +1,13 @@
 import type { TimelineCharacter } from './timeline.ts'
 
+export const houseRoles = { father: 'Отец', mother: 'Мать', son: 'Сын', daughter: 'Дочь' } as const
+export type HouseRole = keyof typeof houseRoles
+
+export function validHouseRoles(value: unknown): value is HouseRole[] {
+  return Array.isArray(value) && value.every((role) => typeof role === 'string' && Object.hasOwn(houseRoles, role)) &&
+    new Set(value).size === value.length
+}
+
 export function sameHouse(left: string | undefined, right: string): boolean {
   return left?.trim().toLocaleLowerCase('ru') === right.trim().toLocaleLowerCase('ru')
 }

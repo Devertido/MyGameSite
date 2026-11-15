@@ -11,15 +11,38 @@ export type MapMode = 'settlement' | 'terrain'
 export type Terrain = 'plains' | 'forest' | 'mountains'
 export type LocationMapSettings = SettlementSettings & { mode: MapMode; terrain: Terrain; fortified: boolean }
 
+function streetsFor(districts: ReturnType<typeof settlementDistricts>, settings: LocationMapSettings) {
+  if (settings.water !== 'river-city') return settlementStreets(districts, settlementSizes.indexOf(settings.size) >= 2 ? 4 : 3)
+  const { centerY, waterline } = settlementFoundation(settings)
+  const riverX = waterline(centerY)
+  const west = districts.filter(({ vertices }) => vertices.every(([x]) => x < riverX))
+  const east = districts.filter(({ vertices }) => vertices.every(([x]) => x > riverX))
+  const primary = settlementStreets(west, 3)
+  if (east.length === 0) return primary
+  const core = east.reduce((closest, district) => {
+    const distance = (vertices: Point[]) => Math.min(...vertices.map(([x, y]) => Math.hypot(x - riverX, y - centerY)))
+    return distance(district.vertices) < distance(closest.vertices) ? district : closest
+  })
+  const secondary = settlementStreets(east.map((district) => district === core ? { ...district, kind: 'square' } : district), 2)
+  return {
+    ...primary,
+    interior: [...primary.interior, ...secondary.interior],
+    routes: [...primary.routes.filter(({ direction }) => direction !== 'east'), ...secondary.routes.filter(({ direction }) => direction !== 'west')],
+    walls: [...primary.walls, ...secondary.walls],
+    towers: [...primary.towers, ...secondary.towers],
+    crossing: { west: primary.routes.find(({ direction }) => direction === 'east'),
+      east: secondary.routes.find(({ direction }) => direction === 'west') },
+  }
+}
+
 function buildGeometry(settings: LocationMapSettings) {
   const { waterline } = settlementFoundation(settings)
   const districts = settlementDistricts(settings)
-  const network = settlementStreets(districts, settlementSizes.indexOf(settings.size) >= 2 ? 4 : 3)
-  const mainSegments = network.routes.flatMap(({ street }) => street.slice(1).map((point, index) =>
-    [street[index]!, point] as const))
+  const network = streetsFor(districts, settings)
+  const mainSegments = streetSegments(network)
   const blocks = settlementBuildings(districts, mainSegments, settings, settings.fortified)
   const water: Point[] = []
-  if (settings.water !== 'inland') {
+  if (['river', 'coast', 'river-city', 'river-mouth'].includes(settings.water)) {
     for (let y = -12; y <= 512; y += 4) water.push([waterline(y), y])
   }
   return { districts, network, blocks, water }
@@ -39,10 +62,50 @@ export function createLocationMapPlan(settings: LocationMapSettings): LocationMa
 export function rerollDistrict(plan: LocationMapPlan, index: number, seed: number): LocationMapPlan {
   const geometry = plan.geometry
   if (!geometry || !geometry.blocks[index]) return plan
-  const mainSegments = geometry.network.routes.flatMap(({ street }) => street.slice(1).map((point, i) =>
-    [street[i]!, point] as const))
+  const mainSegments = streetSegments(geometry.network)
   const replacement = settlementBuildings(geometry.districts, mainSegments, { ...plan.settings, seed }, plan.settings.fortified)[index]!
   return { ...plan, geometry: { ...geometry, blocks: geometry.blocks.map((block, i) => i === index ? replacement : block) } }
+}
+
+function streetSegments(network: NonNullable<LocationMapPlan['geometry']>['network']) {
+  const crossing = 'crossing' in network ? network.crossing : undefined
+  return [...network.routes, ...(crossing?.west ? [crossing.west] : []), ...(crossing?.east ? [crossing.east] : [])]
+    .flatMap(({ street }) => street.slice(1).map((point, i) => [street[i]!, point] as const))
+}
+
+export function moveDistrictCorner(plan: LocationMapPlan, original: Point, target: Point): LocationMapPlan {
+  const geometry = plan.geometry
+  if (!geometry) return plan
+  const same = (point: Point) => Math.hypot(point[0] - original[0], point[1] - original[1]) < 1e-5
+  const { centerX, centerY, scale, waterline } = settlementFoundation(plan.settings)
+  const { water } = plan.settings
+  let districts = geometry.districts
+  for (let fraction = 1; fraction >= 1 / 32; fraction /= 2) {
+    const next: Point = [original[0] + (target[0] - original[0]) * fraction, original[1] + (target[1] - original[1]) * fraction]
+    const [x, y] = next
+    if (x < 23 || x > mapWidth - 23 || y < 23 || y > mapHeight - 75) continue
+    if ((water === 'river' || water === 'river-mouth') && x > waterline(y) - 28) continue
+    if (water === 'coast' && x > waterline(y) - 2) continue
+    if (['island', 'peninsula', 'cave', 'underground'].includes(water) &&
+        Math.hypot((x - centerX) / (192 * scale), (y - centerY) / (162 * scale)) > 0.93) continue
+    if (water === 'gorge' && Math.abs(y - centerY) > 124 * scale - 13) continue
+    if (water === 'river-city' && (Math.abs(x - waterline(y)) < 16 - 1e-5 ||
+        (x < waterline(y)) !== (original[0] < waterline(original[1])))) continue
+    const proposed = geometry.districts.map((district) => district.vertices.some(same)
+      ? { ...district, vertices: district.vertices.map((point) => same(point) ? next : point) } : district)
+    if (proposed.some((district, index) => district !== geometry.districts[index] && district.vertices.some((a, i, vertices) => {
+      const b = vertices[(i + 1) % vertices.length]!
+      const c = vertices[(i + 2) % vertices.length]!
+      return Math.hypot(b[0] - a[0], b[1] - a[1]) < 0.1 ||
+        (b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0]) < -1e-6
+    }))) continue
+    districts = proposed
+    break
+  }
+  if (districts === geometry.districts || districts.every((district, index) => district === geometry.districts[index])) return plan
+  const network = streetsFor(districts, plan.settings)
+  const blocks = settlementBuildings(districts, streetSegments(network), plan.settings, plan.settings.fortified)
+  return { ...plan, geometry: { ...geometry, districts, network, blocks } }
 }
 
 function record(value: unknown): value is Record<string, unknown> {
@@ -97,5 +160,9 @@ export function validLocationMapPlan(value: unknown): value is LocationMapPlan {
     list(network.walls, 2048, segment) && list(network.towers, 2048, point) &&
     list(network.routes, 16, (route) => record(route) && typeof route.direction === 'string' &&
       ['west', 'east', 'north', 'south'].includes(route.direction) && point(route.gate) && path(route.street)) &&
-    (settings.water === 'inland' ? Array.isArray(water) && water.length === 0 : path(water))
+    (network.crossing === undefined || (settings.water === 'river-city' && record(network.crossing) &&
+      [network.crossing.west, network.crossing.east].every((route) => route === undefined ||
+        (record(route) && point(route.gate) && path(route.street) && (route.direction === 'east' || route.direction === 'west'))))) &&
+    (['river', 'coast', 'river-city', 'river-mouth'].includes(settings.water as string) ? path(water) :
+      Array.isArray(water) && (water.length === 0 || path(water)))
 }

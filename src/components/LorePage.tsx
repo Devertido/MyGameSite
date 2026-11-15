@@ -1,3 +1,4 @@
+import { sameHouse } from '../domain/houseTree'
 import { HouseTree } from './HouseTree'
 import { t } from '../i18n.ts'
 import { BestiaryCard, BeastCombatFields } from './BestiaryCard'
@@ -31,10 +32,11 @@ function entryName(entry: string | { name: string } | { title: string }) {
   return typeof entry === 'string' ? entry : 'title' in entry ? entry.title : entry.name
 }
 
-export function LorePage({ timeline, save, initialSection, archive }: { timeline: Timeline; save: (lore: WorldLore, rename?: { from: string; to: string }) => void; initialSection?: string; archive: ReactNode }) {
+export function LorePage({ timeline, save, initialSection, initialEntry, archive }: { timeline: Timeline; save: (lore: WorldLore, rename?: { from: string; to: string }) => void; initialSection?: string; initialEntry?: string; archive: ReactNode }) {
   const lore = { ...emptyLore, ...timeline.lore, bestiary: timeline.lore?.bestiary ?? [], classes: timeline.lore?.classes ?? [], spells: timeline.lore?.spells ?? [] }
   const section = sections.find(([key]) => key === initialSection)?.[0] ?? 'surnames'
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [selectedId, setSelectedId] = useState<string | null>(() =>
+    section === 'dynasties' ? lore.dynasties.find((name) => sameHouse(initialEntry, name)) ?? null : null)
   const [editing, setEditing] = useState<string | null>(null)
   const [error, setError] = useState('')
   const archiveSection = section === 'items' || section === 'locations'

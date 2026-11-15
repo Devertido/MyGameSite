@@ -352,7 +352,7 @@ function App({ backupTools, english, page, eventYear, eventId, characterId, orga
 
       if (page === 'lore') {
         const kind = loreSection === 'items' || loreSection === 'locations' ? loreSection : undefined
-        return <LorePage key={JSON.stringify([selected.id, loreSection])} initialSection={loreSection}
+        return <LorePage key={JSON.stringify([selected.id, loreSection, loreSection === 'dynasties' ? entryId : null])} initialSection={loreSection} initialEntry={entryId}
           archive={kind && <ArchivePage embedded timeline={selected.timeline} kind={kind} entryId={entryId}
             entries={selected.timeline[kind] ?? []}
             save={(entries) => {

@@ -1,10 +1,10 @@
 import { useId, type CSSProperties } from 'react'
 import { t } from '../i18n.ts'
-import { houseGenerations } from '../domain/houseTree'
+import { houseGenerations, houseRoles } from '../domain/houseTree'
 import type { TimelineCharacter } from '../domain/timeline'
 
 const cardWidth = 144
-const cardHeight = 152
+const cardHeight = 174
 const columnGap = 24
 const rowGap = 60
 const padding = 16
@@ -47,6 +47,7 @@ export function HouseTree({ house, characters }: { house: string; characters: Ti
               {person.portrait ? <img src={person.portrait} alt="" loading="lazy" /> :
                 <span className="house-tree-initial" aria-hidden="true">{person.name.slice(0, 1)}</span>}
               <span className="house-tree-name">{name}</span>
+              {!!person.houseRoles?.length && <small>{person.houseRoles.map((role) => t(houseRoles[role])).join(', ')}</small>}
               {outside && person.dynasty && <small>{person.dynasty}</small>}
             </a>
           })}

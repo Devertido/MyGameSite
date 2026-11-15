@@ -132,6 +132,7 @@ export function isCharacterLifeOrderValid(birth?: CharacterDate, death?: Charact
 }
 
 export type TimelineCharacter = EntryMetadata & {
+  houseRoles?: import('./houseTree.ts').HouseRole[]
   abilities?: AbilityScores
   parentIds?: string[]
   dynasty?: string

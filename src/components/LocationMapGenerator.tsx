@@ -12,7 +12,11 @@ const sizes: Record<SettlementSize, { label: string; population: string }> = {
   megalopolis: { label: 'Мегалополис', population: '500 000–2 000 000' },
   ecumenopolis: { label: 'Экуменополис', population: 'Миллионы, вплоть до всей планеты' },
 }
-const waterLabels = { inland: 'Без водоёма', river: 'У реки', coast: 'На побережье' }
+const waterLabels: Record<WaterType, string> = {
+  inland: 'Без водоёма', river: 'У реки', coast: 'На побережье', gorge: 'В ущелье', cave: 'В пещере',
+  underground: 'Подземный', island: 'Островной', peninsula: 'На полуострове',
+  'river-mouth': 'У впадения реки в водоём', 'river-city': 'Река посреди города',
+}
 
 function randomSeed() {
   return String(crypto.getRandomValues(new Uint32Array(1))[0])
@@ -70,7 +74,7 @@ export function LocationMapGenerator({ initial, onGenerate }: {
           {settlementSizes.map((value) => <option key={value} value={value}>{t(sizes[value].label)} · {t(sizes[value].population)}</option>)}
         </select>
       </label>
-      <label>{t('Вода')}
+      <label>{t('География')}
         <select value={water} onChange={(event) => setWater(waterTypes.find((value) => value === event.currentTarget.value) ?? 'river')}>
           {waterTypes.map((value) => <option key={value} value={value}>{t(waterLabels[value])}</option>)}
         </select>

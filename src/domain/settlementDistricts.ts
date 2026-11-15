@@ -40,7 +40,7 @@ function clipCell(vertices: Point[], site: Point, neighbor: Point): Point[] {
 }
 
 export function settlementDistricts(settings: SettlementSettings): SettlementDistrict[] {
-  const { centerX, centerY, scale } = settlementFoundation(settings)
+  const { centerX, centerY, scale, waterline } = settlementFoundation(settings)
   const random = seededRandom(settings.seed ^ 0x2f5184b9)
   const radiusX = 124 * scale
   const radiusY = 106 * scale
@@ -63,9 +63,17 @@ export function settlementDistricts(settings: SettlementSettings): SettlementDis
     [centerX + radiusX, centerY + radiusY], [centerX - radiusX, centerY + radiusY],
   ]
 
-  return sites.map((site, index) => ({
-    kind: index === 0 ? 'square' : index <= urbanCount ? 'urban' : 'outskirts',
-    vertices: neighbors.reduce((polygon, neighbor) =>
-      neighbor === site ? polygon : clipCell(polygon, site, neighbor), bounds),
-  }))
+  return sites.flatMap((site, index): SettlementDistrict[] => {
+    let vertices = neighbors.reduce((polygon, neighbor) =>
+      neighbor === site ? polygon : clipCell(polygon, site, neighbor), bounds)
+    if (settings.water === 'river-city') {
+      const river = waterline(centerY)
+      const side = site[0] < river ? -1 : 1
+      const bank = river + side * 16
+      vertices = clipCell(vertices, [bank + side, 0], [bank - side, 0])
+    }
+    return vertices.length >= 3 ? [{
+      kind: index === 0 ? 'square' : index <= urbanCount ? 'urban' : 'outskirts', vertices,
+    }] : []
+  })
 }

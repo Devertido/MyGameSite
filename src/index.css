@@ -1736,7 +1736,7 @@ dl.ability-grid > div {
   width: 100%;
 }
 
-.location-map-select-point svg {
+.location-map-corners {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -1747,8 +1747,25 @@ dl.ability-grid > div {
   stroke-width: 2;
 }
 
-.location-map-select-point circle {
+.location-map-corners circle {
   fill: #893b32;
+}
+
+.location-map-edit-view {
+  position: relative;
+  width: min(100%, 47.5rem);
+}
+
+.location-map-corners .location-map-corner {
+  fill: #f7f0d9;
+  stroke: #75442d;
+  pointer-events: all;
+  touch-action: none;
+  cursor: grab;
+}
+
+.location-map-corners .location-map-corner:active {
+  cursor: grabbing;
 }
 
 .location-map-zoom-sheet {

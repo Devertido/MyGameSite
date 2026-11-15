@@ -2,7 +2,6 @@ import { seededRandom, settlementFoundation, type SettlementSettings } from '../
 
 import type { Point, SettlementDistrict } from '../domain/settlementDistricts'
 import type { BuildingLot } from '../domain/settlementBuildings'
-import type { settlementStreets } from '../domain/settlementStreets'
 import { mapHeight as height, mapWidth as width, type LocationMapPlan } from '../domain/locationMapPlan'
 import { drawLocationMapLabels, type Landmark } from './locationMapLabels'
 import { t } from '../i18n.ts'
@@ -18,7 +17,7 @@ function drawPath(context: CanvasRenderingContext2D, points: Point[], color: str
 export function locationMap({ settings, geometry, markers }: LocationMapPlan, title: string): string | undefined {
   const { mode, terrain, fortified } = settings
   const canvas = document.createElement('canvas')
-  const resolution = mode === 'settlement' ? 2 : 1
+  const resolution = mode === 'settlement' ? 2.3 : 1.4
   canvas.width = width * resolution
   canvas.height = height * resolution
   const context = canvas.getContext('2d')
@@ -29,7 +28,7 @@ export function locationMap({ settings, geometry, markers }: LocationMapPlan, ti
     ...settings, water: settlement ? settings.water : 'river',
   })
   const random = seededRandom(settings.seed ^ 0x75a830fb)
-  const bank = terrain === 'mountains' ? 20 : 27
+  const bank = water === 'river-city' ? 13 : terrain === 'mountains' ? 20 : 27
   const crossing = centerY
   const cityX = (x: number) => centerX + (x - 297) * scale
   const cityY = (y: number) => centerY + (y - 248) * scale
@@ -45,19 +44,87 @@ export function locationMap({ settings, geometry, markers }: LocationMapPlan, ti
     context.fillRect(random() * width, random() * height, 1 + random() * 2, 1)
   }
 
-  // Sketch mountain ridges and woodland outside the settlement and river.
-  for (let index = 0; index < (terrain === 'plains' ? 35 : 94); index++) {
+  const rx = 192 * scale
+  const ry = 162 * scale
+  const island = water === 'island' || water === 'peninsula'
+  const cave = water === 'cave' || water === 'underground'
+  const land = (x: number, y: number) => Math.hypot((x - centerX) / rx, (y - centerY) / ry) <= 1
+  if (island || cave) {
+    context.fillStyle = island ? '#395b68' : water === 'underground' ? '#302d31' : '#4a4037'
+    context.fillRect(0, 0, width, height)
+    if (water === 'peninsula') {
+      context.beginPath()
+      context.moveTo(0, centerY - 77)
+      context.bezierCurveTo(centerX * 0.65, centerY - 75, centerX * 0.6, centerY - 22, centerX, centerY - 47)
+      context.lineTo(centerX, centerY + 48)
+      context.bezierCurveTo(centerX * 0.6, centerY + 20, centerX * 0.5, centerY + 88, 0, centerY + 77)
+      context.fillStyle = parchment
+      context.fill()
+    }
+    const count = 64
+    const edge = Array.from({ length: count }, (_, i): Point => {
+      const a = i / count * Math.PI * 2
+      const r = 1 + Math.sin(a * 7) * 0.034 + Math.cos(a * 11) * 0.025
+      return [centerX + Math.cos(a) * rx * r, centerY + Math.sin(a) * ry * r]
+    })
+    context.beginPath()
+    edge.forEach(([x, y], i) => i ? context.lineTo(x, y) : context.moveTo(x, y))
+    context.closePath()
+    context.fillStyle = cave ? (water === 'underground' ? '#a39279' : '#c3a782') : parchment
+    context.fill()
+    context.strokeStyle = island ? '#8daa9a' : '#75624d'
+    context.lineWidth = cave ? 7 : 3
+    context.stroke()
+    if (cave) {
+      for (let i = 0; i < 110; i++) {
+        const x = 22 + random() * (width - 44)
+        const y = 22 + random() * (height - 44)
+        if (land(x, y)) continue
+        const r = 3 + random() * 10
+        drawPath(context, [[x - r, y + 3], [x, y - r], [x + r, y]], '#89776780', 1)
+      }
+    }
+  }
+
+  if (water === 'gorge') {
+    for (const sign of [-1, 1]) {
+      const rim = (x: number) => centerY + sign * (124 * scale + 8 * Math.sin(x / 42) + 5 * Math.cos(x / 83))
+      const ridge: Point[] = Array.from({ length: 78 }, (_, i) => [i * 10, rim(i * 10)])
+      context.beginPath()
+      ridge.forEach(([x, y], i) => i ? context.lineTo(x, y) : context.moveTo(x, y))
+      context.lineTo(width, sign < 0 ? 0 : height)
+      context.lineTo(0, sign < 0 ? 0 : height)
+      context.closePath()
+      context.fillStyle = '#aa8b68'
+      context.fill()
+      drawPath(context, ridge, '#634c39', 2)
+      for (let x = 7; x < width; x += 9) {
+        const y = rim(x)
+        drawPath(context, [[x, y], [x - 5, y + sign * (12 + random() * 18)]], '#725942', 1.1)
+      }
+    }
+  }
+  // Woodland and ridges are drawn outside the urban footprint.
+  for (let index = 0; index < (terrain === 'forest' ? 275 : terrain === 'mountains' ? 125 : 35); index++) {
     const x = 32 + random() * (width - 64)
     const y = 32 + random() * (height - 64)
-    if ((water === 'river' && Math.abs(x - waterline(y)) < bank + 19) ||
+    if (cave || (island && !land(x, y)) || (['river', 'river-mouth', 'river-city'].includes(water) && Math.abs(x - waterline(y)) < bank + 19) ||
       (water === 'coast' && x > waterline(y) - 19) ||
       (settlement && x > cityX(170) && x < cityX(423) && y > cityY(125) && y < cityY(365)) ||
       Math.abs(y - crossing) < 20) continue
     const size = 5 + random() * 7
     if (terrain === 'mountains') {
-      const peak = size * 1.65
-      drawPath(context, [[x - size, y], [x, y - peak], [x + size, y]], '#765a40', 1.4)
-      drawPath(context, [[x, y - peak], [x + 2, y - 4], [x + size, y]], '#9c7b55', 1)
+      const peak = size * 1.9
+      context.beginPath()
+      context.moveTo(x - size, y)
+      context.lineTo(x, y - peak)
+      context.lineTo(x + size, y)
+      context.closePath()
+      context.fillStyle = '#ab8a69'
+      context.fill()
+      drawPath(context, [[x - size, y], [x, y - peak], [x + size, y]], '#553d30', 1.7)
+      drawPath(context, [[x, y - peak], [x + 1, y - 4], [x + size, y]], '#72543b', 1.2)
+      drawPath(context, [[x - size * 0.32, y - peak * 0.68], [x + 1, y - peak * 0.78], [x + size * 0.36, y - peak * 0.68]], '#efe0c2', 1.3)
     } else {
       context.fillStyle = '#70805a'
       context.beginPath()
@@ -75,10 +142,20 @@ export function locationMap({ settings, geometry, markers }: LocationMapPlan, ti
   })
   context.lineCap = 'round'
   context.lineJoin = 'round'
-  if (water === 'river') {
-    drawPath(context, waterPoints, '#647d7b', bank * 2 + 2)
-    drawPath(context, waterPoints, '#395b68', bank * 2 - 3)
-    drawPath(context, waterPoints.map(([x, y]) => [x - 5, y]), '#6b9296', 2)
+  if (water === 'river' || water === 'river-city' || water === 'river-mouth') {
+    const stream = water === 'river-mouth' ? waterPoints.filter(([, y]) => y <= 448) : waterPoints
+    if (water === 'river-mouth') {
+      context.beginPath()
+      context.ellipse(waterline(445) + 72, 452, 111, 88, 0.24, 0, Math.PI * 2)
+      context.fillStyle = '#395b68'
+      context.fill()
+      context.strokeStyle = '#718e89'
+      context.lineWidth = 3
+      context.stroke()
+    }
+    drawPath(context, stream, '#647d7b', bank * 2 + 2)
+    drawPath(context, stream, '#395b68', bank * 2 - 3)
+    drawPath(context, stream.map(([x, y]) => [x - 5, y]), '#6b9296', 2)
   } else if (water === 'coast') {
     context.beginPath()
     waterPoints.forEach(([x, y], index) => index ? context.lineTo(x, y) : context.moveTo(x, y))
@@ -107,11 +184,16 @@ export function locationMap({ settings, geometry, markers }: LocationMapPlan, ti
       if (a && c) landmarks.push({ kind: 'citadel', label: t('Цитадель'), point: [(a[0] + c[0]) / 2, (a[1] + c[1]) / 2] })
     }
     const east = network.routes.find(({ direction }) => direction === 'east')
-    if (east && water !== 'inland') {
+    if (east && ['river', 'coast', 'river-mouth'].includes(water)) {
       const y = east.gate[1]
-      landmarks.push(water === 'river'
+      landmarks.push(water !== 'coast'
         ? { kind: 'bridge', label: t('Мост'), point: [waterline(y), y] }
         : { kind: 'pier', label: t('Пристань'), point: [waterline(y) + 21, y] })
+    }
+    const crossing = 'crossing' in network ? network.crossing : undefined
+    if (crossing?.west && crossing.east) {
+      const y = (crossing.west.gate[1] + crossing.east.gate[1]) / 2
+      landmarks.push({ kind: 'bridge', label: t('Мост'), point: [waterline(y), y] })
     }
     drawLocationMapLabels(context, title, landmarks)
     for (const { name, vertices } of districts) {
@@ -220,10 +302,13 @@ function drawDistrictLegend(context: CanvasRenderingContext2D) {
 }
 
 function drawSettlementRoutes(
-  context: CanvasRenderingContext2D, network: ReturnType<typeof settlementStreets>, settings: SettlementSettings, fortified: boolean, bank: number,
+  context: CanvasRenderingContext2D, network: NonNullable<LocationMapPlan['geometry']>['network'], settings: SettlementSettings, fortified: boolean, bank: number,
 ) {
   const { interior, routes, walls, towers } = network
-  const { water, waterline } = settlementFoundation(settings)
+  const { water, waterline, centerX, centerY, scale } = settlementFoundation(settings)
+  const enclosed = ['island', 'peninsula', 'cave', 'underground'].includes(water)
+  const ellipseX = (y: number) => 192 * scale * Math.sqrt(Math.max(0, 1 - ((y - centerY) / (162 * scale)) ** 2))
+  const ellipseY = (x: number) => 162 * scale * Math.sqrt(Math.max(0, 1 - ((x - centerX) / (192 * scale)) ** 2))
   for (const segment of interior) {
     drawPath(context, [...segment], '#94704f', 3.5)
     drawPath(context, [...segment], '#f0d8a6', 2)
@@ -231,14 +316,17 @@ function drawSettlementRoutes(
 
   for (const { direction, gate, street } of routes) {
     const [x, y] = gate
-    const east = water === 'coast' ? waterline(y) - 4 : width - 21
+    const east = water === 'coast' ? waterline(y) - 4 : enclosed ? Math.min(width - 21, centerX + ellipseX(y) - 10) : width - 21
     const exits: Record<typeof direction, Point> = {
-      west: [21, y], east: [east, y], north: [x, 21], south: [x, height - 21],
+      west: [enclosed && water !== 'peninsula' ? Math.max(21, centerX - ellipseX(y) + 10) : 21, y],
+      east: [east, y],
+      north: [x, enclosed ? Math.max(21, centerY - ellipseY(x) + 10) : 21],
+      south: [x, enclosed ? Math.min(height - 21, centerY + ellipseY(x) - 10) : height - 21],
     }
     const path = [exits[direction], ...street]
     drawPath(context, path, '#7d603f', 7)
     drawPath(context, path, '#ead1a0', 4.5)
-    if (direction === 'east' && water === 'river') {
+    if (direction === 'east' && (water === 'river' || water === 'river-mouth')) {
       const crossing = waterline(y)
       const bridge: Point[] = [[crossing - bank - 5, y], [crossing + bank + 5, y]]
       drawPath(context, bridge, '#4c3f35', 10)
@@ -250,6 +338,21 @@ function drawSettlementRoutes(
       drawPath(context, [[east + 39, y - 8], [east + 39, y + 8]], '#503d30', 8)
       drawPath(context, [[east + 39, y - 8], [east + 39, y + 8]], '#b2875a', 5)
     }
+  }
+
+  const crossing = 'crossing' in network ? network.crossing : undefined
+  if (crossing?.west && crossing.east) {
+    for (const half of [crossing.west, crossing.east]) {
+      drawPath(context, half.street, '#7d603f', 7)
+      drawPath(context, half.street, '#ead1a0', 4.5)
+    }
+    const [wx, wy] = crossing.west.gate
+    const [ex, ey] = crossing.east.gate
+    const midY = (wy + ey) / 2
+    const span: Point[] = [[wx, wy], [waterline(midY) - bank - 2, midY],
+      [waterline(midY) + bank + 2, midY], [ex, ey]]
+    drawPath(context, span, '#4c3f35', 9)
+    drawPath(context, span, '#d9b88c', 5.5)
   }
 
   if (fortified) {
