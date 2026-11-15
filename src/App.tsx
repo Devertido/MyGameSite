@@ -359,7 +359,12 @@ function App({ backupTools, english, page, eventYear, eventId, characterId, orga
               const ids = new Set(entries.map(({ id }) => id))
               saveSelectedContent((timeline) => ({
                 ...timeline,
-                [kind]: entries,
+                [kind]: kind === 'locations' ? entries.map((entry) => {
+                  const plan = entry.mapPlan
+                  if (!plan?.markers?.some(({ locationId }) => locationId && !ids.has(locationId))) return entry
+                  return { ...entry, mapPlan: { ...plan, markers: plan.markers.map((marker) =>
+                    marker.locationId && !ids.has(marker.locationId) ? { ...marker, locationId: undefined } : marker) } }
+                }) : entries,
                 ...(kind === 'locations' && timeline.organizations ? {
                   organizations: timeline.organizations.map((organization) => organization.locationIds ? {
                     ...organization, locationIds: organization.locationIds.filter((id) => ids.has(id)),

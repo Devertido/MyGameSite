@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
+import { createLocationMapPlan, rerollDistrict, validLocationMapPlan } from '../src/domain/locationMapPlan.ts'
 import { insideDistrict, settlementBuildings } from '../src/domain/settlementBuildings.ts'
 import { settlementStreets } from '../src/domain/settlementStreets.ts'
 import { settlementDistricts } from '../src/domain/settlementDistricts.ts'
@@ -278,4 +279,40 @@ test('Застройка помещается в кварталы, а укреп
   }
   assert.ok(!settlementBuildings(districts, streets, settings, false).some(({ lots }) =>
     lots.some(({ kind }) => kind === 'citadel')))
+})
+
+test('Копия таймлайна переносит изображение, настройки и геометрию локации', () => {
+  const { daysPerYear, ...calendar } = standardYear
+  const mapPlan = createLocationMapPlan({
+    mode: 'settlement', terrain: 'forest', seed: 42, size: 'city', water: 'coast', fortified: true,
+  })
+  const location = { id: 'doren', title: 'Дорэн', summary: '', body: '', mapImage: 'data:image/webp;base64,AAAA', mapPlan }
+  const timeline = {
+    name: 'Арена', startYear: -10, endYear: 100, daysPerYear,
+    calendars: [{ ...calendar, name: 'Основной', era }],
+    locations: [location],
+  }
+  assert.deepEqual(importTimeline(exportTimeline(timeline)).locations[0], location)
+  const badPlan = structuredClone(mapPlan)
+  badPlan.geometry.districts[0].vertices[0][0] = 'bad'
+  assert.throws(() => importTimeline(exportTimeline({ ...timeline, locations: [{ ...location, mapPlan: badPlan }] })))
+  const { mapPlan: _removed, ...olderLocation } = location
+  assert.deepEqual(importTimeline(exportTimeline({ ...timeline, locations: [olderLocation] })).locations[0], olderLocation)
+})
+
+test('Перестройка сохраняет остальные кварталы, улицы и метки', () => {
+  const plan = createLocationMapPlan({
+    mode: 'settlement', terrain: 'forest', seed: 42, size: 'ecumenopolis', water: 'coast', fortified: true,
+  })
+  plan.markers = [{ id: 'tower', name: 'Сторожевая башня', point: [20, 30], locationId: 'tower-location' }]
+  plan.geometry.districts[1].name = 'Медный квартал'
+  const updated = rerollDistrict(plan, 1, 99)
+  assert.equal(plan.geometry.districts.length, 56)
+  assert.notDeepEqual(updated.geometry.blocks[1], plan.geometry.blocks[1])
+  assert.strictEqual(updated.geometry.blocks[0], plan.geometry.blocks[0])
+  assert.deepEqual(updated.geometry.blocks.slice(2), plan.geometry.blocks.slice(2))
+  assert.deepEqual(updated.geometry.districts, plan.geometry.districts)
+  assert.deepEqual(updated.geometry.network, plan.geometry.network)
+  assert.deepEqual(updated.markers, plan.markers)
+  assert.ok(validLocationMapPlan(JSON.parse(JSON.stringify(updated))))
 })

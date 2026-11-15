@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { LocationMapZoom } from './LocationMapZoom'
 import { t } from '../i18n.ts'
 import type { ArchiveEntry } from '../domain/timeline'
 
@@ -17,6 +18,7 @@ export function TimelineLocationMap({ locations = [] }: { locations?: ArchiveEnt
           </div>
           <figcaption>
             <a href={'#lore?section=locations&entry=' + encodeURIComponent(location.id)}>{location.title}</a>
+            {location.mapImage && <LocationMapZoom image={location.mapImage} name={location.title} markers={location.mapPlan?.markers} />}
           </figcaption>
         </figure>
       ) : <p>{t('В справочнике пока нет сохранённых карт локаций.')}</p>}

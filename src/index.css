@@ -1681,3 +1681,96 @@ dl.ability-grid > div {
 .location-map-generator input.location-map-seed {
   width: 12ch;
 }
+
+.timeline-location-map figcaption,
+.location-map-zoom-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.timeline-location-map figcaption {
+  justify-content: space-between;
+}
+
+.location-map-image + button {
+  margin-block-start: 0.5rem;
+}
+
+.location-map-zoom-viewport {
+  width: min(74vw, 42rem);
+  max-height: 60dvh;
+  overflow: auto;
+  margin-block-start: 0.5rem;
+}
+
+.location-map-zoom-viewport img {
+  display: block;
+  height: auto;
+  max-width: none;
+}
+
+.directory-card .bestiary-image {
+  width: min(100%, 24rem);
+  height: auto;
+  aspect-ratio: 1;
+}
+
+.location-map-editor {
+  margin-block: 0.75rem;
+}
+
+.location-map-editor-actions {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-block: 0.5rem;
+}
+
+.location-map-select-point {
+  display: block;
+  position: relative;
+  width: min(100%, 47.5rem);
+  padding: 0;
+}
+
+.location-map-select-point img,
+.location-map-zoom-sheet img {
+  display: block;
+  width: 100%;
+}
+
+.location-map-select-point svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  stroke: #f7f0d9;
+  fill: #bb76556b;
+  stroke-width: 2;
+}
+
+.location-map-select-point circle {
+  fill: #893b32;
+}
+
+.location-map-zoom-sheet {
+  position: relative;
+}
+
+.location-map-pin {
+  position: absolute;
+  transform: translate(-50%, -125%);
+  padding: 0.15rem 0.35rem;
+  border: 1px solid #795e40;
+  border-radius: 0.2rem;
+  background: #f6e7c8;
+  color: #482c23;
+  white-space: nowrap;
+  max-width: 12rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

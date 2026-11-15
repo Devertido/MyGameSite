@@ -1,3 +1,4 @@
+import { validLocationMapPlan } from '../domain/locationMapPlan.ts'
 import { t } from '../i18n.ts'
 import { validAbilityScores } from '../domain/abilities.ts'
 import { validFamily, validLore } from '../domain/lore.ts'
@@ -146,7 +147,7 @@ function parseTimeline(value: unknown): Timeline | null {
     if (entries.some((entry) =>
       entry.chronicleIds?.some((id) => field !== 'chronicles' || id === entry.id || !entries.some((note) => note.id === id)) ||
       entry.characterIds?.some((id) => !characterIds.has(id)) ||
-      (entry.mapImage !== undefined && field !== 'locations') ||
+      ((entry.mapImage !== undefined || entry.mapPlan !== undefined) && field !== 'locations') ||
       (entry.ownerId !== undefined && !characterIds.has(entry.ownerId)) ||
       entry.eventIds?.some((id) => !timeline.events?.some((event) => event.id === id))
     )) return null
@@ -196,6 +197,7 @@ function isArchiveEntry(entry: unknown): entry is ArchiveEntry {
     (!('type' in entry) || typeof entry.type === 'string') &&
     (!('image' in entry) || isStoredImage(entry.image)) &&
     (entry.mapImage === undefined || isStoredImage(entry.mapImage)) &&
+    (entry.mapPlan === undefined || (isStoredImage(entry.mapImage) && validLocationMapPlan(entry.mapPlan))) &&
     (!('rarity' in entry) || typeof entry.rarity === 'string')
 }
 

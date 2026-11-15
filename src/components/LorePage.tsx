@@ -174,7 +174,7 @@ export function LorePage({ timeline, save, initialSection, archive }: { timeline
             {details?.usage && <p className="archive-copy"><strong>{t("Значение и правила ношения")}</strong><br />{details.usage}</p>}
             {typeof entry !== 'string' && 'abilities' in entry && (
               <>
-                {entry.image && <img className="atlas-entry-image" src={entry.image} alt={entry.name} />}
+                {entry.image && <img className="atlas-entry-image bestiary-image" src={entry.image} alt={entry.name} />}
                 {entry.type && <p>{entry.type}</p>}
                 {entry.description && <p className="archive-copy">{entry.description}</p>}
                 <AbilityDetails scores={entry.abilities} />

@@ -1,5 +1,5 @@
 import type { Point, SettlementDistrict } from './settlementDistricts.ts'
-import { seededRandom, type SettlementSettings } from './settlementFoundation.ts'
+import { seededRandom, settlementSizes, type SettlementSettings } from './settlementFoundation.ts'
 
 type Segment = readonly [Point, Point]
 type BuildingKind = 'house' | 'workshop' | 'stall' | 'citadel' | 'courtyard'
@@ -41,7 +41,7 @@ export function settlementBuildings(
   districts: SettlementDistrict[], streets: Segment[], settings: SettlementSettings, fortified: boolean,
 ) {
   const random = seededRandom(settings.seed ^ 0x4db4a32e)
-  const citadel = fortified && settings.size === 'city' ? districts.filter(({ kind }) => kind === 'urban')
+  const citadel = fortified && settlementSizes.indexOf(settings.size) >= 2 ? districts.filter(({ kind }) => kind === 'urban')
     .sort((a, b) => area(b.vertices) - area(a.vertices))[0] : undefined
 
   return districts.map((district, districtIndex) => {

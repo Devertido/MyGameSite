@@ -1,3 +1,4 @@
+import type { LocationMapPlan } from './locationMapPlan.ts'
 import { t } from '../i18n.ts'
 import type { AbilityScores } from './abilities.ts'
 import type { WorldLore } from './lore.ts'
@@ -192,6 +193,7 @@ export function validateOrganization(organization: Organization, timeline: Timel
 
 export type ArchiveEntry = EntryMetadata & {
   mapImage?: string
+  mapPlan?: LocationMapPlan
   chronicleIds?: string[]
   image?: string
   eventIds?: string[]

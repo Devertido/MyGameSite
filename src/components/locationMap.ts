@@ -1,15 +1,11 @@
 import { seededRandom, settlementFoundation, type SettlementSettings } from '../domain/settlementFoundation'
 
-import { settlementDistricts, type Point, type SettlementDistrict } from '../domain/settlementDistricts'
-import { settlementBuildings, type BuildingLot } from '../domain/settlementBuildings'
-import { settlementStreets } from '../domain/settlementStreets'
+import type { Point, SettlementDistrict } from '../domain/settlementDistricts'
+import type { BuildingLot } from '../domain/settlementBuildings'
+import type { settlementStreets } from '../domain/settlementStreets'
+import { mapHeight as height, mapWidth as width, type LocationMapPlan } from '../domain/locationMapPlan'
+import { drawLocationMapLabels, type Landmark } from './locationMapLabels'
 import { t } from '../i18n.ts'
-
-export type MapMode = 'settlement' | 'terrain'
-export type Terrain = 'plains' | 'forest' | 'mountains'
-
-const width = 760
-const height = 500
 
 function drawPath(context: CanvasRenderingContext2D, points: Point[], color: string, width: number) {
   context.beginPath()
@@ -19,12 +15,15 @@ function drawPath(context: CanvasRenderingContext2D, points: Point[], color: str
   context.stroke()
 }
 
-export function locationMap(mode: MapMode, terrain: Terrain, settings: SettlementSettings, fortified: boolean): string | undefined {
+export function locationMap({ settings, geometry, markers }: LocationMapPlan, title: string): string | undefined {
+  const { mode, terrain, fortified } = settings
   const canvas = document.createElement('canvas')
-  canvas.width = width
-  canvas.height = height
+  const resolution = mode === 'settlement' ? 2 : 1
+  canvas.width = width * resolution
+  canvas.height = height * resolution
   const context = canvas.getContext('2d')
   if (!context) return undefined
+  context.scale(resolution, resolution)
   const settlement = mode === 'settlement'
   const { centerX, centerY, scale, waterline, water } = settlementFoundation({
     ...settings, water: settlement ? settings.water : 'river',
@@ -37,8 +36,8 @@ export function locationMap(mode: MapMode, terrain: Terrain, settings: Settlemen
 
 
   const parchment = context.createRadialGradient(360, 240, 80, 370, 240, 470)
-  parchment.addColorStop(0, '#f4e6c4')
-  parchment.addColorStop(1, '#d8bc8a')
+  parchment.addColorStop(0, '#f5e9cc')
+  parchment.addColorStop(1, '#d0b487')
   context.fillStyle = parchment
   context.fillRect(0, 0, width, height)
   for (let index = 0; index < 3300; index++) {
@@ -70,13 +69,15 @@ export function locationMap(mode: MapMode, terrain: Terrain, settings: Settlemen
     }
   }
 
-  const waterPoints: Point[] = []
-  for (let y = -12; y <= height + 12; y += 4) waterPoints.push([waterline(y), y])
+  const waterPoints = geometry?.water ?? Array.from({ length: 132 }, (_, index): Point => {
+    const y = -12 + index * 4
+    return [waterline(y), y]
+  })
   context.lineCap = 'round'
   context.lineJoin = 'round'
   if (water === 'river') {
     drawPath(context, waterPoints, '#647d7b', bank * 2 + 2)
-    drawPath(context, waterPoints, '#426771', bank * 2 - 3)
+    drawPath(context, waterPoints, '#395b68', bank * 2 - 3)
     drawPath(context, waterPoints.map(([x, y]) => [x - 5, y]), '#6b9296', 2)
   } else if (water === 'coast') {
     context.beginPath()
@@ -84,18 +85,14 @@ export function locationMap(mode: MapMode, terrain: Terrain, settings: Settlemen
     context.lineTo(width, height + 12)
     context.lineTo(width, -12)
     context.closePath()
-    context.fillStyle = '#426771'
+    context.fillStyle = '#395b68'
     context.fill()
     drawPath(context, waterPoints, '#718e89', 3)
     drawPath(context, waterPoints.map(([x, y]) => [x + 8, y]), '#6b9296', 1.5)
   }
 
-  if (settlement) {
-    const districts = settlementDistricts(settings)
-    const network = settlementStreets(districts, settings.size === 'city' ? 4 : 3)
-    const mainSegments = network.routes.flatMap(({ street }) => street.slice(1).map((point, index) =>
-      [street[index]!, point] as const))
-    const blocks = settlementBuildings(districts, mainSegments, settings, fortified)
+  if (geometry) {
+    const { districts, network, blocks } = geometry
     drawDistricts(context, districts)
     for (const { lots, alleys } of blocks) {
       for (const alley of alleys) drawPath(context, [...alley], '#e6c99a', 2)
@@ -103,6 +100,41 @@ export function locationMap(mode: MapMode, terrain: Terrain, settings: Settlemen
     }
     drawSettlementRoutes(context, network, settings, fortified, bank)
     drawDistrictLegend(context)
+    const landmarks: Landmark[] = [{ kind: 'market', label: t('Рынок'), point: network.squareCenter }]
+    const citadel = blocks.flatMap(({ lots }) => lots).find(({ kind }) => kind === 'citadel')
+    if (citadel) {
+      const [a, , c] = citadel.footprint
+      if (a && c) landmarks.push({ kind: 'citadel', label: t('Цитадель'), point: [(a[0] + c[0]) / 2, (a[1] + c[1]) / 2] })
+    }
+    const east = network.routes.find(({ direction }) => direction === 'east')
+    if (east && water !== 'inland') {
+      const y = east.gate[1]
+      landmarks.push(water === 'river'
+        ? { kind: 'bridge', label: t('Мост'), point: [waterline(y), y] }
+        : { kind: 'pier', label: t('Пристань'), point: [waterline(y) + 21, y] })
+    }
+    drawLocationMapLabels(context, title, landmarks)
+    for (const { name, vertices } of districts) {
+      if (!name) continue
+      const x = vertices.reduce((sum, point) => sum + point[0], 0) / vertices.length
+      const y = vertices.reduce((sum, point) => sum + point[1], 0) / vertices.length
+      context.font = 'bold 11px Georgia'
+      context.textAlign = 'center'
+      context.lineWidth = 2.5
+      context.strokeStyle = '#f5e9cc'
+      context.strokeText(name, x, y, 96)
+      context.fillStyle = '#392a20'
+      context.fillText(name, x, y, 96)
+    }
+    for (const { point: [x, y] } of markers ?? []) {
+      context.beginPath()
+      context.arc(x, y, 5, 0, Math.PI * 2)
+      context.fillStyle = '#893b32'
+      context.fill()
+      context.lineWidth = 1.5
+      context.strokeStyle = '#fff4db'
+      context.stroke()
+    }
   } else {
     const roads: Point[][] = [
       [[22, crossing + 20], [cityX(167), crossing], [centerX, crossing], [675, crossing], [739, crossing - 28]],
@@ -140,14 +172,17 @@ export function locationMap(mode: MapMode, terrain: Terrain, settings: Settlemen
   context.textAlign = 'center'
   context.fillText('N', 705, 35)
 
-  const image = canvas.toDataURL('image/webp', 0.8)
-  return image.length <= 900_000 && image.startsWith('data:image/') ? image : undefined
+  for (const quality of [0.83, 0.68, 0.5]) {
+    const image = canvas.toDataURL('image/webp', quality)
+    if (image.length <= 900_000 && /^data:image\/(webp|png);base64,/.test(image)) return image
+  }
+  return undefined
 }
 
 const districtStyle = {
-  square: { color: '#d4a556', label: 'Площадь' },
-  urban: { color: '#bf8664', label: 'Городская застройка' },
-  outskirts: { color: '#a5ab7d', label: 'Окраины' },
+  square: { color: '#d4b16b', label: 'Площадь' },
+  urban: { color: '#c99b7d', label: 'Городская застройка' },
+  outskirts: { color: '#a7ab83', label: 'Окраины' },
 } as const
 
 function drawDistricts(context: CanvasRenderingContext2D, districts: SettlementDistrict[]) {

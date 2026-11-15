@@ -2,12 +2,15 @@ import { seededRandom, settlementFoundation, type SettlementSettings } from './s
 
 export type Point = readonly [x: number, y: number]
 type DistrictKind = 'square' | 'urban' | 'outskirts'
-export type SettlementDistrict = { kind: DistrictKind; vertices: Point[] }
+export type SettlementDistrict = { kind: DistrictKind; vertices: Point[]; name?: string }
 
 const rings = {
   village: [4, 5],
   town: [6, 9],
   city: [8, 14],
+  metropolis: [11, 19],
+  megalopolis: [15, 26],
+  ecumenopolis: [21, 34],
 } as const
 
 function clipCell(vertices: Point[], site: Point, neighbor: Point): Point[] {

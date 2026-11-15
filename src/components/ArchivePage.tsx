@@ -1,3 +1,5 @@
+import { LocationMapZoom } from './LocationMapZoom'
+import { validLocationMapPlan } from '../domain/locationMapPlan'
 import { t } from '../i18n.ts'
 import { ObsidianImport } from './ObsidianImport'
 import { LoreLinks } from './LoreLinks'
@@ -46,6 +48,10 @@ export function ArchivePage({ kind, entries, entryId, timeline, save, embedded =
     }
 
     try {
+      const mapImage = location ? read('mapImage') : ''
+      const planText = location ? read('mapPlan') : ''
+      const mapPlan: unknown = planText ? JSON.parse(planText) : undefined
+      if (mapPlan !== undefined && !validLocationMapPlan(mapPlan)) throw new Error(t('Не удалось сохранить запись.'))
       const entry = {
         ...readEntryMetadata(fields),
         id: original?.id ?? crypto.randomUUID(),
@@ -54,7 +60,7 @@ export function ArchivePage({ kind, entries, entryId, timeline, save, embedded =
         body: read('body'),
         ...(chronicle
           ? { chronicleIds: original?.chronicleIds, eventIds: fields.getAll('events').map(String), characterIds: fields.getAll('characters').map(String) }
-          : location ? { type: read('type'), image: read('image') || undefined, mapImage: read('mapImage') || undefined }
+          : location ? { type: read('type'), image: read('image') || undefined, mapImage: mapImage || undefined, mapPlan: mapImage ? mapPlan : undefined }
           : { type: read('type'), rarity: read('rarity'), ownerId: read('ownerId') || undefined, image: read('image') || undefined }),
       }
       save(original ? entries.map((item) => item.id === original.id ? entry : item) : [...entries, entry])
@@ -85,7 +91,7 @@ export function ArchivePage({ kind, entries, entryId, timeline, save, embedded =
             {!chronicle && (
               <>
                 <ImageField name="image" label={location ? t("Изображение локации") : t("Изображение предмета")} initial={original?.image} />
-                {location && <ImageField name="mapImage" label={t("Карта локации")} initial={original?.mapImage} generateMap />}
+                {location && <ImageField name="mapImage" label={t("Карта локации")} initial={original?.mapImage} initialMapPlan={original?.mapPlan} mapLocations={entries.filter(({ id }) => id !== original?.id)} generateMap />}
                 <label>{t("Тип")}<input name="type" defaultValue={original?.type} placeholder={location ? t("Город, крепость, регион") : t("Оружие, броня, артефакт")} /></label>
                 {!location && <label>{t("Редкость")}<select name="rarity" defaultValue={original?.rarity ?? rarities[0]}>
                   {rarities.map((rarity) => <option key={rarity} value={rarity}>{t(rarity)}</option>)}
@@ -138,6 +144,7 @@ export function ArchivePage({ kind, entries, entryId, timeline, save, embedded =
               {location && selected.mapImage && <section>
                 <h3>{t('Карта локации')}</h3>
                 <img className="location-map-image" src={selected.mapImage} alt={t('Карта локации') + ' · ' + selected.title} />
+                <LocationMapZoom image={selected.mapImage} name={selected.title} markers={selected.mapPlan?.markers} />
               </section>}
               <EntryStatusLabel entry={selected} />
               <EntryGallery key={selected.id} entry={selected} />
