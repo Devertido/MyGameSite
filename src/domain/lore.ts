@@ -29,7 +29,9 @@ export function isGlossarySection(value: unknown): value is GlossarySection {
 export const spellComponents = ['Слово', 'Реагент', 'Жест'] as const
 export type SpellComponent = typeof spellComponents[number]
 export type SpellDetails = { name: string; image: string; mana: number | null; components: SpellComponent[] }
-export type RaceDetails = { name: string; image: string; lifespan: string; height: string; size: string; bonuses: string; debuffs: string }
+export type RaceDetails = { name: string; image: string; lifespan: string; height: string; size: string; bonuses: string; debuffs: string;
+  abilityBonuses?: AbilityScores; abilityPenalties?: AbilityScores
+}
 
 export const surnameOrigins = ['', 'От места', 'От рода', 'От ремесла', 'От прозвища', 'Пожалованная', 'Другое'] as const
 export type SurnameDetails = {
@@ -138,7 +140,8 @@ export function validLore(value: unknown, timeline: Timeline): value is WorldLor
     strings(entry.components) && entry.components.every((component) => spellComponents.some((item) => item === component)) &&
     new Set(entry.components).size === entry.components.length)) return false
   if (!validDetails(value.raceDetails, value.races, (entry) =>
-    [entry.lifespan, entry.height, entry.size, entry.bonuses, entry.debuffs].every((item) => typeof item === 'string'))) return false
+    [entry.lifespan, entry.height, entry.size, entry.bonuses, entry.debuffs].every((item) => typeof item === 'string') &&
+    [entry.abilityBonuses, entry.abilityPenalties].every((scores) => scores === undefined || validAbilityScores(scores)))) return false
   const targets = new Map(linkKinds.map((kind) => [kind, new Set(loreTargets(timeline, kind).map(({ id }) => id))]))
   const known = (kind: LinkKind, id: unknown) => typeof id === 'string' && targets.get(kind)?.has(id)
   function records(items: unknown, valid: (item: Record<string, unknown>) => unknown) {
@@ -210,4 +213,9 @@ export function validFamily(characters: NonNullable<Timeline['characters']>): bo
     }
   }
   return roots.length === characters.length
+}
+
+export function raceDetailsFor(lore: WorldLore | undefined, name?: string) {
+  const key = name?.trim().toLocaleLowerCase('ru')
+  return lore?.raceDetails?.find((race) => race.name.toLocaleLowerCase('ru') === key)
 }

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
+import { adjustedAbilities, validAbilityScores } from '../src/domain/abilities.ts'
 import { standardYear, validateMonths, validateWeek } from '../src/domain/calendar.ts'
 import { toCalendarYear } from '../src/domain/calendarYear.ts'
 import { calendarDay, eventDays, validateEvent, validateTimelineBounds } from '../src/domain/timeline.ts'
@@ -178,4 +179,16 @@ test('Периоды проходят через системный год 0 и 
   assert.match(validateEvent({ ...event, end: { year: 2 } }, bounds), /пределах/)
   assert.match(validateEvent({ ...event, date: { first: 366, last: 366 } }, bounds), /пределах/)
   assert.match(validateEvent({ ...event, end: null }, bounds), /пределах/)
+})
+
+test('Расовые поправки ограничивают итог от 0 до 30 и сохраняют базовые статы', () => {
+  const base = { strength: 29, wisdom: 0, charisma: 0 }
+  const bonuses = { strength: 3, constitution: 2, charisma: 2 }
+  const penalties = { wisdom: 2, charisma: 1 }
+  assert.equal(validAbilityScores(base), true)
+  assert.equal(validAbilityScores({ strength: -1 }), false)
+  assert.equal(validAbilityScores({ strength: 31 }), false)
+  assert.deepEqual(adjustedAbilities(base, bonuses, penalties),
+    { strength: 30, constitution: 12, wisdom: 0, charisma: 1 })
+  assert.deepEqual(adjustedAbilities(base), { strength: 29, wisdom: 0, charisma: 0 })
 })

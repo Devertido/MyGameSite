@@ -1,14 +1,33 @@
-import { abilities, type AbilityScores } from '../domain/abilities'
+import { useState } from 'react'
+import { abilities, adjustedAbilities, type AbilityScores } from '../domain/abilities'
+import type { RaceDetails } from '../domain/lore'
 
-export function AbilityFields({ scores }: { scores?: AbilityScores }) {
+export function AbilityFields({ scores, race, prefix = 'ability-', label = 'Характеристики D&D' }: {
+  scores?: AbilityScores
+  race?: RaceDetails
+  prefix?: string
+  label?: string
+}) {
+  const [base, setBase] = useState(scores ?? {})
+  const totals = adjustedAbilities(base, race?.abilityBonuses, race?.abilityPenalties)
+  const hasAdjustments = abilities.some(([key]) => race?.abilityBonuses?.[key] || race?.abilityPenalties?.[key])
   return (
     <fieldset>
-      <legend>Характеристики D&D</legend>
+      <legend>{label}</legend>
+      {hasAdjustments && <p>Введите базовые значения. Для пустого поля с расовой поправкой берётся 10.</p>}
       <div className="ability-grid">
-        {abilities.map(([key, label]) => (
-          <label key={key}>{label}<input name={'ability-' + key} type="number" min={1} max={30}
-            defaultValue={scores?.[key]} /></label>
-        ))}
+        {abilities.map(([key, name]) => {
+          const bonus = race?.abilityBonuses?.[key] ?? 0
+          const penalty = race?.abilityPenalties?.[key] ?? 0
+          return <div key={key}>
+            <label>{name}<input name={prefix + key} type="number" min={0} max={30}
+              defaultValue={scores?.[key]} placeholder={bonus || penalty ? "10" : undefined} onChange={(event) => {
+                const value = event.currentTarget.valueAsNumber
+                setBase((current) => ({ ...current, [key]: Number.isNaN(value) ? undefined : value }))
+              }} /></label>
+            {(bonus > 0 || penalty > 0) && <output>Итого {totals[key]} ({[bonus && '+' + bonus, penalty && '−' + penalty].filter(Boolean).join(' ')})</output>}
+          </div>
+        })}
       </div>
     </fieldset>
   )

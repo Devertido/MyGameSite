@@ -1,9 +1,9 @@
 import { AbilityDetails, AbilityFields } from './AbilityScores'
-import { readAbilityScores } from '../domain/abilities'
+import { adjustedAbilities, readAbilityScores } from '../domain/abilities'
 import { RelativePicker } from './RelativePicker'
 import { FamilyTree } from './FamilyTree'
 import { LoreLinks } from './LoreLinks'
-import { glossaryDescription, surnameTooltip, validFamily } from '../domain/lore'
+import { glossaryDescription, raceDetailsFor, surnameTooltip, validFamily } from '../domain/lore'
 import { EntryFields, EntryGallery, EntryStatusLabel, readEntryMetadata, useStatusMatch } from './EntryMedia'
 import { CreationDialog } from './CreationDialog'
 import { EditIcon } from './EditIcon'
@@ -31,6 +31,7 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
   const characters = timeline.characters ?? []
   const matchesStatus = useStatusMatch()
   const [draft, setDraft] = useState<TimelineCharacter | 'new' | null>(null)
+  const [draftRace, setDraftRace] = useState('')
   const [deleting, setDeleting] = useState<TimelineCharacter | null>(null)
   const [error, setError] = useState('')
   const [sort, setSort] = useState<{ key: typeof columns[number]['key']; descending: boolean }>({
@@ -47,6 +48,11 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
   const original = draft === 'new' ? null : draft
   const months = timeline.calendars[0].months
   const busy = draft !== null || deleting !== null
+
+  function editCharacter(character: TimelineCharacter | 'new') {
+    setDraftRace(character === 'new' ? '' : character.race ?? '')
+    setDraft(character)
+  }
 
   function cancel() {
     setDraft(null)
@@ -136,9 +142,9 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
                 title={surnameTooltip(timeline, original?.surname)}
                 onInput={(event) => { event.currentTarget.title = surnameTooltip(timeline, event.currentTarget.value) ?? '' }} /></label>
             </div>
-            <p><label>Раса<br /><input name="race" list="lore-races" defaultValue={original?.race}
-                title={glossaryDescription(timeline.lore, 'races', original?.race)}
-                onInput={(event) => { event.currentTarget.title = glossaryDescription(timeline.lore, 'races', event.currentTarget.value) ?? '' }} /></label></p>
+            <p><label>Раса<br /><input name="race" list="lore-races" value={draftRace}
+                title={glossaryDescription(timeline.lore, 'races', draftRace)}
+                onChange={(event) => setDraftRace(event.currentTarget.value)} /></label></p>
             <p><label>Династия<br /><input name="dynasty" list="lore-dynasties" defaultValue={original?.dynasty}
                 title={glossaryDescription(timeline.lore, 'dynasties', original?.dynasty)}
                 onInput={(event) => { event.currentTarget.title = glossaryDescription(timeline.lore, 'dynasties', event.currentTarget.value) ?? '' }} /></label></p>
@@ -172,7 +178,7 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
             <CharacterDateFields prefix="death" label="Дата смерти" months={months} initial={original?.death} />
             <ImageField name="portrait" allowGif label="Вертикальный портрет" initial={original?.portrait} />
             <EntryFields entry={original} />
-            <AbilityFields scores={original?.abilities} />
+            <AbilityFields scores={original?.abilities} race={raceDetailsFor(timeline.lore, draftRace)} />
             <p><label>Описание<br /><textarea name="description" rows={4} defaultValue={original?.description} /></label></p>
             <p><label>Биография<br /><textarea name="biography" rows={8} defaultValue={original?.biography} /></label></p>
             <p><label>Цвет персонажа <input name="color" type="color" defaultValue={original?.color ?? '#174b43'} /></label></p>
@@ -198,6 +204,7 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
         <ul className="event-list">
           {(selected ? [selected] : []).map((character) => {
             const fullName = [character.name, character.surname].filter(Boolean).join(' ')
+            const raceDetails = raceDetailsFor(timeline.lore, character.race)
             const lifespan = character.birth && character.death ? formatLifespan(character.birth, character.death) : null
             const events = (timeline.events ?? []).filter(({ characterIds }) => characterIds?.includes(character.id))
             return (
@@ -209,7 +216,7 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
                   <div className="character-summary">
                     <div className="character-heading">
                       {character.color && <span className="atlas-color" style={{ backgroundColor: character.color }} aria-hidden="true" />}
-                      <button className="event-action" type="button" disabled={busy} onClick={() => setDraft(character)} aria-label="Редактировать" title="Редактировать"><EditIcon /></button>
+                      <button className="event-action" type="button" disabled={busy} onClick={() => editCharacter(character)} aria-label="Редактировать" title="Редактировать"><EditIcon /></button>
                       <button className="event-action" type="button" disabled={busy} onClick={() => setDeleting(character)} aria-label="Удалить персонажа" title="Удалить персонажа"><TrashIcon /></button>
                       <button className="family-tree-button" type="button" onClick={() => { window.location.hash = 'characters?character=' + encodeURIComponent(character.id) + '&family=1' }}>Родословная</button>
                     </div>
@@ -230,7 +237,7 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
                     {character.description && <p>{character.description}</p>}
                   </div>
                 </div>
-                <AbilityDetails scores={character.abilities} />
+                <AbilityDetails scores={adjustedAbilities(character.abilities, raceDetails?.abilityBonuses, raceDetails?.abilityPenalties)} />
                 {character.birth && (
                   <p>Дата рождения · {calendarDay(months, character.birth.dayOfYear)} · {character.birth.year} г. системы</p>
                 )}
@@ -288,7 +295,7 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
         </ul>
         <section className="directory-table" aria-labelledby="character-directory-title">
           <div className="directory-actions">
-          {!deleting && <button type="button" onClick={() => setDraft('new')}>Добавить персонажа</button>}
+          {!deleting && <button type="button" onClick={() => editCharacter('new')}>Добавить персонажа</button>}
           </div>
           <h2 id="character-directory-title">Все персонажи</h2>
           <div className="directory-table-scroll">

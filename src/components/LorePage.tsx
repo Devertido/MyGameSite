@@ -109,6 +109,8 @@ export function LorePage({ timeline, save, initialSection, items }: { timeline: 
         next.raceDetails = [...(lore.raceDetails ?? []).filter((entry) => entry.name !== editing), {
           name, image: read('lore-image'), lifespan: read('lifespan'), height: read('height'),
           size: read('size'), bonuses: read('bonuses'), debuffs: read('debuffs'),
+          abilityBonuses: readAbilityScores(data, 'race-bonus-'),
+          abilityPenalties: readAbilityScores(data, 'race-penalty-'),
         }]
       }
       setSelectedId(name)
