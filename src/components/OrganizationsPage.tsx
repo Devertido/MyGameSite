@@ -61,7 +61,6 @@ export function OrganizationsPage({ timeline, save, organizationId }: {
       <h1>Фракции и организации</h1>
       <p>{timeline.name}</p>
       {organizationId !== undefined && !selected && <p>Организация не найдена.</p>}
-      {!deleting && <button type="button" onClick={() => setDraft('new')}>Создать организацию</button>}
       {draft !== null && (
         <CreationDialog onCancel={() => { setDraft(null); setError('') }}>
           <form onSubmit={submit} onInput={() => setError('')}>
@@ -106,7 +105,7 @@ export function OrganizationsPage({ timeline, save, organizationId }: {
       <div className="directory-layout">
         <section aria-label="Выбранная организация">
           {selected && (
-            <article>
+            <article className="directory-card">
               {selected.emblem && <img className="atlas-entry-image organization-emblem" src={selected.emblem} alt={'Эмблема · ' + selected.name} />}
               <h2><span className="atlas-color" style={{ backgroundColor: selected.color ?? defaultOrganizationColor }} aria-hidden="true" />{selected.name}</h2>
               <p>{selected.type} · {selected.startYear} — {selected.endYear ?? 'год окончания не указан'}</p>
@@ -162,31 +161,32 @@ export function OrganizationsPage({ timeline, save, organizationId }: {
             </article>
           )}
         </section>
-        {organizations.length > 0 && (
-          <section className="directory-table" aria-labelledby="organization-directory-title">
-            <h2 id="organization-directory-title">Все организации</h2>
-            <div className="directory-table-scroll">
-              <table>
-                <thead>
-                  <tr><th scope="col">Название</th><th scope="col">Тип</th><th scope="col">Годы существования</th></tr>
-                </thead>
-                <tbody>
-                  {organizations.filter(matchesStatus).map(({ id, name, type, startYear, endYear, color }) => (
-                    <tr key={id} data-selected={id === selected?.id}>
-                      <td>
-                        <span className="atlas-color" style={{ backgroundColor: color ?? defaultOrganizationColor }} aria-hidden="true" />
-                        <a href={'#organizations?organization=' + encodeURIComponent(id)}
-                          aria-current={id === selected?.id ? 'true' : undefined}>{name}</a>
-                      </td>
-                      <td>{type}</td>
-                      <td>{startYear} — {endYear ?? '…'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        )}
+        <section className="directory-table" aria-labelledby="organization-directory-title">
+          <div className="directory-actions">
+          {!deleting && <button type="button" onClick={() => setDraft('new')}>Создать организацию</button>}
+          </div>
+          <h2 id="organization-directory-title">Все организации</h2>
+          <div className="directory-table-scroll">
+            <table>
+              <thead>
+                <tr><th scope="col">Название</th><th scope="col">Тип</th><th scope="col">Годы существования</th></tr>
+              </thead>
+              <tbody>
+                {organizations.filter(matchesStatus).map(({ id, name, type, startYear, endYear, color }) => (
+                  <tr key={id} data-selected={id === selected?.id}>
+                    <td>
+                      <span className="atlas-color" style={{ backgroundColor: color ?? defaultOrganizationColor }} aria-hidden="true" />
+                      <a href={'#organizations?organization=' + encodeURIComponent(id)}
+                        aria-current={id === selected?.id ? 'true' : undefined}>{name}</a>
+                    </td>
+                    <td>{type}</td>
+                    <td>{startYear} — {endYear ?? '…'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
       </div>
       {deleting && (
         <dialog open className="card-delete-dialog" aria-labelledby="card-delete-title">

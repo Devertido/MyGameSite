@@ -1,4 +1,5 @@
 import { useRef, useState, type ChangeEvent } from 'react'
+import { prepareImage } from './prepareImage'
 
 export function ImageField({ name, label, initial, allowGif = false }: {
   name: string; label: string; initial?: string; allowGif?: boolean
@@ -30,29 +31,15 @@ export function ImageField({ name, label, initial, allowGif = false }: {
         if (current === revision.current) setImage(image)
         return
       }
-      if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type) || file.size > 10 * 1024 * 1024) {
-        throw new Error('Выберите PNG, JPEG или WebP размером до 10 МБ.')
-      }
-      const bitmap = await createImageBitmap(file)
-      try {
-        const scale = Math.min(1, 384 / Math.max(bitmap.width, bitmap.height))
-        const canvas = document.createElement('canvas')
-        canvas.width = Math.max(1, Math.round(bitmap.width * scale))
-        canvas.height = Math.max(1, Math.round(bitmap.height * scale))
-        const context = canvas.getContext('2d')
-        if (!context) throw new Error('Не удалось обработать изображение.')
-        context.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
-        if (current === revision.current) setImage(canvas.toDataURL('image/webp', 0.82))
-      } finally {
-        bitmap.close()
-      }
+      const prepared = await prepareImage(file)
+      if (current === revision.current) setImage(prepared)
     } catch (error) {
       if (current === revision.current) {
         setError(error instanceof DOMException ? 'Не удалось открыть изображение.'
           : error instanceof Error ? error.message : 'Не удалось обработать изображение.')
       }
     } finally {
-      if (current === revision.current) input.setCustomValidity('')
+      input.setCustomValidity('')
     }
   }
 
@@ -63,10 +50,11 @@ export function ImageField({ name, label, initial, allowGif = false }: {
       {allowGif && <small> GIF до 650 КБ</small>}
       <input type="hidden" name={name} value={image} />
       {image && (
-        <p>
-          <img className="atlas-entry-image" src={image} alt="Предпросмотр" />{' '}
-          <button type="button" onClick={() => setImage('')}>Убрать изображение</button>
-        </p>
+        <div className="image-preview">
+          <img className="atlas-entry-image" src={image} alt="Предпросмотр" />
+          <button className="image-remove" type="button" aria-label="Убрать изображение" title="Убрать изображение"
+            onClick={() => { revision.current++; setImage(''); setError('') }}>×</button>
+        </div>
       )}
       {error && <p role="alert">{error}</p>}
     </fieldset>

@@ -67,12 +67,6 @@ export function ArchivePage({ kind, entries, entryId, timeline, save }: {
       {entryId !== undefined && <p><a href={'#' + kind}>{!location && <span aria-hidden="true">← </span>}
         {location ? 'Все локации' : chronicle ? 'Назад к летописям' : 'Назад к предметам'}
       </a></p>}
-      {(
-        <div className="timeline-controls">
-          <button type="button" onClick={() => setDraft('new')}>{location ? 'Добавить локацию' : chronicle ? 'Создать летопись' : 'Добавить предмет'}</button>
-        </div>
-      )}
-      {chronicle && <button type="button" onClick={() => setImporting(true)}>Импорт из Obsidian</button>}
       {importing && <ObsidianImport onClose={() => setImporting(false)}
         onImport={(imported) => {
           save([...entries, ...imported])
@@ -176,37 +170,39 @@ export function ArchivePage({ kind, entries, entryId, timeline, save }: {
           {entryId !== undefined && !selected && <p>Запись не найдена в выбранном таймлайне.</p>}
           {entries.length === 0 && <p>{location ? 'Здесь пока нет локаций.' : chronicle ? 'Здесь пока нет летописей.' : 'Здесь пока нет предметов.'}</p>}
         </section>
-        {entries.length > 0 && (
-          <section className="directory-table" aria-label={title}>
-            <label>Поиск <input type="search" value={query} onChange={(event) => setQuery(event.currentTarget.value)} /></label>
-            {matches.length ? (
-              <div className="directory-table-scroll">
-                <table>
-                  <thead>
-                    <tr>
-                      <th scope="col">Название</th>
-                      {!chronicle && <th scope="col">Тип</th>}
-                      {kind === 'items' && <th scope="col">Редкость</th>}
-                      <th scope="col">Краткое описание</th>
+        <section className="directory-table" aria-label={title}>
+          <div className="directory-actions">
+            <button type="button" onClick={() => setDraft('new')}>{location ? 'Добавить локацию' : chronicle ? 'Создать летопись' : 'Добавить предмет'}</button>
+            {chronicle && <button type="button" onClick={() => setImporting(true)}>Импорт из Obsidian</button>}
+          </div>
+          {entries.length > 0 && <label>Поиск <input type="search" value={query} onChange={(event) => setQuery(event.currentTarget.value)} /></label>}
+          {matches.length ? (
+            <div className="directory-table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th scope="col">Название</th>
+                    {!chronicle && <th scope="col">Тип</th>}
+                    {kind === 'items' && <th scope="col">Редкость</th>}
+                    <th scope="col">Краткое описание</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {matches.map((entry) => (
+                    <tr key={entry.id} data-selected={entry.id === selected?.id}>
+                      <td><a href={'#' + kind + '?entry=' + encodeURIComponent(entry.id)}
+                        aria-current={entry.id === selected?.id ? 'true' : undefined}
+                        onClick={() => { setDeleting(null); setError('') }}>{entry.title}</a></td>
+                      {!chronicle && <td>{entry.type || '—'}</td>}
+                      {kind === 'items' && <td>{entry.rarity || '—'}</td>}
+                      <td>{entry.summary || '—'}</td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {matches.map((entry) => (
-                      <tr key={entry.id} data-selected={entry.id === selected?.id}>
-                        <td><a href={'#' + kind + '?entry=' + encodeURIComponent(entry.id)}
-                          aria-current={entry.id === selected?.id ? 'true' : undefined}
-                          onClick={() => { setDeleting(null); setError('') }}>{entry.title}</a></td>
-                        {!chronicle && <td>{entry.type || '—'}</td>}
-                        {kind === 'items' && <td>{entry.rarity || '—'}</td>}
-                        <td>{entry.summary || '—'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : <p>По этому запросу ничего не найдено.</p>}
-          </section>
-        )}
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : entries.length > 0 && <p>По этому запросу ничего не найдено.</p>}
+        </section>
       </div>
       {deleting && (
         <dialog open className="card-delete-dialog" aria-labelledby="card-delete-title">

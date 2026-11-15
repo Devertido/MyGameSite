@@ -123,7 +123,6 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
       <h1>Персонажи</h1>
       <p>{timeline.name}</p>
       {characterId !== undefined && !characters.some(({ id }) => id === characterId) && <p>Персонаж не найден.</p>}
-      {!deleting && <button type="button" onClick={() => setDraft('new')}>Добавить персонажа</button>}
       {draft !== null && (
         <CreationDialog onCancel={cancel}>
           <form onSubmit={submit} onInput={() => setError('')}>
@@ -197,7 +196,7 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
             const fullName = [character.name, character.surname].filter(Boolean).join(' ')
             const events = (timeline.events ?? []).filter(({ characterIds }) => characterIds?.includes(character.id))
             return (
-              <li key={character.id}>
+              <li key={character.id} className="directory-card">
                 <div className="character-overview">
                   {character.portrait && (
                     <img className="character-portrait" src={character.portrait} alt={fullName} loading="lazy" />
@@ -277,43 +276,44 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
             )
           })}
         </ul>
-        {characters.length > 0 && (
-          <section className="directory-table" aria-labelledby="character-directory-title">
-            <h2 id="character-directory-title">Все персонажи</h2>
-            <div className="directory-table-scroll">
-              <table>
-                <thead>
-                  <tr>{columns.map(({ key, title }) => (
-                    <th key={key} scope="col" aria-sort={sort.key === key
-                      ? sort.descending ? 'descending' : 'ascending'
-                      : undefined}>
-                      <button type="button" onClick={() => setSort({
-                        key, descending: sort.key === key && !sort.descending,
-                      })}>
-                        {title}{sort.key === key && <span aria-hidden="true">{sort.descending ? ' ↓' : ' ↑'}</span>}
-                      </button>
-                    </th>
-                  ))}</tr>
-                </thead>
-                <tbody>
-                  {sortedCharacters.map((character) => (
-                    <tr key={character.id} data-selected={character.id === selected?.id}>
-                      <td>
-                        <a href={'#characters?character=' + encodeURIComponent(character.id)}
-                          aria-current={character.id === selected?.id ? 'true' : undefined} onClick={cancel}>
-                          {character.name}
-                        </a>
-                      </td>
-                      <td><span title={glossaryDescription(timeline.lore, 'surnames', character.surname)}>{character.surname || '—'}</span></td>
-                      <td><span title={glossaryDescription(timeline.lore, 'races', character.race)}>{character.race || '—'}</span></td>
-                      <td>{character.sex || '—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        )}
+        <section className="directory-table" aria-labelledby="character-directory-title">
+          <div className="directory-actions">
+          {!deleting && <button type="button" onClick={() => setDraft('new')}>Добавить персонажа</button>}
+          </div>
+          <h2 id="character-directory-title">Все персонажи</h2>
+          <div className="directory-table-scroll">
+            <table>
+              <thead>
+                <tr>{columns.map(({ key, title }) => (
+                  <th key={key} scope="col" aria-sort={sort.key === key
+                    ? sort.descending ? 'descending' : 'ascending'
+                    : undefined}>
+                    <button type="button" onClick={() => setSort({
+                      key, descending: sort.key === key && !sort.descending,
+                    })}>
+                      {title}{sort.key === key && <span aria-hidden="true">{sort.descending ? ' ↓' : ' ↑'}</span>}
+                    </button>
+                  </th>
+                ))}</tr>
+              </thead>
+              <tbody>
+                {sortedCharacters.map((character) => (
+                  <tr key={character.id} data-selected={character.id === selected?.id}>
+                    <td>
+                      <a href={'#characters?character=' + encodeURIComponent(character.id)}
+                        aria-current={character.id === selected?.id ? 'true' : undefined} onClick={cancel}>
+                        {character.name}
+                      </a>
+                    </td>
+                    <td><span title={glossaryDescription(timeline.lore, 'surnames', character.surname)}>{character.surname || '—'}</span></td>
+                    <td><span title={glossaryDescription(timeline.lore, 'races', character.race)}>{character.race || '—'}</span></td>
+                    <td>{character.sex || '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
       </div>
       {familyOpen && selected && <FamilyTree character={selected} characters={characters} onClose={() => {
         window.location.hash = 'characters?character=' + encodeURIComponent(selected.id)

@@ -574,6 +574,25 @@ button:focus-visible {
   margin: 0;
 }
 
+.directory-layout .directory-card {
+  box-sizing: border-box;
+  min-width: 0;
+  padding: clamp(1rem, 2vw, 1.5rem);
+  border: 1px solid #b9cbc6;
+  border-radius: 0.75rem;
+  background: #fff;
+  box-shadow: 0 2px 8px rgb(23 75 67 / 8%);
+  overflow-wrap: anywhere;
+}
+
+.directory-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-block-end: 0.875rem;
+}
+
 .directory-table {
   min-width: 0;
   padding-inline-start: 1.25rem;
@@ -1121,9 +1140,77 @@ button.event-action:hover:enabled {
   object-fit: contain;
 }
 
+.gallery-editor {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
 .gallery-editor-row {
-  padding-block: 0.75rem;
-  border-bottom: 1px solid #a2b9b3;
+  display: grid;
+  gap: 0.4rem;
+  width: min(9rem, 100%);
+}
+
+.image-preview {
+  position: relative;
+  width: fit-content;
+  max-width: 100%;
+  margin-block: 0.5rem;
+}
+
+.image-preview .image-remove,
+.gallery-editor .gallery-add {
+  display: grid;
+  place-items: center;
+  padding: 0;
+  line-height: 1;
+}
+
+.image-preview .image-remove {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.25rem;
+  width: 1.75rem;
+  height: 1.75rem;
+  background: #a62b35;
+  color: #fff;
+  font-size: 1.25rem;
+}
+
+.image-preview .image-remove:hover {
+  background: #7e1e26;
+}
+
+.gallery-editor .gallery-add {
+  width: 3rem;
+  height: 3rem;
+  background: #237143;
+  color: #fff;
+  font-size: 1.75rem;
+}
+
+.gallery-editor .gallery-add:hover:enabled {
+  background: #185731;
+}
+
+.gallery-order {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.gallery-order button {
+  padding: 0.2rem 0.55rem;
+}
+
+.gallery-file-picker {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .obsidian-preview {

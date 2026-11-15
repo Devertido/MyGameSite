@@ -1,7 +1,7 @@
-import { createContext, useContext, useId, useState } from 'react'
+import { createContext, useContext, useId, useRef, useState, type ChangeEvent } from 'react'
 import type { EntryMetadata, EntryStatus, GalleryImage } from '../domain/timeline'
 import { CreationDialog } from './CreationDialog'
-import { ImageField } from './ImageField'
+import { prepareImage } from './prepareImage'
 
 export const StatusFilter = createContext<EntryStatus | 'all'>('all')
 
@@ -24,6 +24,38 @@ export function EntryFields({ entry }: { entry?: EntryMetadata | null }) {
     id: crypto.randomUUID(), ...image,
   })))
 
+  const filePicker = useRef<HTMLInputElement>(null)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+
+  async function addImages(event: ChangeEvent<HTMLInputElement>) {
+    const input = event.currentTarget
+    const files = Array.from(input.files ?? [])
+    if (!files.length) return
+
+    input.value = ''
+    input.setCustomValidity('Дождитесь обработки изображений.')
+    setBusy(true)
+    setError('')
+    const added: typeof rows = []
+    const failed: string[] = []
+    try {
+      for (const file of files) {
+        try {
+          const image = await prepareImage(file)
+          added.push({ id: crypto.randomUUID(), image, caption: '' })
+        } catch {
+          failed.push(file.name)
+        }
+      }
+      setRows((current) => [...current, ...added])
+      if (failed.length) setError('Не удалось добавить: ' + failed.join(', ') + '. Выберите PNG, JPEG или WebP до 10 МБ.')
+    } finally {
+      input.setCustomValidity('')
+      setBusy(false)
+    }
+  }
+
   function move(index: number, offset: number) {
     setRows((current) => {
       const next = [...current]
@@ -44,19 +76,33 @@ export function EntryFields({ entry }: { entry?: EntryMetadata | null }) {
       </select></label></p>
       <fieldset>
         <legend>Галерея</legend>
-        {rows.map((row, index) => (
-          <div key={row.id} className="gallery-editor-row">
-            <input type="hidden" name="gallery-row" value={row.id} />
-            <ImageField name={'gallery-image-' + row.id} label="Изображение" initial={row.image} />
-            <p><label>Подпись <input name={'gallery-caption-' + row.id} defaultValue={row.caption} /></label></p>
-            <button type="button" disabled={index === 0} onClick={() => move(index, -1)}>Выше</button>{' '}
-            <button type="button" disabled={index === rows.length - 1} onClick={() => move(index, 1)}>Ниже</button>{' '}
-            <button type="button" onClick={() => setRows((current) => current.filter(({ id }) => id !== row.id))}>Убрать из галереи</button>
-          </div>
-        ))}
-        <button type="button" onClick={() => setRows((current) => [...current, { id: crypto.randomUUID(), image: '', caption: '' }])}>
-          Добавить изображение
-        </button>
+        <div className="gallery-editor">
+          {rows.map((row, index) => (
+            <div key={row.id} className="gallery-editor-row">
+              <input type="hidden" name="gallery-row" value={row.id} />
+              <input type="hidden" name={'gallery-image-' + row.id} value={row.image} />
+              <div className="image-preview">
+                <img className="atlas-entry-image" src={row.image} alt={row.caption || 'Изображение галереи'} />
+                <button className="image-remove" type="button"
+                  aria-label={'Убрать изображение ' + (index + 1)} title="Убрать изображение"
+                  onClick={() => setRows((current) => current.filter(({ id }) => id !== row.id))}>×</button>
+              </div>
+              <label>Подпись <input name={'gallery-caption-' + row.id} defaultValue={row.caption} /></label>
+              <div className="gallery-order">
+                <button type="button" aria-label="Переместить раньше" title="Переместить раньше"
+                  disabled={index === 0} onClick={() => move(index, -1)}>←</button>
+                <button type="button" aria-label="Переместить позже" title="Переместить позже"
+                  disabled={index === rows.length - 1} onClick={() => move(index, 1)}>→</button>
+              </div>
+            </div>
+          ))}
+          <button className="gallery-add" type="button" disabled={busy} aria-label="Добавить изображения"
+            title="Добавить изображения" onClick={() => filePicker.current?.click()}>+</button>
+          <input className="gallery-file-picker" type="file" ref={filePicker} multiple tabIndex={-1}
+            aria-label="Файлы для галереи" accept="image/png,image/jpeg,image/webp" onChange={addImages} />
+        </div>
+        {busy && <p role="status">Обрабатываем изображения…</p>}
+        {error && <p role="alert">{error}</p>}
       </fieldset>
     </>
   )
