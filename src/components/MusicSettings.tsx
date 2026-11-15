@@ -3,9 +3,7 @@ import { createPortal } from 'react-dom'
 import { loadMusic, saveMusic } from '../data/musicStorage'
 import defaultTrackUrl from '../assets/mystical-glade_94962.mp3?url'
 
-const musicAnimation = Object.values(import.meta.glob<string>('../assets/music-ensemble*.gif', {
-  eager: true, query: '?url', import: 'default',
-}))[0]
+import musicEnsembleUrl from '../assets/music-ensemble.gif?url'
 
 const maxTrackSize = 20 * 1024 * 1024
 
@@ -98,8 +96,8 @@ export function MusicSettings({ english, initialVolume, rememberVolume, buttonTa
 
   return (
     <fieldset>
-      {playing && musicAnimation && animationTarget && createPortal(
-        <img className="site-music-animation" src={musicAnimation} alt="" />,
+      {playing && animationTarget && createPortal(
+        <img className="site-music-animation" src={musicEnsembleUrl} alt="" />,
         animationTarget,
       )}
       {buttonTarget && createPortal(
