@@ -123,6 +123,7 @@ export function isCharacterLifeOrderValid(birth?: CharacterDate, death?: Charact
 export type TimelineCharacter = EntryMetadata & {
   parentIds?: string[]
   dynasty?: string
+  characterClass?: string
   surname?: string
   race?: string
   sex?: string

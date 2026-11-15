@@ -19,10 +19,10 @@ export type Reign = {
   accession: string
 }
 
-export type GlossarySection = 'surnames' | 'races' | 'dynasties'
+export type GlossarySection = 'surnames' | 'races' | 'dynasties' | 'classes' | 'spells'
 
 export function isGlossarySection(value: unknown): value is GlossarySection {
-  return value === 'surnames' || value === 'races' || value === 'dynasties'
+  return value === 'surnames' || value === 'races' || value === 'dynasties' || value === 'classes' || value === 'spells'
 }
 
 export type WorldLore = {
@@ -30,6 +30,8 @@ export type WorldLore = {
   surnames: string[]
   races: string[]
   dynasties: string[]
+  classes?: string[]
+  spells?: string[]
   cultures: Tradition[]
   faiths: Tradition[]
   reigns: Reign[]
@@ -69,7 +71,8 @@ export function validLore(value: unknown, timeline: Timeline): value is WorldLor
   if (value.descriptions !== undefined && (!Array.isArray(value.descriptions) ||
       !value.descriptions.every((entry: unknown) => record(entry) && isGlossarySection(entry.section) &&
         typeof entry.name === 'string' && typeof entry.text === 'string' &&
-        (value[entry.section] as string[]).includes(entry.name)))) return false
+        (value[entry.section] as string[] | undefined)?.includes(entry.name)))) return false
+  if ([value.classes, value.spells].some((items) => items !== undefined && !strings(items))) return false
   const targets = new Map(linkKinds.map((kind) => [kind, new Set(loreTargets(timeline, kind).map(({ id }) => id))]))
   const known = (kind: LinkKind, id: unknown) => typeof id === 'string' && targets.get(kind)?.has(id)
   function records(items: unknown, valid: (item: Record<string, unknown>) => unknown) {

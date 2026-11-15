@@ -87,12 +87,14 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
       return
     }
 
+    const characterClass = String(fields.get('characterClass') ?? '').trim()
     const dynasty = String(fields.get('dynasty') ?? '').trim()
     const parentIds = fields.getAll('parents').map(String)
     const childIds = new Set(fields.getAll('children').map(String))
     const entry: TimelineCharacter = {
       ...readEntryMetadata(fields),
       parentIds,
+      ...(characterClass ? { characterClass } : {}),
       ...(dynasty ? { dynasty } : {}),
       id: original?.id ?? crypto.randomUUID(), name, description, biography, color: String(fields.get('color')),
       ...(surname ? { surname } : {}),
@@ -138,7 +140,10 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
             <p><label>Династия<br /><input name="dynasty" list="lore-dynasties" defaultValue={original?.dynasty}
                 title={glossaryDescription(timeline.lore, 'dynasties', original?.dynasty)}
                 onInput={(event) => { event.currentTarget.title = glossaryDescription(timeline.lore, 'dynasties', event.currentTarget.value) ?? '' }} /></label></p>
-            {(['surnames', 'races', 'dynasties'] as const).map((field) => (
+            <p><label>Класс<br /><input name="characterClass" list="lore-classes" defaultValue={original?.characterClass}
+                title={glossaryDescription(timeline.lore, 'classes', original?.characterClass)}
+                onInput={(event) => { event.currentTarget.title = glossaryDescription(timeline.lore, 'classes', event.currentTarget.value) ?? '' }} /></label></p>
+            {(['surnames', 'races', 'dynasties', 'classes'] as const).map((field) => (
               <datalist key={field} id={'lore-' + field}>
                 {(timeline.lore?.[field] ?? []).map((value) => <option key={value} value={value} />)}
               </datalist>
@@ -163,7 +168,7 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
             </label></p>
             <CharacterDateFields prefix="birth" label="Дата рождения" months={months} initial={original?.birth} />
             <CharacterDateFields prefix="death" label="Дата смерти" months={months} initial={original?.death} />
-            <ImageField name="portrait" label="Вертикальный портрет" initial={original?.portrait} />
+            <ImageField name="portrait" allowGif label="Вертикальный портрет" initial={original?.portrait} />
             <EntryFields entry={original} />
             <p><label>Описание<br /><textarea name="description" rows={4} defaultValue={original?.description} /></label></p>
             <p><label>Биография<br /><textarea name="biography" rows={8} defaultValue={original?.biography} /></label></p>
@@ -212,6 +217,7 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
                     )}
                     {character.description && <p>{character.description}</p>}
                     {character.race && <p>Раса · <span title={glossaryDescription(timeline.lore, 'races', character.race)}>{character.race}</span></p>}
+                    {character.characterClass && <p>Класс · <span title={glossaryDescription(timeline.lore, 'classes', character.characterClass)}>{character.characterClass}</span></p>}
                     {character.sex && <p>Пол · {character.sex}</p>}
                   </div>
                 </div>

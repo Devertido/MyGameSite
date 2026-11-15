@@ -1,6 +1,8 @@
 import { useRef, useState, type ChangeEvent } from 'react'
 
-export function ImageField({ name, label, initial }: { name: string; label: string; initial?: string }) {
+export function ImageField({ name, label, initial, allowGif = false }: {
+  name: string; label: string; initial?: string; allowGif?: boolean
+}) {
   const [image, setImage] = useState(initial ?? '')
   const [error, setError] = useState('')
   const revision = useRef(0)
@@ -14,6 +16,20 @@ export function ImageField({ name, label, initial }: { name: string; label: stri
     input.setCustomValidity('Дождитесь обработки изображения.')
     setError('')
     try {
+      if (allowGif && (file.type === 'image/gif' || /\.gif$/i.test(file.name))) {
+        if (file.size > 650_000) throw new Error('Выберите GIF размером до 650 КБ.')
+        const image = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader()
+          reader.onload = () => resolve(String(reader.result))
+          reader.onerror = () => reject(reader.error)
+          reader.readAsDataURL(file.slice(0, file.size, 'image/gif'))
+        })
+        if (!/^data:image\/gif;base64,R0lGOD[dl]h/.test(image)) throw new Error('Не удалось открыть GIF.')
+        const bitmap = await createImageBitmap(file)
+        bitmap.close()
+        if (current === revision.current) setImage(image)
+        return
+      }
       if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type) || file.size > 10 * 1024 * 1024) {
         throw new Error('Выберите PNG, JPEG или WebP размером до 10 МБ.')
       }
@@ -43,7 +59,8 @@ export function ImageField({ name, label, initial }: { name: string; label: stri
   return (
     <fieldset className="atlas-image-field">
       <legend>{label}</legend>
-      <label>Выбрать файл <input type="file" accept="image/png,image/jpeg,image/webp" onChange={choose} /></label>
+      <label>Выбрать файл <input type="file" accept={allowGif ? "image/png,image/jpeg,image/webp,image/gif,.gif" : "image/png,image/jpeg,image/webp"} onChange={choose} /></label>
+      {allowGif && <small> GIF до 650 КБ</small>}
       <input type="hidden" name={name} value={image} />
       {image && (
         <p>

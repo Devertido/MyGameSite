@@ -5,6 +5,7 @@ import type { Timeline } from '../domain/timeline'
 
 const sections = [
   ['surnames', 'Фамилии'], ['races', 'Расы'], ['dynasties', 'Династии'],
+  ['classes', 'Классы'], ['spells', 'Заклинания'],
   ['cultures', 'Народы и культуры'], ['faiths', 'Религии и верования'], ['reigns', 'Титулы и наследование'],
 ] as const
 
@@ -17,7 +18,7 @@ const linkLabels = { characters: 'Персонажи', locations: 'Локаци�
 const linkParameters = { characters: 'character', locations: 'entry', organizations: 'organization', events: 'event' }
 
 export function LorePage({ timeline, save, initialSection }: { timeline: Timeline; save: (lore: WorldLore) => void; initialSection?: string }) {
-  const lore = timeline.lore ?? emptyLore
+  const lore = { ...emptyLore, ...timeline.lore, classes: timeline.lore?.classes ?? [], spells: timeline.lore?.spells ?? [] }
   const [section, setSection] = useState<typeof sections[number][0]>(() => sections.find(([key]) => key === initialSection)?.[0] ?? 'surnames')
   const [editing, setEditing] = useState<string | null>(null)
   const [error, setError] = useState('')
@@ -58,7 +59,7 @@ export function LorePage({ timeline, save, initialSection }: { timeline: Timelin
       const entry = { id, title: name, characterId: read('character'), organizationId: read('organization'),
         start: Number(read('start')), end: read('end') ? Number(read('end')) : null, accession: read('accession') }
       persist({ ...lore, reigns: reign ? lore.reigns.map((item) => item.id === id ? entry : item) : [...lore.reigns, entry] })
-    } else if (section === 'surnames' || section === 'races' || section === 'dynasties') {
+    } else if (isGlossarySection(section)) {
       if (lore[section].some((item) => item !== editing && item.toLocaleLowerCase('ru') === name.toLocaleLowerCase('ru'))) {
         setError('Такое значение уже есть в справочнике.')
         return

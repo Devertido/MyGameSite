@@ -63,21 +63,23 @@ function parseTimeline(value: unknown): Timeline | null {
           ('biography' in character && typeof character.biography !== 'string')) return null
       if (!validMetadata(character)) return null
       const { status, gallery } = character as TimelineCharacter
-      const { surname, race, sex, birth, death, portrait, parentIds, dynasty } = character
+      const { surname, race, sex, birth, death, portrait, parentIds, dynasty, characterClass } = character
       if ((parentIds !== undefined && !isIdList(parentIds)) ||
+          (characterClass !== undefined && typeof characterClass !== 'string') ||
           (dynasty !== undefined && typeof dynasty !== 'string') ||
           (surname !== undefined && typeof surname !== 'string') ||
           (race !== undefined && typeof race !== 'string') ||
           (sex !== undefined && typeof sex !== 'string') ||
           (birth !== undefined && !isCharacterDate(birth, daysPerYear)) ||
           (death !== undefined && !isCharacterDate(death, daysPerYear)) ||
-          (portrait !== undefined && !isStoredImage(portrait)) ||
+          (portrait !== undefined && !isStoredPortrait(portrait)) ||
           !isCharacterLifeOrderValid(birth, death)) return null
       characterIds.add(character.id)
       parsed.push({ id: character.id, name: character.name, description: character.description,
         ...(status !== undefined ? { status } : {}),
         ...(gallery !== undefined ? { gallery } : {}),
         ...(parentIds !== undefined ? { parentIds } : {}),
+        ...(characterClass !== undefined ? { characterClass } : {}),
         ...(dynasty !== undefined ? { dynasty } : {}),
         ...(surname !== undefined ? { surname } : {}),
         ...(race !== undefined ? { race } : {}),
@@ -158,6 +160,11 @@ function parseTimeline(value: unknown): Timeline | null {
 function isIdList(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((id: unknown) => typeof id === 'string' && Boolean(id.trim())) &&
     new Set(value).size === value.length
+}
+
+function isStoredPortrait(value: unknown): value is string {
+  return isStoredImage(value) || (typeof value === 'string' && value.length <= 900_000 &&
+    /^data:image\/gif;base64,R0lGOD[dl]h[A-Za-z0-9+/]*={0,2}$/.test(value))
 }
 
 function isStoredImage(value: unknown): value is string {
