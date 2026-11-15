@@ -731,6 +731,30 @@ button:focus-visible {
   overflow-wrap: anywhere;
 }
 
+.directory-image-cell {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.directory-image-cell img {
+  display: block;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.25rem;
+  background: #eee3cb;
+  object-fit: contain;
+}
+
+button.directory-select-link,
+button.directory-select-link:hover {
+  padding: 0;
+  background: transparent;
+  color: #573073;
+  font-weight: inherit;
+  text-align: start;
+  text-decoration: underline;
+}
+
 .directory-table th button {
   padding: 0.35rem 0.5rem;
   white-space: nowrap;
@@ -963,6 +987,54 @@ button.event-action:hover:enabled {
 .item-tooltip > section,
 .item-tooltip > button {
   clear: both;
+}
+
+.spell-components {
+  display: table;
+  max-width: 100%;
+  margin: 0.4rem 0 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid #998561;
+  border-radius: 0.3rem;
+  background: #111726;
+}
+
+.archive-directory .item-wow-card {
+  padding: 1rem;
+  border-color: #988b72;
+  border-radius: 0.35rem;
+  background: linear-gradient(160deg, #191824, #0d0c12 75%);
+  box-shadow: inset 0 0 0 1px #363039, 0 4px 10px #080b1740;
+  line-height: 1.35;
+}
+
+.item-wow-card h2 {
+  margin: 0 0 0.25rem;
+}
+
+.item-wow-meta p {
+  margin: 0;
+}
+
+.item-wow-meta p:first-child:not(:only-child) {
+  color: var(--item-accent);
+}
+
+.item-wow-card > .archive-copy {
+  margin-block: 0.65rem;
+  color: #f2d38e;
+  font-style: italic;
+}
+
+.item-wow-card .archive-body h3 {
+  margin: 0 0 0.25rem;
+  color: #ded5c5;
+}
+
+.item-wow-card .archive-body .archive-copy {
+  margin-block: 0.25rem 0.65rem;
+  color: #a8df8c;
+  line-height: 1.35;
 }
 
 .item-tooltip .archive-body {

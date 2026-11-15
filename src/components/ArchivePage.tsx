@@ -7,6 +7,7 @@ import { EntryFields, EntryGallery, EntryStatusLabel, readEntryMetadata, useStat
 import { CreationDialog } from './CreationDialog'
 import { EditIcon } from './EditIcon'
 import { TrashIcon } from './TrashIcon'
+import { DirectoryImage } from './DirectoryImage'
 import { ImageField } from './ImageField'
 import { useState, type CSSProperties, type FormEvent } from 'react'
 import type { ArchiveEntry, Timeline } from '../domain/timeline'
@@ -135,10 +136,14 @@ export function ArchivePage({ kind, entries, entryId, timeline, save, embedded =
       <div className="directory-layout archive-directory">
         <section aria-label={t("Карточка записи")}>
           {selected && (
-            <article className={chronicle ? 'archive-card parchment' : 'archive-card item-card item-tooltip'} style={chronicle ? undefined : itemAccent(selected)}>
+            <article className={chronicle ? 'archive-card parchment' : 'archive-card item-card item-tooltip' + (kind === 'items' ? ' item-wow-card' : '')} style={chronicle ? undefined : itemAccent(selected)}>
               {!chronicle && <ItemImage entry={selected} />}
               <h2>{selected.title}</h2>
-              {!chronicle && <p className="item-rarity">{[selected.type, selected.rarity && t(selected.rarity)].filter(Boolean).join(' · ')}</p>}
+              {location && <p className="item-rarity">{[selected.type, selected.rarity && t(selected.rarity)].filter(Boolean).join(' · ')}</p>}
+              {kind === 'items' && (selected.type || selected.rarity) && <div className="item-wow-meta">
+                {selected.rarity && <p>{t(selected.rarity)}</p>}
+                {selected.type && <p>{selected.type}</p>}
+              </div>}
               {selected.summary && <p className="archive-copy">{selected.summary}</p>}
               {location && <LoreLinks timeline={timeline} kind="locations" id={selected.id} />}
               {location && selected.mapImage && <section>
@@ -198,6 +203,7 @@ export function ArchivePage({ kind, entries, entryId, timeline, save, embedded =
               <table>
                 <thead>
                   <tr>
+                    {kind === 'items' && <th className="directory-image-cell" scope="col">{t('Изображение')}</th>}
                     <th scope="col">{t("Название")}</th>
                     {!chronicle && <th scope="col">{t("Тип")}</th>}
                     {kind === 'items' && <th scope="col">{t("Редкость")}</th>}
@@ -207,6 +213,7 @@ export function ArchivePage({ kind, entries, entryId, timeline, save, embedded =
                 <tbody>
                   {matches.map((entry) => (
                     <tr key={entry.id} data-selected={entry.id === selected?.id}>
+                      {kind === 'items' && <DirectoryImage src={entry.image} />}
                       <td><a href={'#' + entryRoute + encodeURIComponent(entry.id)}
                         aria-current={entry.id === selected?.id ? 'true' : undefined}
                         onClick={() => { setDeleting(null); setError('') }}>{entry.title}</a></td>

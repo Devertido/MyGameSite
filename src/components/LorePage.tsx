@@ -1,4 +1,7 @@
 import { sameHouse } from '../domain/houseTree'
+import { DirectoryImage } from './DirectoryImage'
+import { EditIcon } from './EditIcon'
+import { TrashIcon } from './TrashIcon'
 import { HouseTree } from './HouseTree'
 import { t } from '../i18n.ts'
 import { BestiaryCard, BeastCombatFields } from './BestiaryCard'
@@ -42,10 +45,16 @@ export function LorePage({ timeline, save, initialSection, initialEntry, archive
   const section = sections.find(([key]) => key === initialSection)?.[0] ?? 'surnames'
   const [selectedId, setSelectedId] = useState<string | null>(() =>
     section === 'dynasties' ? lore.dynasties.find((name) => sameHouse(initialEntry, name)) ?? null : null)
+  const [spellQuery, setSpellQuery] = useState('')
   const [editing, setEditing] = useState<string | null>(null)
   const [error, setError] = useState('')
   const archiveSection = section === 'items' || section === 'locations'
   const entries = archiveSection ? [] : lore[section]
+  const spellSection = section === 'spells'
+  const spellDetails = new Map(lore.spellDetails?.map((spell) => [spell.name, spell]))
+  const tableEntries = spellSection
+    ? entries.filter((entry) => entryName(entry).toLocaleLowerCase('ru').includes(spellQuery.trim().toLocaleLowerCase('ru')))
+    : entries
   const selected = entries.find((entry) => entryId(entry) === selectedId) ?? entries[0]
   const label = sections.find(([key]) => key === section)?.[1]
   const traditionKind = section === 'cultures' || section === 'faiths' ? section : null
@@ -196,8 +205,10 @@ export function LorePage({ timeline, save, initialSection, initialEntry, archive
         {selected === undefined ? <p>{t("В разделе пока нет записей.")}</p> : [selected].map((entry) => {
           const id = entryId(entry)
           const controls = <>
-            <button type="button" onClick={() => { setError(''); setEditing(id) }}>{t("Редактировать")}</button>{' '}
-            <button type="button" onClick={() => remove(id)}>{t("Удалить")}</button>
+            <button type="button" aria-label={t('Редактировать')} title={t('Редактировать')}
+              onClick={() => { setError(''); setEditing(id) }}>{spellSection ? <EditIcon /> : t('Редактировать')}</button>{' '}
+            <button type="button" aria-label={t('Удалить')} title={t('Удалить')}
+              onClick={() => remove(id)}>{spellSection ? <TrashIcon /> : t('Удалить')}</button>
           </>
           if (typeof entry !== 'string' && 'abilities' in entry) {
             return <BestiaryCard key={id} beast={entry} controls={controls} />
@@ -205,14 +216,22 @@ export function LorePage({ timeline, save, initialSection, initialEntry, archive
           const name = entryName(entry)
           const details = section === 'surnames' ? lore.surnameDetails?.find((item) => item.name === name) : undefined
           const location = timeline.locations?.find((item) => item.id === details?.locationId)
+          const spell = spellSection ? spellDetails.get(name) : undefined
           const magic = section === 'races' || section === 'spells'
           return <article key={id} className={magic ? 'archive-card item-card item-tooltip lore-magic-card' : 'directory-card'}
             style={magic ? { '--item-accent': '#f4d28d' } as CSSProperties : undefined}>
+            {spellSection && <div className="item-image-frame">
+              {spell?.image && <img className="atlas-entry-image" src={spell?.image} alt="" />}
+            </div>}
             <h2>{name}</h2>
-            {magic && <MagicDetails
-              race={section === 'races' ? lore.raceDetails?.find((item) => item.name === name) : undefined}
-              spell={section === 'spells' ? lore.spellDetails?.find((item) => item.name === name) : undefined} />}
-            {isGlossarySection(section) && <p hidden={!glossaryDescription(lore, section, name)}>
+            {spellSection && spell?.mana != null && <p className="item-rarity">
+              {t('Мана · ')}{spell?.mana}
+            </p>}
+            {spellSection && Boolean(spell?.components.length) && <p className="spell-components">
+              {t('Компоненты · ')}{spell?.components.map(t).join(' · ')}
+            </p>}
+            {section === 'races' && <MagicDetails race={lore.raceDetails?.find((item) => item.name === name)} />}
+            {isGlossarySection(section) && <p className={spellSection ? 'archive-copy' : undefined} hidden={!glossaryDescription(lore, section, name)}>
               {glossaryDescription(lore, section, name)}
             </p>}
             {details?.origin && <p><strong>{t("Происхождение")}</strong> · {t(details.origin)}</p>}
@@ -243,13 +262,21 @@ export function LorePage({ timeline, save, initialSection, initialEntry, archive
         </div>
         <section className="directory-table" aria-label={label && t(label)}>
           <div className="directory-actions">
-            <button type="button" onClick={() => { setError(''); setEditing('') }}>{t("Добавить запись")}</button>
+            <button type="button" onClick={() => { setError(''); setEditing('') }}>{t(spellSection ? 'Добавить заклинание' : 'Добавить запись')}</button>
           </div>
-          {entries.length > 0 && (
+          {spellSection && entries.length > 0 && <label>{t('Поиск ')}<input type="search" value={spellQuery}
+            onChange={(event) => setSpellQuery(event.currentTarget.value)} /></label>}
+          {tableEntries.length > 0 ? (
             <div className="directory-table-scroll">
               <table>
                 <thead><tr>
+                  {spellSection && <th className="directory-image-cell" scope="col">{t('Изображение')}</th>}
                   <th scope="col">{t("Название")}</th>
+                  {spellSection && <>
+                    <th scope="col">{t('Мана')}</th>
+                    <th scope="col">{t('Компоненты')}</th>
+                    <th scope="col">{t('Краткое описание')}</th>
+                  </>}
                   {section === 'dynasties' && <>
                     <th scope="col">{t('Количество персонажей')}</th>
                     <th scope="col">{t('Годы существования')}</th>
@@ -261,10 +288,18 @@ export function LorePage({ timeline, save, initialSection, initialEntry, archive
                     <th scope="col">{t("Уровень")}</th>
                   </>}
                 </tr></thead>
-                <tbody>{entries.map((entry) => (
-                  <tr key={entryId(entry)} data-selected={entry === selected}>
-                    <td><button className="directory-select" type="button" aria-pressed={entry === selected}
-                      onClick={() => setSelectedId(entryId(entry))}>{entryName(entry)}</button></td>
+                <tbody>{tableEntries.map((entry) => {
+                  const name = entryName(entry)
+                  const spell = spellSection ? spellDetails.get(name) : undefined
+                  return <tr key={entryId(entry)} data-selected={entry === selected}>
+                    {spellSection && <DirectoryImage src={spell?.image} />}
+                    <td><button className={spellSection ? 'directory-select directory-select-link' : 'directory-select'} type="button" aria-pressed={entry === selected}
+                      onClick={() => setSelectedId(entryId(entry))}>{name}</button></td>
+                    {spellSection && <>
+                      <td>{spell?.mana ?? '—'}</td>
+                      <td>{spell?.components.map(t).join(' · ') || '—'}</td>
+                      <td>{glossaryDescription(lore, 'spells', name) || '—'}</td>
+                    </>}
                     {section === 'dynasties' && typeof entry === 'string' && <>
                       <td>{timeline.characters?.filter(({ dynasty }) => sameHouse(dynasty, entry)).length ?? 0}</td>
                       <td>{houseYears(houseByName.get(entry))}</td>
@@ -276,10 +311,10 @@ export function LorePage({ timeline, save, initialSection, initialEntry, archive
                       <td>{entry.combat?.level || '—'}</td>
                     </>}
                   </tr>
-                ))}</tbody>
+                })}</tbody>
               </table>
             </div>
-          )}
+          ) : entries.length > 0 && <p>{t('По этому запросу ничего не найдено.')}</p>}
         </section>
       </div>
       {section === 'dynasties' && typeof selected === 'string' && <HouseTree key={selected} house={selected} characters={timeline.characters ?? []} save={saveCharacters} />}

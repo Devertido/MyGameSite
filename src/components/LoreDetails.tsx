@@ -64,12 +64,9 @@ function formatRaceMeasure(value: string, measure: RaceMeasure, unit: string) {
   return values?.length ? values.join('–') + ' ' + t(unit) : value
 }
 
-export function MagicDetails({ race, spell }: { race?: RaceDetails; spell?: SpellDetails }) {
-  const image = race?.image || spell?.image
+export function MagicDetails({ race }: { race?: RaceDetails }) {
   return <>
-    {image && <div className={race ? "item-image-frame race-image-frame" : "item-image-frame"}><img className="atlas-entry-image" src={image} alt="" /></div>}
-    {spell?.mana != null && <p className="lore-mana">{t("Мана · ")}{spell.mana}</p>}
-    {!!spell?.components.length && <p>{t("Компоненты · ")}{spell.components.map(t).join(' · ')}</p>}
+    {race?.image && <div className="item-image-frame race-image-frame"><img className="atlas-entry-image" src={race.image} alt="" /></div>}
     {race && raceMeasures.map(([key, label, unit]) => race[key] && (
       <section key={key} className={'lore-' + key}>
         <h3>{t(label)}</h3>
