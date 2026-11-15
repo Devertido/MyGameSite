@@ -1,6 +1,6 @@
 import type { Point } from '../domain/settlementDistricts'
 
-export type Landmark = { point: Point; label: string; kind: 'market' | 'citadel' | 'bridge' | 'pier' }
+export type Landmark = { point: Point; label: string; kind: 'market' | 'citadel' | 'bridge' | 'pier' | 'ferry' | 'temple' | 'palace' | 'theatre' | 'bank' | 'barracks' }
 type Box = { x: number; y: number; w: number; h: number }
 const overlaps = (a: Box, b: Box) =>
   a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y
@@ -70,6 +70,12 @@ function drawLandmarkIcon(context: CanvasRenderingContext2D, x: number, y: numbe
     market: [[-5, -1], [0, -5], [5, -1], [-5, -1], [-4, 4], [4, 4], [5, -1]],
     citadel: [[-5, 4], [-5, -4], [-3, -4], [-3, -1], [-1, -1], [-1, -4], [1, -4], [1, -1], [3, -1], [3, -4], [5, -4], [5, 4], [-5, 4]],
     bridge: [[-5, 3], [-3, -3], [3, -3], [5, 3], [3, 3], [1, 0], [-1, 0], [-3, 3], [-5, 3]],
+    ferry: [[-6, 0], [6, 0], [3, 4], [-3, 4], [-6, 0], [0, -5], [0, 0]],
+    temple: [[-5, 4], [-5, -1], [0, -5], [5, -1], [5, 4], [-5, 4]],
+    palace: [[-6, 4], [-6, -3], [-3, -1], [0, -5], [3, -1], [6, -3], [6, 4], [-6, 4]],
+    theatre: [[-6, -3], [-4, 3], [0, 5], [4, 3], [6, -3], [-6, -3]],
+    bank: [[-6, -1], [0, -5], [6, -1], [-6, -1], [-4, 4], [4, 4], [4, -1]],
+    barracks: [[-5, 4], [-5, -4], [5, -4], [5, 4], [-5, 4], [0, 0], [5, -4]],
     pier: [[-5, -3], [5, -3], [5, -1], [1, -1], [1, 5], [-1, 5], [-1, -1], [-5, -1], [-5, -3]],
   }
   context.beginPath()

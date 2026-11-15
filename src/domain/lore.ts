@@ -90,9 +90,18 @@ export type Beast = {
   abilities: AbilityScores
 }
 
+export type HouseDetails = { name: string; startYear?: number; endYear?: number; locationIds: string[] }
+
+export function validHouseYears(startYear?: number, endYear?: number) {
+  return (startYear === undefined || Number.isSafeInteger(startYear)) &&
+    (endYear === undefined || Number.isSafeInteger(endYear)) &&
+    (startYear === undefined || endYear === undefined || startYear <= endYear)
+}
+
 export type WorldLore = {
   bestiary?: Beast[]
   surnameDetails?: SurnameDetails[]
+  houseDetails?: HouseDetails[]
   spellDetails?: SpellDetails[]
   raceDetails?: RaceDetails[]
   descriptions?: { section: GlossarySection; name: string; text: string }[]
@@ -159,6 +168,14 @@ export function validLore(value: unknown, timeline: Timeline): value is WorldLor
   const locations = new Set(timeline.locations?.map(({ id }) => id))
   const names = value.surnames as string[]
   const dynasties = value.dynasties as string[]
+  if (value.houseDetails !== undefined && (!Array.isArray(value.houseDetails) ||
+      !value.houseDetails.every((entry) => record(entry) && typeof entry.name === 'string' && dynasties.includes(entry.name) &&
+        (entry.startYear === undefined || typeof entry.startYear === 'number') &&
+        (entry.endYear === undefined || typeof entry.endYear === 'number') &&
+        validHouseYears(entry.startYear, entry.endYear) &&
+        strings(entry.locationIds) && new Set(entry.locationIds).size === entry.locationIds.length &&
+        entry.locationIds.every((id) => locations.has(id))) ||
+      new Set(value.houseDetails.map(({ name }) => name)).size !== value.houseDetails.length)) return false
   if (value.surnameDetails !== undefined && (!Array.isArray(value.surnameDetails) ||
       !value.surnameDetails.every((entry: unknown) => record(entry) &&
         typeof entry.name === 'string' && names.includes(entry.name) &&
@@ -222,6 +239,9 @@ export function removeMissingLoreLinks(timeline: Timeline): Timeline {
     ...lore,
     ...(lore.surnameDetails ? { surnameDetails: lore.surnameDetails.map((entry) =>
       entry.locationId && !ids.get('locations')?.has(entry.locationId) ? { ...entry, locationId: undefined } : entry) } : {}),
+    ...(lore.houseDetails ? { houseDetails: lore.houseDetails.map((entry) => ({
+      ...entry, locationIds: entry.locationIds.filter((id) => ids.get('locations')?.has(id)),
+    })) } : {}),
     cultures: prune(lore.cultures),
     faiths: prune(lore.faiths),
     reigns: lore.reigns.filter(({ characterId, organizationId }) =>

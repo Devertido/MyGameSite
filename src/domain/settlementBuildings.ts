@@ -13,10 +13,20 @@ function area(vertices: Point[]) {
 }
 
 export function insideDistrict([x, y]: Point, polygon: Point[], margin = 0) {
-  return polygon.every(([ax, ay], index) => {
+  let inside = false
+  for (const [index, [ax, ay]] of polygon.entries()) {
     const [bx, by] = polygon[(index + 1) % polygon.length]!
-    return (bx - ax) * (y - ay) - (by - ay) * (x - ax) >= margin * Math.hypot(bx - ax, by - ay)
-  })
+    const dx = bx - ax
+    const dy = by - ay
+    const lengthSquared = dx * dx + dy * dy
+    if (!lengthSquared) continue
+    const t = Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / lengthSquared))
+    const distance = Math.hypot(x - ax - t * dx, y - ay - t * dy)
+    if (distance < margin) return false
+    if (margin === 0 && distance < 1e-8) return true
+    if ((ay > y) !== (by > y) && x < ax + dx * (y - ay) / dy) inside = !inside
+  }
+  return inside
 }
 
 function segmentHitsBox([a, b]: Segment, low: Point, high: Point) {

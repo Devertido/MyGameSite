@@ -8,7 +8,7 @@ import { ImageField } from './ImageField'
 import { useState, type CSSProperties, type FormEvent, type ReactNode } from 'react'
 import { MagicDetails, RaceFields, SpellFields } from './LoreDetails'
 import { CreationDialog } from './CreationDialog'
-import { emptyLore, glossaryDescription, isGlossarySection, beastCombatFields, readRaceMeasure, surnameOrigins, spellComponents, loreTargets, validLore, type LinkKind, type WorldLore } from '../domain/lore'
+import { emptyLore, glossaryDescription, isGlossarySection, beastCombatFields, readRaceMeasure, surnameOrigins, spellComponents, loreTargets, validHouseYears, validLore, type HouseDetails, type LinkKind, type WorldLore } from '../domain/lore'
 import type { Timeline } from '../domain/timeline'
 
 const sections = [
@@ -23,6 +23,11 @@ const fieldsByKind = {
 }
 
 const linkParameters = { characters: 'character', locations: 'entry', organizations: 'organization', events: 'event' }
+
+function houseYears(details?: HouseDetails) {
+  if (details?.startYear === undefined && details?.endYear === undefined) return '—'
+  return (details.startYear ?? '…') + ' — ' + (details.endYear ?? '…')
+}
 
 function entryId(entry: string | { id: string }) {
   return typeof entry === 'string' ? entry : entry.id
@@ -46,6 +51,12 @@ export function LorePage({ timeline, save, initialSection, initialEntry, archive
   const traditionKind = section === 'cultures' || section === 'faiths' ? section : null
   const tradition = traditionKind ? lore[traditionKind].find(({ id }) => id === editing) : undefined
   const surname = section === 'surnames' ? lore.surnameDetails?.find(({ name }) => name === editing) : undefined
+  const house = section === 'dynasties' ? lore.houseDetails?.find(({ name }) => name === editing) : undefined
+  const houseByName = new Map(lore.houseDetails?.map((details) => [details.name, details]))
+  function houseLocations(name: string) {
+    const ids = houseByName.get(name)?.locationIds ?? []
+    return (timeline.locations ?? []).filter(({ id }) => ids.includes(id))
+  }
   const beast = section === 'bestiary' ? lore.bestiary.find(({ id }) => id === editing) : undefined
 
   function persist(next: WorldLore, rename?: { from: string; to: string }) {
@@ -106,6 +117,19 @@ export function LorePage({ timeline, save, initialSection, initialEntry, archive
           ...(dynasty ? { dynasty } : {}),
         }]
       }
+      if (section === 'dynasties') {
+        const start = read('house-start')
+        const end = read('house-end')
+        const startYear = start ? Number(start) : undefined
+        const endYear = end ? Number(end) : undefined
+        if (!validHouseYears(startYear, endYear)) {
+          setError(t('Проверьте порядок годов существования рода.'))
+          return
+        }
+        next.houseDetails = [...(lore.houseDetails ?? []).filter((entry) => entry.name !== editing), {
+          name, startYear, endYear, locationIds: [...new Set(data.getAll('house-location').map(String))],
+        }]
+      }
       if (section === 'dynasties' && editing && name !== editing && lore.surnameDetails) {
         next.surnameDetails = lore.surnameDetails.map((entry) =>
           entry.dynasty === editing ? { ...entry, dynasty: name } : entry)
@@ -141,7 +165,8 @@ export function LorePage({ timeline, save, initialSection, initialEntry, archive
     persist({
       ...lore,
       ...(section === 'surnames' ? { surnameDetails: lore.surnameDetails?.filter((entry) => entry.name !== id) } : {}),
-      ...(section === 'dynasties' ? { surnameDetails: lore.surnameDetails?.map((entry) =>
+      ...(section === 'dynasties' ? { houseDetails: lore.houseDetails?.filter((entry) => entry.name !== id),
+        surnameDetails: lore.surnameDetails?.map((entry) =>
         entry.dynasty === id ? { ...entry, dynasty: undefined } : entry) } : {}),
       ...(section === 'races' ? { raceDetails: lore.raceDetails?.filter((entry) => entry.name !== id) } : {}),
       ...(section === 'spells' ? { spellDetails: lore.spellDetails?.filter((entry) => entry.name !== id) } : {}),
@@ -192,6 +217,16 @@ export function LorePage({ timeline, save, initialSection, initialEntry, archive
             </p>}
             {details?.origin && <p><strong>{t("Происхождение")}</strong> · {t(details.origin)}</p>}
             {location && <p><strong>{t("Локация")}</strong> · <a href={'#lore?section=locations&entry=' + encodeURIComponent(location.id)}>{location.title}</a></p>}
+            {section === 'dynasties' && <>
+              <p><strong>{t('Количество персонажей')}</strong> · {timeline.characters?.filter(({ dynasty }) => sameHouse(dynasty, name)).length ?? 0}</p>
+              <p><strong>{t('Годы существования')}</strong> · {houseYears(houseByName.get(name))}</p>
+              {houseLocations(name).length > 0 && <section>
+                <h3>{t('Владения')}</h3>
+                <ul>{houseLocations(name).map(({ id, title, type }) => <li key={id}>
+                  <a href={'#lore?section=locations&entry=' + encodeURIComponent(id)}>{title}</a>{type && ' · ' + type}
+                </li>)}</ul>
+              </section>}
+            </>}
             {details?.dynasty && <p><strong>{t("Род")}</strong> · {details.dynasty}</p>}
             {details?.usage && <p className="archive-copy"><strong>{t("Значение и правила ношения")}</strong><br />{details.usage}</p>}
             {typeof entry !== 'string' && 'fields' in entry && traditionKind && (
@@ -215,6 +250,11 @@ export function LorePage({ timeline, save, initialSection, initialEntry, archive
               <table>
                 <thead><tr>
                   <th scope="col">{t("Название")}</th>
+                  {section === 'dynasties' && <>
+                    <th scope="col">{t('Количество персонажей')}</th>
+                    <th scope="col">{t('Годы существования')}</th>
+                    <th scope="col">{t('Владения')}</th>
+                  </>}
                   {section === 'bestiary' && <>
                     <th scope="col">{t("Вид существа")}</th>
                     <th scope="col">{t("Опасность")}</th>
@@ -225,6 +265,11 @@ export function LorePage({ timeline, save, initialSection, initialEntry, archive
                   <tr key={entryId(entry)} data-selected={entry === selected}>
                     <td><button className="directory-select" type="button" aria-pressed={entry === selected}
                       onClick={() => setSelectedId(entryId(entry))}>{entryName(entry)}</button></td>
+                    {section === 'dynasties' && typeof entry === 'string' && <>
+                      <td>{timeline.characters?.filter(({ dynasty }) => sameHouse(dynasty, entry)).length ?? 0}</td>
+                      <td>{houseYears(houseByName.get(entry))}</td>
+                      <td>{houseLocations(entry).map(({ title }) => title).join(', ') || '—'}</td>
+                    </>}
                     {typeof entry !== 'string' && 'abilities' in entry && <>
                       <td>{entry.type || '—'}</td>
                       <td>{entry.combat?.challenge || '—'}</td>
@@ -267,6 +312,17 @@ export function LorePage({ timeline, save, initialSection, initialEntry, archive
                 </label></p>
               </fieldset>
             )}
+            {section === 'dynasties' && <>
+              <p><label>{t('Системный год основания')} <input type="number" step={1} name="house-start" defaultValue={house?.startYear} /></label></p>
+              <p><label>{t('Системный год окончания')} <input type="number" step={1} name="house-end" defaultValue={house?.endYear} /></label></p>
+              <fieldset>
+                <legend>{t('Владения (локации и провинции)')}</legend>
+                {timeline.locations?.length ? timeline.locations.map(({ id, title, type }) => <div key={id}>
+                  <label><input type="checkbox" name="house-location" value={id} defaultChecked={house?.locationIds.includes(id)} />{' '}
+                    {title}{type && ' · ' + type}</label>
+                </div>) : <p>{t('В разделе пока нет записей.')}</p>}
+              </fieldset>
+            </>}
             {section === 'races' && <RaceFields race={lore.raceDetails?.find(({ name }) => name === editing)} />}
             {section === 'spells' && <SpellFields spell={lore.spellDetails?.find(({ name }) => name === editing)} />}
             {traditionKind && (

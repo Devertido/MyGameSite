@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type PointerEvent } from 'react'
-import { brushDisplacement, mapHeight, mapWidth, moveDistrictCorner, rerollDistrict, warpDistricts, type LocationMapPlan } from '../domain/locationMapPlan'
+import { brushDisplacement, editDistricts, mergeDistrictOutline, mapHeight, mapWidth, moveDistrictCorner, rerollDistrict, warpDistricts, type LocationMapPlan } from '../domain/locationMapPlan'
 import { insideDistrict } from '../domain/settlementBuildings'
 import type { Point } from '../domain/settlementDistricts'
 import { t } from '../i18n.ts'
@@ -16,6 +16,7 @@ export function LocationMapEditor({ plan, image, locations, onChange }: {
 }) {
   const [districtIndex, setDistrictIndex] = useState(0)
   const [districtName, setDistrictName] = useState(plan.geometry?.districts[0]?.name ?? '')
+  const [mergeWith, setMergeWith] = useState<number>()
   const [layer, setLayer] = useState<MapLayer>()
   const [placingMarker, setPlacingMarker] = useState(false)
   const [point, setPoint] = useState<Point>()
@@ -49,6 +50,7 @@ export function LocationMapEditor({ plan, image, locations, onChange }: {
 
   function selectDistrict(index: number) {
     setDistrictIndex(index)
+    setMergeWith(undefined)
     setDistrictName(geometry?.districts[index]?.name ?? '')
     setError('')
   }
@@ -75,12 +77,13 @@ export function LocationMapEditor({ plan, image, locations, onChange }: {
     <div className="location-map-editor-actions">
       <button type="button" disabled={warping} aria-pressed={!layer && !warping && !placingMarker}
         onClick={() => { setLayer(undefined); setPlacingMarker(false); setError('') }}>{t('Кварталы')}</button>
-      {(['walls', 'landscape'] as const).map((item) => <button key={item} type="button" disabled={warping} aria-pressed={layer === item}
+      {(['walls', 'landscape', 'objects', 'river'] as const).filter((item) =>
+        item !== 'river' || ['river', 'river-mouth', 'river-city'].includes(plan.settings.water)).map((item) => <button key={item} type="button" disabled={warping} aria-pressed={layer === item}
         onClick={() => {
           setLayer(item)
           setPlacingMarker(false)
           setError('')
-        }}>{t(item === 'walls' ? 'Стены и башни' : 'Окружение')}</button>)}
+        }}>{t(item === 'walls' ? 'Стены и башни' : item === 'landscape' ? 'Окружение' : item === 'river' ? 'Русло реки' : 'Переправы и здания')}</button>)}
       <button type="button" aria-pressed={warping} onClick={() => {
         setLayer(undefined)
         if (warping) setDraft(undefined)
@@ -134,6 +137,30 @@ export function LocationMapEditor({ plan, image, locations, onChange }: {
       <button type="button" disabled={!selected} onClick={(event) => {
         update(event.currentTarget.form, rerollDistrict(plan, districtIndex, crypto.getRandomValues(new Uint32Array(1))[0]!))
       }}>{t('Перестроить квартал')}</button>
+      <button type="button" disabled={geometry.districts.length <= 1} onClick={(event) => {
+        if (!window.confirm(t('Удалить выбранный квартал?'))) return
+        const next = editDistricts(plan, districtIndex)
+        if (next !== plan && update(event.currentTarget.form, next)) {
+          setDistrictIndex(0)
+          setDistrictName(next.geometry?.districts[0]?.name ?? '')
+          setMergeWith(undefined)
+        }
+      }}>{t('Удалить квартал')}</button>
+      <label>{t('Соседний квартал')} <select value={mergeWith ?? ''} onChange={(event) =>
+        setMergeWith(event.currentTarget.value === '' ? undefined : Number(event.currentTarget.value))}>
+        <option value="">{t('Выберите квартал')}</option>
+        {selected && geometry.districts.map((candidate, index) => index !== districtIndex && mergeDistrictOutline(selected, candidate)
+          ? <option key={index} value={index}>{index + 1} · {candidate.name || t('Квартал')}</option> : null)}
+      </select></label>
+      <button type="button" disabled={mergeWith === undefined} onClick={(event) => {
+        if (mergeWith === undefined) return
+        const next = editDistricts(plan, districtIndex, mergeWith)
+        if (next === plan || !update(event.currentTarget.form, next)) return
+        const index = districtIndex - Number(mergeWith < districtIndex)
+        setDistrictIndex(index)
+        setDistrictName(next.geometry?.districts[index]?.name ?? '')
+        setMergeWith(undefined)
+      }}>{t('Объединить кварталы')}</button>
     </div>
     </fieldset>
     <div className="location-map-edit-view" ref={view}>

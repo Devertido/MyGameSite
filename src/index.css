@@ -1927,6 +1927,19 @@ button.house-tree-add[data-relation='spouse'] {
   cursor: crosshair;
 }
 
+.location-map-river-guide {
+  fill: none;
+  stroke: #f4d194;
+  stroke-width: 2;
+  pointer-events: none;
+}
+
+.lore-page .directory-layout .item-tooltip {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: none;
+}
+
 .location-map-layer line {
   stroke: #e0b86c;
   stroke-width: 2;

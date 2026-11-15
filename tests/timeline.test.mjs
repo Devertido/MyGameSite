@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { createLocationMapPlan, moveDistrictCorner, rerollDistrict, validLocationMapPlan, warpDistricts } from '../src/domain/locationMapPlan.ts'
+import { buildOppositeBank, createLocationMapPlan, editDistricts, mergeDistrictOutline, moveDistrictCorner, moveWaterChannel, waterXAt, rerollDistrict, validLocationMapPlan, warpDistricts } from '../src/domain/locationMapPlan.ts'
 import { insideDistrict, settlementBuildings } from '../src/domain/settlementBuildings.ts'
 import { settlementStreets } from '../src/domain/settlementStreets.ts'
 import { settlementDistricts } from '../src/domain/settlementDistricts.ts'
@@ -11,7 +11,7 @@ import { toCalendarYear } from '../src/domain/calendarYear.ts'
 import { calendarDay, eventDays, validateEvent, validateTimelineBounds } from '../src/domain/timeline.ts'
 import { timelineSnapshot, deleteTimeline, exportTimeline, importTimeline, loadTimelines, rememberSelection, restoreSelection, saveTimeline } from '../src/data/timelineStorage.ts'
 
-import { emptyLore, parseRaceMeasure, readRaceMeasure } from '../src/domain/lore.ts'
+import { emptyLore, parseRaceMeasure, readRaceMeasure, removeMissingLoreLinks } from '../src/domain/lore.ts'
 import { addHouseRelationship, houseGenerations, removeHouseRelationship } from '../src/domain/houseTree.ts'
 
 const era = { systemAnchorYear: 100, calendarAnchorYear: 1, hasYearZero: false }
@@ -407,7 +407,8 @@ test('Правки планировки, родство, бестиарий и �
     name: 'Арена', startYear: -10, endYear: 100, daysPerYear,
     calendars: [{ ...calendar, name: 'Основной', era }],
     locations: [location], characters,
-    lore: { ...emptyLore, races: [race.name], raceDetails: [race], bestiary: [beast] },
+    lore: { ...emptyLore, races: [race.name], raceDetails: [race], bestiary: [beast],
+      dynasties: ['House'], houseDetails: [{ name: 'House', startYear: -10, endYear: 0, locationIds: [location.id] }] },
   }
   let saved
   const storage = { length: 1, key: () => 'arena-atlas:timeline:v1:verification',
@@ -420,6 +421,8 @@ test('Правки планировки, родство, бестиарий и �
     assert.deepEqual(restored.characters, characters)
     assert.deepEqual(restored.lore.raceDetails[0], race)
     assert.deepEqual(restored.lore.bestiary[0], beast)
+    assert.deepEqual(restored.lore.houseDetails, timeline.lore.houseDetails)
+    assert.deepEqual(removeMissingLoreLinks({ ...restored, locations: [] }).lore.houseDetails[0].locationIds, [])
   }
 })
 
@@ -444,4 +447,36 @@ test('An affair can coexist with a marriage and the child keeps biological paren
   assert.deepEqual(afterRemoval[2].loverIds, [])
   assert.equal(afterRemoval[0].spouseId, 'spouse')
   assert.deepEqual(afterRemoval[3].parentIds, ['mother', 'father'])
+})
+
+test('Districts can merge or be removed, and edits to the river and both banks survive serialization', () => {
+  const settings = { mode: 'settlement', terrain: 'plains', seed: 42, size: 'city', water: 'river-mouth', fortified: true }
+  const plan = createLocationMapPlan(settings)
+  const districts = plan.geometry.districts
+  const neighbor = districts.findIndex((entry, index) => index > 0 && mergeDistrictOutline(districts[0], entry))
+  assert.ok(neighbor > 0)
+  const merged = editDistricts(plan, 0, neighbor)
+  assert.equal(merged.geometry.districts.length, districts.length - 1)
+  assert.equal(merged.geometry.districts[0].kind, 'square')
+  assert.ok(validLocationMapPlan(merged))
+  const removed = editDistricts(merged, 0)
+  assert.equal(removed.geometry.districts.length, districts.length - 2)
+  assert.ok(validLocationMapPlan(removed))
+  const origin = plan.geometry.water[62]
+  const curved = moveWaterChannel(plan, origin, origin[0] + 12)
+  assert.ok(waterXAt(curved.geometry.water, origin[1], () => 0) > origin[0])
+  const developed = buildOppositeBank(curved)
+  assert.ok(developed.geometry.districts.length > districts.length)
+  assert.deepEqual(developed.geometry.districts.slice(0, districts.length), districts)
+  assert.ok(developed.geometry.districts.slice(districts.length).every(({ vertices }) => vertices.every(([x, y]) =>
+    x > waterXAt(developed.geometry.water, y, () => 0))))
+  const crossings = ['bridge', 'ferry', 'pier'].map((kind) => ({ kind, ends: [[530, 190], [620, 190]] }))
+  const civicBuildings = ['temple', 'palace', 'theatre', 'bank', 'barracks'].map((kind) => ({ kind, point: [200, 200] }))
+  const { daysPerYear, ...calendar } = standardYear
+  const mapPlan = { ...developed, crossings, civicBuildings }
+  const timeline = {
+    name: 'Atlas', startYear: -10, endYear: 100, daysPerYear, calendars: [{ ...calendar, name: 'Main', era }],
+    locations: [{ id: 'port', title: 'Port', summary: '', body: '', mapImage: 'data:image/webp;base64,AAAA', mapPlan }],
+  }
+  assert.deepEqual(importTimeline(exportTimeline(timeline)).locations[0].mapPlan, mapPlan)
 })
