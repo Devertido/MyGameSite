@@ -1,3 +1,4 @@
+import { LoreLinks } from './LoreLinks'
 import { CreationDialog } from './CreationDialog'
 import { EditIcon } from './EditIcon'
 import { TrashIcon } from './TrashIcon'
@@ -22,7 +23,7 @@ export function ArchivePage({ kind, entries, entryId, timeline, save }: {
   const [error, setError] = useState('')
   const [query, setQuery] = useState('')
   const original = draft === 'new' ? null : draft
-  const selected = entries.find(({ id }) => id === entryId)
+  const selected = entryId === undefined ? entries[0] : entries.find(({ id }) => id === entryId)
   const matches = entries.filter(({ title }) => title.toLocaleLowerCase('ru').includes(query.trim().toLocaleLowerCase('ru')))
 
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -64,7 +65,6 @@ export function ArchivePage({ kind, entries, entryId, timeline, save }: {
       {(
         <div className="timeline-controls">
           <button type="button" onClick={() => setDraft('new')}>{location ? 'Добавить локацию' : chronicle ? 'Создать летопись' : 'Добавить предмет'}</button>
-          {entryId === undefined && entries.length > 0 && <label>Поиск <input type="search" value={query} onChange={(event) => setQuery(event.currentTarget.value)} /></label>}
         </div>
       )}
       {draft !== null && (
@@ -114,55 +114,78 @@ export function ArchivePage({ kind, entries, entryId, timeline, save }: {
           </form>
         </CreationDialog>
       )}
-      {selected && (
-        <article className={chronicle ? 'archive-card parchment' : 'archive-card item-card item-tooltip'} style={chronicle ? undefined : itemAccent(selected)}>
-          {!chronicle && <ItemImage entry={selected} />}
-          <h2>{selected.title}</h2>
-          {!chronicle && <p className="item-rarity">{[selected.type, selected.rarity].filter(Boolean).join(' · ')}</p>}
-          {selected.summary && <p className="archive-copy">{selected.summary}</p>}
-          {selected.body && (
-            <section className="archive-body">
-              <h3>{location ? 'История локации' : chronicle ? 'Хроника' : 'Свойства и история'}</h3>
-              <p className="archive-copy">{selected.body}</p>
-            </section>
+      <div className="directory-layout archive-directory">
+        <section aria-label="Карточка записи">
+          {selected && (
+            <article className={chronicle ? 'archive-card parchment' : 'archive-card item-card item-tooltip'} style={chronicle ? undefined : itemAccent(selected)}>
+              {!chronicle && <ItemImage entry={selected} />}
+              <h2>{selected.title}</h2>
+              {!chronicle && <p className="item-rarity">{[selected.type, selected.rarity].filter(Boolean).join(' · ')}</p>}
+              {selected.summary && <p className="archive-copy">{selected.summary}</p>}
+              {location && <LoreLinks timeline={timeline} kind="locations" id={selected.id} />}
+              {selected.body && (
+                <section className="archive-body">
+                  <h3>{location ? 'История локации' : chronicle ? 'Хроника' : 'Свойства и история'}</h3>
+                  <p className="archive-copy">{selected.body}</p>
+                </section>
+              )}
+              {selected.eventIds?.length ? (
+                <section>
+                  <h3>Связанные события</h3>
+                  <ul>{timeline.events?.filter(({ id }) => selected.eventIds?.includes(id)).map(({ id, title, year }) => (
+                    <li key={id}><a href={'#events?event=' + encodeURIComponent(id)}>{year} · {title}</a></li>
+                  ))}</ul>
+                </section>
+              ) : null}
+              {selected.characterIds?.length || selected.ownerId ? (
+                <section>
+                  <h3>{chronicle ? 'Связанные персонажи' : 'Владелец'}</h3>
+                  <ul>{timeline.characters?.filter(({ id }) => chronicle
+                    ? selected.characterIds?.includes(id) : selected.ownerId === id).map(({ id, name }) => (
+                    <li key={id}><a href={'#characters?character=' + encodeURIComponent(id)}>{name}</a></li>
+                  ))}</ul>
+                </section>
+              ) : null}
+              <button type="button" onClick={() => setDraft(selected)} aria-label="Редактировать" title="Редактировать"><EditIcon /></button>{' '}
+              <button type="button" aria-label="Удалить запись" title="Удалить запись"
+                onClick={() => { setError(''); setDeleting(selected) }}><TrashIcon /></button>
+            </article>
           )}
-          {selected.eventIds?.length ? (
-            <section>
-              <h3>Связанные события</h3>
-              <ul>{timeline.events?.filter(({ id }) => selected.eventIds?.includes(id)).map(({ id, title, year }) => (
-                <li key={id}><a href={'#events?event=' + encodeURIComponent(id)}>{year} · {title}</a></li>
-              ))}</ul>
-            </section>
-          ) : null}
-          {selected.characterIds?.length || selected.ownerId ? (
-            <section>
-              <h3>{chronicle ? 'Связанные персонажи' : 'Владелец'}</h3>
-              <ul>{timeline.characters?.filter(({ id }) => chronicle
-                ? selected.characterIds?.includes(id) : selected.ownerId === id).map(({ id, name }) => (
-                <li key={id}><a href={'#characters?character=' + encodeURIComponent(id)}>{name}</a></li>
-              ))}</ul>
-            </section>
-          ) : null}
-          <button type="button" onClick={() => setDraft(selected)} aria-label="Редактировать" title="Редактировать"><EditIcon /></button>{' '}
-          <button type="button" aria-label="Удалить запись" title="Удалить запись"
-            onClick={() => { setError(''); setDeleting(selected) }}><TrashIcon /></button>
-        </article>
-      )}
-      {entryId !== undefined && !selected && <p>Запись не найдена в выбранном таймлайне.</p>}
-      {entryId === undefined && (
-        matches.length ? (
-          <ul className="archive-grid">
-            {matches.map((entry) => (
-              <li className={chronicle ? 'archive-card parchment' : 'archive-card item-card'} key={entry.id}>
-                {!chronicle && <ItemImage entry={entry} />}
-                <h2><a href={'#' + kind + '?entry=' + encodeURIComponent(entry.id)}>{entry.title}</a></h2>
-                {!chronicle && <p className="item-rarity">{[entry.type, entry.rarity].filter(Boolean).join(' · ')}</p>}
-                {entry.summary && <p className="archive-copy">{entry.summary}</p>}
-              </li>
-            ))}
-          </ul>
-        ) : <p>{entries.length ? 'По этому запросу ничего не найдено.' : location ? 'Здесь пока нет локаций.' : chronicle ? 'Здесь пока нет летописей.' : 'Здесь пока нет предметов.'}</p>
-      )}
+          {entryId !== undefined && !selected && <p>Запись не найдена в выбранном таймлайне.</p>}
+          {entries.length === 0 && <p>{location ? 'Здесь пока нет локаций.' : chronicle ? 'Здесь пока нет летописей.' : 'Здесь пока нет предметов.'}</p>}
+        </section>
+        {entries.length > 0 && (
+          <section className="directory-table" aria-label={title}>
+            <label>Поиск <input type="search" value={query} onChange={(event) => setQuery(event.currentTarget.value)} /></label>
+            {matches.length ? (
+              <div className="directory-table-scroll">
+                <table>
+                  <thead>
+                    <tr>
+                      <th scope="col">Название</th>
+                      {!chronicle && <th scope="col">Тип</th>}
+                      {kind === 'items' && <th scope="col">Редкость</th>}
+                      <th scope="col">Краткое описание</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {matches.map((entry) => (
+                      <tr key={entry.id} data-selected={entry.id === selected?.id}>
+                        <td><a href={'#' + kind + '?entry=' + encodeURIComponent(entry.id)}
+                          aria-current={entry.id === selected?.id ? 'true' : undefined}
+                          onClick={() => { setDeleting(null); setError('') }}>{entry.title}</a></td>
+                        {!chronicle && <td>{entry.type || '—'}</td>}
+                        {kind === 'items' && <td>{entry.rarity || '—'}</td>}
+                        <td>{entry.summary || '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : <p>По этому запросу ничего не найдено.</p>}
+          </section>
+        )}
+      </div>
       {deleting && (
         <dialog open className="card-delete-dialog" aria-labelledby="card-delete-title">
           <h2 id="card-delete-title">Удалить запись «{deleting.title}»?</h2>

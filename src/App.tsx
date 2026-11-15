@@ -7,12 +7,14 @@ import { OrganizationsPage } from './components/OrganizationsPage'
 import { CharactersPage } from './components/CharactersPage'
 import { EventsPage } from './components/EventsPage'
 import { TimelineScale } from './components/TimelineScale'
+import { LorePage } from './components/LorePage'
+import { removeMissingLoreLinks } from './domain/lore'
 import { WorldMap } from './components/WorldMap'
 import { validateCalendarEra } from './domain/calendarYear'
 import { calendarDay, validateEvent, validateTimelineBounds, type Timeline, type TimelineCalendar, type TimelineEvent, type TimelineCharacter } from './domain/timeline'
 import { deleteTimeline, exportAtlas, exportTimeline, previewBackup, saveTimelineCopies, loadTimelines, rememberSelection, restoreSelection, saveTimeline, timelineSnapshot } from './data/timelineStorage'
 
-function App({ backupTools, english, page, eventYear, eventId, characterId, organizationId, entryId }: { backupTools: HTMLDivElement | null; english: boolean; page: 'timeline' | 'events' | 'characters' | 'organizations' | 'chronicles' | 'items' | 'locations'; eventYear?: number; eventId?: string; characterId?: string; organizationId?: string; entryId?: string }) {
+function App({ backupTools, english, page, eventYear, eventId, characterId, organizationId, entryId, loreSection, familyOpen }: { backupTools: HTMLDivElement | null; english: boolean; page: 'timeline' | 'events' | 'characters' | 'organizations' | 'chronicles' | 'items' | 'locations' | 'lore'; loreSection?: string; familyOpen?: boolean; eventYear?: number; eventId?: string; characterId?: string; organizationId?: string; entryId?: string }) {
   const [backupMessage, setBackupMessage] = useState('')
   const [backupPreview, setBackupPreview] = useState<Timeline[] | null>(null)
   const backupDialogRef = useRef<HTMLDialogElement>(null)
@@ -198,7 +200,7 @@ function App({ backupTools, english, page, eventYear, eventId, characterId, orga
       throw new Error('Таймлайн изменился в другой вкладке. Обновите страницу.')
     }
 
-    const timeline = update(latest.timeline)
+    const timeline = removeMissingLoreLinks(update(latest.timeline))
     try {
       saveTimeline(id, timeline)
     } catch (error) {
@@ -227,7 +229,9 @@ function App({ backupTools, english, page, eventYear, eventId, characterId, orga
     const ids = new Set(characters.map(({ id }) => id))
     saveSelectedContent((timeline) => ({
       ...timeline,
-      characters,
+      characters: characters.map((character) => character.parentIds ? {
+        ...character, parentIds: character.parentIds.filter((id) => ids.has(id)),
+      } : character),
       chronicles: timeline.chronicles?.map((entry) => ({
         ...entry,
         characterIds: entry.characterIds?.filter((id) => ids.has(id)),
@@ -327,16 +331,21 @@ function App({ backupTools, english, page, eventYear, eventId, characterId, orga
       if (!selected) {
         return (
           <main className="section-page">
-            <h1>{page === 'locations' ? 'Локации' : page === 'chronicles' ? 'Летописи' : page === 'items' ? 'Предметы' : page === 'events' ? 'События' : page === 'organizations' ? 'Фракции и организации' : 'Персонажи'}</h1>
+            <h1>{page === 'lore' ? 'Справочник мира' : page === 'locations' ? 'Локации' : page === 'chronicles' ? 'Летописи' : page === 'items' ? 'Предметы' : page === 'events' ? 'События' : page === 'organizations' ? 'Фракции и организации' : 'Персонажи'}</h1>
             <p>Сначала создайте или импортируйте таймлайн.</p>
             <a href="#timeline">К таймлайну</a>
           </main>
         )
       }
 
+      if (page === 'lore') {
+        return <LorePage key={JSON.stringify([selected.id, loreSection])} initialSection={loreSection}
+          timeline={selected.timeline} save={(lore) => saveSelectedContent((timeline) => ({ ...timeline, lore }))} />
+      }
+
       if (page === 'chronicles' || page === 'items' || page === 'locations') {
         return (
-          <ArchivePage key={JSON.stringify([selected.id, page, entryId])}
+          <ArchivePage key={JSON.stringify([selected.id, page])}
             timeline={selected.timeline} kind={page} entryId={entryId} entries={selected.timeline[page] ?? []}
             save={(entries) => {
               const ids = new Set(entries.map(({ id }) => id))
@@ -373,7 +382,7 @@ function App({ backupTools, english, page, eventYear, eventId, characterId, orga
       }
 
       if (page === 'characters') {
-        return <CharactersPage key={selected.id} characterId={characterId} timeline={selected.timeline} save={saveCharacters} />
+        return <CharactersPage key={selected.id} characterId={characterId} familyOpen={familyOpen} timeline={selected.timeline} save={saveCharacters} />
       }
 
       return (

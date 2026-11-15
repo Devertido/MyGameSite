@@ -1,7 +1,9 @@
+import type { WorldLore } from './lore.ts'
 import type { CalendarMonth } from './calendar'
 import type { CalendarEra } from './calendarYear'
 
 export type Timeline = {
+  lore?: WorldLore
   name: string
   startYear: number
   endYear: number
@@ -115,6 +117,8 @@ export function isCharacterLifeOrderValid(birth?: CharacterDate, death?: Charact
 }
 
 export type TimelineCharacter = {
+  parentIds?: string[]
+  dynasty?: string
   surname?: string
   race?: string
   sex?: string

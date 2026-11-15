@@ -1,3 +1,4 @@
+import { LoreLinks } from './LoreLinks'
 import { CreationDialog } from './CreationDialog'
 import { EditIcon } from './EditIcon'
 import { TrashIcon } from './TrashIcon'
@@ -106,6 +107,24 @@ export function OrganizationsPage({ timeline, save, organizationId }: {
               <h2><span className="atlas-color" style={{ backgroundColor: selected.color ?? defaultOrganizationColor }} aria-hidden="true" />{selected.name}</h2>
               <p>{selected.type} · {selected.startYear} — {selected.endYear ?? 'год окончания не указан'}</p>
               {selected.description && <p>{selected.description}</p>}
+              <LoreLinks timeline={timeline} kind="organizations" id={selected.id} />
+              {!!timeline.lore?.reigns.some(({ organizationId }) => organizationId === selected.id) && (
+                <section>
+                  <h3>Правители</h3>
+                  <ul>{timeline.lore.reigns.filter(({ organizationId }) => organizationId === selected.id)
+                    .sort((left, right) => left.start - right.start).map((reign) => {
+                      const ruler = timeline.characters?.find(({ id }) => id === reign.characterId)
+                      return <li key={reign.id}>
+                        {reign.start} — {reign.end ?? '…'} · {reign.title} ·{' '}
+                        <a href={'#characters?character=' + encodeURIComponent(reign.characterId)}>
+                          {[ruler?.name, ruler?.surname].filter(Boolean).join(' ')}
+                        </a>
+                        {' · '}<a href={'#characters?character=' + encodeURIComponent(reign.characterId) + '&family=1'}>Родословная</a>
+                        {reign.accession && ' · ' + reign.accession}
+                      </li>
+                    })}</ul>
+                </section>
+              )}
               {!!selected.locationIds?.length && (
                 <section>
                   <h3>Локации фракции</h3>

@@ -11,6 +11,7 @@ const pages = [
   { id: 'chronicles', title: 'Летописи' },
   { id: 'items', title: 'Предметы' },
   { id: 'locations', title: 'Локации' },
+  { id: 'lore', title: 'Справочник' },
 ] as const
 
 function currentPage() {
@@ -22,6 +23,8 @@ function currentPage() {
 
   return {
     ...page,
+    familyOpen: params.get('family') === '1',
+    loreSection: params.get('section') ?? undefined,
     entryId: params.get('entry') ?? undefined,
     organizationId: page.id === 'organizations' ? params.get('organization') ?? undefined : undefined,
     characterId: page.id === 'characters' ? params.get('character') ?? undefined : undefined,
@@ -131,7 +134,7 @@ export default function SiteNavigation() {
       </dialog>
 
       <App backupTools={backupTools} english={english} page={page.id} eventYear={page.year} eventId={page.eventId} characterId={page.characterId}
-        organizationId={page.organizationId} entryId={page.entryId} />
+        organizationId={page.organizationId} entryId={page.entryId} loreSection={page.loreSection} familyOpen={page.familyOpen} />
     </>
   )
 }
@@ -144,6 +147,7 @@ const englishTitles = {
   chronicles: 'Chronicles',
   items: 'Items',
   locations: 'Locations',
+  lore: 'World reference',
 }
 
 function readPreference(key: string) {

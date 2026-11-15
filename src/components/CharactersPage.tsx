@@ -1,3 +1,6 @@
+import { FamilyTree } from './FamilyTree'
+import { LoreLinks } from './LoreLinks'
+import { validFamily } from '../domain/lore'
 import { CreationDialog } from './CreationDialog'
 import { EditIcon } from './EditIcon'
 import { TrashIcon } from './TrashIcon'
@@ -15,8 +18,9 @@ const columns = [
 
 const characterCollator = new Intl.Collator('ru', { sensitivity: 'base', numeric: true })
 
-export function CharactersPage({ timeline, save, characterId }: {
+export function CharactersPage({ timeline, save, characterId, familyOpen }: {
   characterId?: string
+  familyOpen?: boolean
   timeline: Timeline
   save: (characters: TimelineCharacter[]) => void
 }) {
@@ -80,7 +84,12 @@ export function CharactersPage({ timeline, save, characterId }: {
       return
     }
 
+    const dynasty = String(fields.get('dynasty') ?? '').trim()
+    const parentIds = fields.getAll('parents').map(String)
+    const childIds = new Set(fields.getAll('children').map(String))
     const entry: TimelineCharacter = {
+      parentIds,
+      ...(dynasty ? { dynasty } : {}),
       id: original?.id ?? crypto.randomUUID(), name, description, biography, color: String(fields.get('color')),
       ...(surname ? { surname } : {}),
       ...(race ? { race } : {}),
@@ -89,7 +98,18 @@ export function CharactersPage({ timeline, save, characterId }: {
       ...(birth ? { birth } : {}),
       ...(death ? { death } : {}),
     }
-    persist(original ? characters.map((item) => item.id === original.id ? entry : item) : [...characters, entry])
+    const next = characters.filter(({ id }) => id !== entry.id).map((item) => {
+      const parents = item.parentIds ?? []
+      const hasParent = parents.includes(entry.id)
+      if (hasParent === childIds.has(item.id)) return item
+      return { ...item, parentIds: hasParent ? parents.filter((id) => id !== entry.id) : [...parents, entry.id] }
+    })
+    next.splice(original ? characters.findIndex(({ id }) => id === original.id) : next.length, 0, entry)
+    if (!validFamily(next)) {
+      setError('Проверьте родство. Персонаж не может быть собственным предком.')
+      return
+    }
+    persist(next)
   }
 
   return (
@@ -104,9 +124,28 @@ export function CharactersPage({ timeline, save, characterId }: {
             <h2 id="creation-dialog-title">{original ? 'Редактировать персонажа' : 'Новый персонаж'}</h2>
             <div className="character-name-fields">
               <label>Имя<br /><input name="name" defaultValue={original?.name} required /></label>
-              <label>Фамилия<br /><input name="surname" defaultValue={original?.surname} /></label>
+              <label>Фамилия<br /><input name="surname" list="lore-surnames" defaultValue={original?.surname} /></label>
             </div>
-            <p><label>Раса<br /><input name="race" defaultValue={original?.race} /></label></p>
+            <p><label>Раса<br /><input name="race" list="lore-races" defaultValue={original?.race} /></label></p>
+            <p><label>Династия<br /><input name="dynasty" list="lore-dynasties" defaultValue={original?.dynasty} /></label></p>
+            {(['surnames', 'races', 'dynasties'] as const).map((field) => (
+              <datalist key={field} id={'lore-' + field}>
+                {(timeline.lore?.[field] ?? []).map((value) => <option key={value} value={value} />)}
+              </datalist>
+            ))}
+            {(['parents', 'children'] as const).map((relation) => (
+              <fieldset key={relation}>
+                <legend>{relation === 'parents' ? 'Родители' : 'Дети'}</legend>
+                {characters.filter(({ id }) => id !== original?.id).map((candidate) => (
+                  <label className="event-participant" key={candidate.id}>
+                    <input type="checkbox" name={relation} value={candidate.id} defaultChecked={relation === 'parents'
+                      ? original?.parentIds?.includes(candidate.id)
+                      : candidate.parentIds?.includes(original?.id ?? '')} />{' '}
+                    {[candidate.name, candidate.surname].filter(Boolean).join(' ')}
+                  </label>
+                ))}
+              </fieldset>
+            ))}
             <p><label>Пол<br />
               <select name="sex" defaultValue={original?.sex || ''}>
                 <option value="">Не указан</option>
@@ -158,6 +197,7 @@ export function CharactersPage({ timeline, save, characterId }: {
                       <button className="event-action" type="button" disabled={busy} onClick={() => setDraft(character)} aria-label="Редактировать" title="Редактировать"><EditIcon /></button>
                       <button className="event-action" type="button" disabled={busy} onClick={() => setDeleting(character)} aria-label="Удалить персонажа" title="Удалить персонажа"><TrashIcon /></button>
                       <h2>{fullName}</h2>
+                      <button className="family-tree-button" type="button" onClick={() => { window.location.hash = 'characters?character=' + encodeURIComponent(character.id) + '&family=1' }}>Родословная</button>
                     </div>
                     {(character.birth || character.death) && (
                       <p>Годы жизни · {character.birth?.year ?? '?'} — {character.death?.year ?? '…'}</p>
@@ -175,7 +215,9 @@ export function CharactersPage({ timeline, save, characterId }: {
                 )}
                 {(
                   <>
-                    <h3>Биография</h3>
+                    {character.dynasty && <p>Династия · {character.dynasty}</p>}
+                  <LoreLinks timeline={timeline} kind="characters" id={character.id} />
+                  <h3>Биография</h3>
                     <p>{character.biography || 'Биография пока не добавлена.'}</p>
                   </>
                 )}
@@ -257,6 +299,9 @@ export function CharactersPage({ timeline, save, characterId }: {
           </section>
         )}
       </div>
+      {familyOpen && selected && <FamilyTree character={selected} characters={characters} onClose={() => {
+        window.location.hash = 'characters?character=' + encodeURIComponent(selected.id)
+      }} />}
     </main>
   )
 }

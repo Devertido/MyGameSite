@@ -1,3 +1,4 @@
+import { LoreLinks } from './LoreLinks'
 import { CreationDialog } from './CreationDialog'
 import { EditIcon } from './EditIcon'
 import { TrashIcon } from './TrashIcon'
@@ -177,6 +178,7 @@ export function EventsPage({ timeline, calendar, save, yearFilter, eventId }: {
         <ul className="event-list">
           {sorted.map((entry) => (
             <li key={entry.id}>
+              <LoreLinks timeline={timeline} kind="events" id={entry.id} />
               <h2>{entry.color && <span className="atlas-color" style={{ backgroundColor: entry.color }} aria-hidden="true" />}{entry.year}{entry.end && ` — ${entry.end.year}`} · {entry.title}</h2>
               <p>
                 {calendar.name} · {formatEndpoint(entry, calendar)}

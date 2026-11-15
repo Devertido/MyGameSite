@@ -1,3 +1,4 @@
+import { validFamily, validLore } from '../domain/lore.ts'
 import { validateMonths, validateWeek } from '../domain/calendar.ts'
 import { validateCalendarEra } from '../domain/calendarYear.ts'
 import { isAtlasColor, isCharacterDate, isCharacterLifeOrderValid, validateOrganization, validateEvent, type Organization, type ArchiveEntry, type Timeline, type TimelineCalendar, type TimelineCharacter, type TimelineEvent } from '../domain/timeline.ts'
@@ -60,8 +61,10 @@ function parseTimeline(value: unknown): Timeline | null {
           characterIds.has(character.id) || typeof character.name !== 'string' || !character.name.trim() ||
           typeof character.description !== 'string' || ('color' in character && !isAtlasColor(character.color)) ||
           ('biography' in character && typeof character.biography !== 'string')) return null
-      const { surname, race, sex, birth, death, portrait } = character
-      if ((surname !== undefined && typeof surname !== 'string') ||
+      const { surname, race, sex, birth, death, portrait, parentIds, dynasty } = character
+      if ((parentIds !== undefined && !isIdList(parentIds)) ||
+          (dynasty !== undefined && typeof dynasty !== 'string') ||
+          (surname !== undefined && typeof surname !== 'string') ||
           (race !== undefined && typeof race !== 'string') ||
           (sex !== undefined && typeof sex !== 'string') ||
           (birth !== undefined && !isCharacterDate(birth, daysPerYear)) ||
@@ -70,6 +73,8 @@ function parseTimeline(value: unknown): Timeline | null {
           !isCharacterLifeOrderValid(birth, death)) return null
       characterIds.add(character.id)
       parsed.push({ id: character.id, name: character.name, description: character.description,
+        ...(parentIds !== undefined ? { parentIds } : {}),
+        ...(dynasty !== undefined ? { dynasty } : {}),
         ...(surname !== undefined ? { surname } : {}),
         ...(race !== undefined ? { race } : {}),
         ...(sex !== undefined ? { sex } : {}),
@@ -80,6 +85,7 @@ function parseTimeline(value: unknown): Timeline | null {
         ...(typeof character.biography === 'string' ? { biography: character.biography } : {}),
       })
     }
+    if (!validFamily(parsed)) return null
     timeline.characters = parsed
   }
 
@@ -137,6 +143,10 @@ function parseTimeline(value: unknown): Timeline | null {
   const locationIds = new Set(timeline.locations?.map(({ id }) => id))
   if (timeline.organizations?.some(({ locationIds: linked }) => linked?.some((id) => !locationIds.has(id)))) return null
 
+  if ('lore' in value) {
+    if (!validLore(value.lore, timeline)) return null
+    timeline.lore = value.lore
+  }
   return timeline
 }
 
