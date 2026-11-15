@@ -1513,6 +1513,17 @@ button.house-tree-add {
   translate: -50% -50%;
 }
 
+button.house-tree-remove {
+  width: 23px;
+  height: 23px;
+  background: #a22634;
+  color: white;
+}
+
+button.house-tree-remove:hover {
+  background: #7d1824;
+}
+
 button.house-tree-add[data-relation='spouse'] {
   translate: 20% -50%;
 }

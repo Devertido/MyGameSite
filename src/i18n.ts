@@ -237,6 +237,8 @@ const english: Readonly<Record<string, string>> = {
   "Редактировать персонажа": "Edit character",
   "Новый персонаж": "New character",
   "Род": "House",
+  "Удалить супружескую связь": "Remove spouse relationship",
+  "Удалить связь родитель — ребёнок": "Remove parent–child relationship",
   "Добавить родителя": "Add a parent",
   "Добавить ребёнка": "Add a child",
   "Добавить супруга или супругу": "Add a spouse",

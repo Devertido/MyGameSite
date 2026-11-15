@@ -40,6 +40,21 @@ export function addHouseRelationship(characters: TimelineCharacter[], person: Ti
   return validFamily(next) && generationRows(next, true) ? next : null
 }
 
+export function removeHouseRelationship(
+  characters: TimelineCharacter[], firstId: string, secondId: string, relation: 'child' | 'spouse',
+): TimelineCharacter[] {
+  return characters.map((person) => {
+    if (relation === 'child' && person.id === secondId && person.parentIds?.includes(firstId)) {
+      return { ...person, parentIds: person.parentIds.filter((id) => id !== firstId) }
+    }
+    if (relation === 'spouse' && ((person.id === firstId && person.spouseId === secondId) ||
+      (person.id === secondId && person.spouseId === firstId))) {
+      return { ...person, spouseId: undefined }
+    }
+    return person
+  })
+}
+
 function generationRows(people: TimelineCharacter[], groupSpouses: boolean) {
   const groups = new Map<string, TimelineCharacter[]>()
   const groupIds = new Map(people.map(({ id, spouseId }) => [id, groupSpouses && spouseId && spouseId < id ? spouseId : id]))

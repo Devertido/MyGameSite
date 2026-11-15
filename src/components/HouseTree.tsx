@@ -1,6 +1,6 @@
 import { Fragment, useId, useState, type CSSProperties } from 'react'
 import { t } from '../i18n.ts'
-import { addHouseRelationship, houseGenerations, type HouseRelationship } from '../domain/houseTree'
+import { addHouseRelationship, houseGenerations, removeHouseRelationship, type HouseRelationship } from '../domain/houseTree'
 import { CreationDialog } from './CreationDialog'
 import type { TimelineCharacter } from '../domain/timeline'
 
@@ -16,6 +16,15 @@ const relationshipLabels = {
   spouse: 'Добавить супруга или супругу',
 } as const
 
+type Connection = {
+  first: TimelineCharacter
+  second: TimelineCharacter
+  kind: 'child' | 'spouse'
+  path: string
+  x: number
+  y: number
+}
+
 function fullName(person: TimelineCharacter) {
   return [person.name, person.surname].filter(Boolean).join(' ')
 }
@@ -28,6 +37,7 @@ export function HouseTree({ house, characters, save }: {
   const titleId = useId()
   const dialogTitleId = useId()
   const [selection, setSelection] = useState<{ id: string; relation: HouseRelationship } | null>(null)
+  const [removal, setRemoval] = useState<Connection>()
   const [error, setError] = useState('')
   const person = selection ? characters.find(({ id }) => id === selection.id) : undefined
   const candidates = selection && person ? characters
@@ -35,6 +45,7 @@ export function HouseTree({ house, characters, save }: {
     .sort((left, right) => fullName(left).localeCompare(fullName(right))) : []
   function closePicker() {
     setSelection(null)
+    setRemoval(undefined)
     setError('')
   }
   const { generations, linkedParents, membersById } = houseGenerations(characters, house)
@@ -47,6 +58,35 @@ export function HouseTree({ house, characters, save }: {
     y: padding + generation * (cardHeight + rowGap),
   })))
   const byId = new Map(nodes.map((node) => [node.person.id, node]))
+  const connections: Connection[] = nodes.flatMap(({ person, x, y }) => {
+    const parents = linkedParents.get(person.id) ?? []
+    const links: Connection[] = parents.map((id, index) => {
+      const parent = byId.get(id)!
+      const startX = parent.x + cardWidth / 2
+      const startY = parent.y + cardHeight
+      const endX = x + cardWidth / 2
+      const joint = y - rowGap * (parents.length === 1 ? 0.5 : 0.68 - 0.36 * index / (parents.length - 1))
+      return {
+        first: parent.person, second: person, kind: 'child',
+        path: `M ${startX} ${startY} V ${joint} H ${endX} V ${y}`,
+        x: (startX + endX) / 2, y: joint,
+      }
+    })
+    const spouse = person.spouseId ? byId.get(person.spouseId) : undefined
+    if (spouse && (spouse.y > y || (spouse.y === y && spouse.x > x))) {
+      const start = x + cardWidth
+      const middle = y + cardHeight / 2
+      const end = spouse.y === y ? spouse.x : spouse.x + cardWidth
+      const turn = spouse.y === y ? (start + end) / 2 : Math.max(start, end) + columnGap / 2
+      const spouseMiddle = spouse.y + cardHeight / 2
+      links.push({
+        first: person, second: spouse.person, kind: 'spouse',
+        path: `M ${start} ${middle} H ${turn} V ${spouseMiddle} H ${end}`,
+        x: turn, y: spouse.y === y ? middle : (middle + spouseMiddle) / 2,
+      })
+    }
+    return links
+  })
 
   return <section className="house-tree">
     <h3 id={titleId}>{t('Родословное дерево')}</h3>
@@ -54,21 +94,16 @@ export function HouseTree({ house, characters, save }: {
       <div className="house-tree-scroll" role="region" tabIndex={0} aria-labelledby={titleId}>
         <div className="house-tree-chart" style={{ width, height }}>
           <svg className="house-tree-lines" width={width} height={height} aria-hidden="true">
-            {nodes.flatMap(({ person, x, y }) => (linkedParents.get(person.id) ?? []).map((id) => {
-              const parent = byId.get(id)!
-              const startX = parent.x + cardWidth / 2
-              const startY = parent.y + cardHeight
-              const endX = x + cardWidth / 2
-              const joint = y - rowGap / 2
-              return <path key={id + ':' + person.id} d={'M ' + startX + ' ' + startY + ' V ' + joint + ' H ' + endX + ' V ' + y} />
-            }))}
-            {nodes.map(({ person, x, y }) => {
-              const spouse = person.spouseId ? byId.get(person.spouseId) : undefined
-              if (!spouse || spouse.x <= x || spouse.y !== y) return null
-              const middle = y + cardHeight / 2
-              return <path key={person.id} className="house-tree-spouse-line" d={'M ' + (x + cardWidth) + ' ' + middle + ' H ' + spouse.x} />
-            })}
+            {connections.map(({ first, second, kind, path }) => <path key={JSON.stringify([kind, first.id, second.id])}
+              className={kind === 'spouse' ? 'house-tree-spouse-line' : undefined} d={path} />)}
           </svg>
+          {connections.map((connection) => {
+            const { first, second, kind, x, y } = connection
+            const action = t(kind === 'spouse' ? 'Удалить супружескую связь' : 'Удалить связь родитель — ребёнок')
+            const label = action + ' · ' + fullName(first) + ' → ' + fullName(second)
+            return <button key={JSON.stringify([kind, first.id, second.id])} className="house-tree-add house-tree-remove"
+              type="button" style={{ left: x, top: y }} aria-label={label} title={label} onClick={() => setRemoval(connection)}>−</button>
+          })}
           {nodes.map(({ person, x, y }) => {
             const name = fullName(person)
             const outside = !membersById.has(person.id)
@@ -94,6 +129,20 @@ export function HouseTree({ house, characters, save }: {
           })}
         </div>
       </div>}
+    {removal && <CreationDialog titleId={dialogTitleId} onCancel={closePicker}>
+      <h2 id={dialogTitleId}>{t(removal.kind === 'spouse' ? 'Удалить супружескую связь' : 'Удалить связь родитель — ребёнок')}</h2>
+      <p>{fullName(removal.first)} → {fullName(removal.second)}</p>
+      {error && <p role="alert">{error}</p>}
+      <button type="button" onClick={() => {
+        try {
+          save(removeHouseRelationship(characters, removal.first.id, removal.second.id, removal.kind))
+          closePicker()
+        } catch (issue) {
+          setError(issue instanceof Error ? issue.message : t('Не удалось сохранить запись.'))
+        }
+      }}>{t('Удалить')}</button>{' '}
+      <button type="button" onClick={closePicker}>{t('Отмена')}</button>
+    </CreationDialog>}
     {selection && person && <CreationDialog titleId={dialogTitleId} onCancel={closePicker}>
       <h2 id={dialogTitleId}>{t(relationshipLabels[selection.relation])}</h2>
       <p>{fullName(person)}</p>
