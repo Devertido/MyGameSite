@@ -118,7 +118,10 @@ export type Beast = {
   abilities: AbilityScores
 }
 
-export type HouseDetails = { name: string; startYear?: number; endYear?: number; locationIds: string[] }
+export const surnameInheritanceRules = [['father', 'Патриархат'], ['mother', 'Матриархат']] as const
+export type SurnameInheritance = typeof surnameInheritanceRules[number][0]
+
+export type HouseDetails = { name: string; surnameInheritance?: SurnameInheritance; startYear?: number; endYear?: number; locationIds: string[] }
 
 export function validHouseYears(startYear?: number, endYear?: number) {
   return (startYear === undefined || Number.isSafeInteger(startYear)) &&
@@ -227,6 +230,7 @@ export function validLore(value: unknown, timeline: Timeline): value is WorldLor
         (entry.startYear === undefined || typeof entry.startYear === 'number') &&
         (entry.endYear === undefined || typeof entry.endYear === 'number') &&
         validHouseYears(entry.startYear, entry.endYear) &&
+        (entry.surnameInheritance === undefined || surnameInheritanceRules.some(([rule]) => rule === entry.surnameInheritance)) &&
         strings(entry.locationIds) && new Set(entry.locationIds).size === entry.locationIds.length &&
         entry.locationIds.every((id) => locations.has(id))) ||
       new Set(value.houseDetails.map(({ name }) => name)).size !== value.houseDetails.length)) return false

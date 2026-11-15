@@ -1,3 +1,4 @@
+import { WikiText } from './WikiText'
 import { t } from '../i18n.ts'
 import { createContext, useContext, useId, useRef, useState, type ChangeEvent, type ReactNode } from 'react'
 import type { EntryMetadata, EntryStatus, GalleryImage } from '../domain/timeline'
@@ -126,7 +127,7 @@ export function EntryGallery({ entry }: { entry: EntryMetadata }) {
             <button type="button" onClick={() => setOpen(image)} aria-label={t('Увеличить: ') + (image.caption || t('изображение ') + (index + 1))}>
               <img src={image.image} alt={image.caption || t('Изображение галереи')} loading="lazy" />
             </button>
-            {image.caption && <figcaption>{image.caption}</figcaption>}
+            {image.caption && <figcaption><WikiText text={image.caption} /></figcaption>}
           </figure>
         ))}
       </div>

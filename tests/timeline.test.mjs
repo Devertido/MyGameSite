@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
+import { wikiIndex, wikiParts } from '../src/domain/wikiLinks.ts'
 import { damageRange, parseDamageFormula } from '../src/domain/itemDamage.ts'
 import { buildOppositeBank, createLocationMapPlan, editDistricts, mergeDistrictOutline, moveDistrictCorner, moveWaterChannel, waterXAt, rerollDistrict, validLocationMapPlan, warpDistricts } from '../src/domain/locationMapPlan.ts'
 import { insideDistrict, settlementBuildings } from '../src/domain/settlementBuildings.ts'
@@ -13,7 +14,7 @@ import { calendarDay, eventDays, validateEvent, validateTimelineBounds } from '.
 import { timelineSnapshot, deleteTimeline, exportTimeline, importTimeline, loadTimelines, rememberSelection, restoreSelection, saveTimeline } from '../src/data/timelineStorage.ts'
 
 import { appliedAbilityEffects, emptyLore, parseRaceMeasure, readRaceMeasure, removeMissingLoreLinks } from '../src/domain/lore.ts'
-import { addHouseRelationship, houseGenerations, removeHouseRelationship } from '../src/domain/houseTree.ts'
+import { addHouseRelationship, childSurname, houseGenerations, removeHouseRelationship } from '../src/domain/houseTree.ts'
 
 const era = { systemAnchorYear: 100, calendarAnchorYear: 1, hasYearZero: false }
 
@@ -402,14 +403,19 @@ test('Правки планировки, родство, бестиарий и �
     { id: 'b', name: 'Б', description: '', sex: 'Жен' },
     { id: 'c', name: 'В', description: '' },
   ]
+  people[0].surname = 'Father surname'
+  people[1].surname = 'Mother surname'
   const couple = addHouseRelationship(people, people[0], people[1], 'spouse')
+  assert.equal(childSurname(couple[0], couple[1], 'father'), 'Father surname')
+  assert.equal(childSurname(couple[0], couple[1], 'mother'), 'Mother surname')
+  assert.equal(childSurname(people[0], people[1], 'father'), undefined)
   const characters = addHouseRelationship(couple, couple[0], couple[2], 'child')
   const timeline = {
     name: 'Арена', startYear: -10, endYear: 100, daysPerYear,
     calendars: [{ ...calendar, name: 'Основной', era }],
     locations: [location], characters,
     lore: { ...emptyLore, races: [race.name], raceDetails: [race], bestiary: [beast],
-      dynasties: ['House'], houseDetails: [{ name: 'House', startYear: -10, endYear: 0, locationIds: [location.id] }] },
+      dynasties: ['House'], houseDetails: [{ name: 'House', startYear: -10, endYear: 0, surnameInheritance: 'mother', locationIds: [location.id] }] },
   }
   const spell = { name: 'Fireball', image, mana: 15, components: [], school: 'Evocation',
     damageFormula: '2d6 + 3', castingTime: { amount: 0.5, unit: 'second' }, cooldown: { amount: 2, unit: 'minute' } }
@@ -522,4 +528,18 @@ test('Damage range follows dice, signs and operator precedence', () => {
   for (const formula of ['1d1', '500d20', '1d8 +', '2(3)', 'alert(1)', '(1 + 2', '5 ^ 2']) {
     assert.equal(parseDamageFormula(formula), undefined, formula)
   }
+})
+
+test('Wiki links resolve titles and aliases, show summaries and preserve unknown links', () => {
+  const index = wikiIndex({
+    characters: [{ id: 'a', name: 'Иван', surname: 'Морозов', description: 'Правит [[Дорэн|городом]].' }],
+    locations: [{ id: 'd', title: 'Дорэн', summary: 'Порт на реке.' }],
+    events: [{ id: 'e', title: 'Дорэн', year: 10, description: 'Основание города.' }],
+  })
+  assert.deepEqual(wikiParts('[[Иван|князь]] посетил [[Локации: Дорэн]]. [[Дорэн]] [[Неизвестно]]', index), [
+    { text: 'князь', href: '#characters?character=a', preview: 'Иван Морозов — Правит городом.' },
+    { text: ' посетил ' },
+    { text: 'Дорэн', href: '#lore?section=locations&entry=d', preview: 'Дорэн — Порт на реке.' },
+    { text: '. ' }, { text: '[[Дорэн]]' }, { text: ' ' }, { text: '[[Неизвестно]]' },
+  ])
 })

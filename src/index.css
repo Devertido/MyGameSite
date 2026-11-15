@@ -1589,6 +1589,13 @@ button.event-action:hover:enabled {
   margin-block: 1rem;
 }
 
+.archive-form .entry-status-row label {
+  display: inline-flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  white-space: nowrap;
+}
+
 .entry-status-row label {
   display: inline-flex;
   align-items: center;

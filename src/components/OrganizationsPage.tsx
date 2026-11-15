@@ -1,3 +1,4 @@
+import { WikiText } from './WikiText'
 import { t } from '../i18n.ts'
 import { LoreLinks } from './LoreLinks'
 import { EntryFields, EntryGallery, EntryStatusLabel, readEntryMetadata, useStatusMatch } from './EntryMedia'
@@ -110,7 +111,7 @@ export function OrganizationsPage({ timeline, save, organizationId }: {
               {selected.emblem && <img className="atlas-entry-image organization-emblem" src={selected.emblem} alt={t('Эмблема · ') + selected.name} />}
               <h2><span className="atlas-color" style={{ backgroundColor: selected.color ?? defaultOrganizationColor }} aria-hidden="true" />{selected.name}</h2>
               <p>{displayOrganizationType(selected.type)} · {selected.startYear} — {selected.endYear ?? t('год окончания не указан')}</p>
-              {selected.description && <p>{selected.description}</p>}
+              {selected.description && <p><WikiText text={selected.description} /></p>}
               <EntryStatusLabel entry={selected} />
               <EntryGallery key={selected.id} entry={selected} />
               <LoreLinks timeline={timeline} kind="organizations" id={selected.id} />

@@ -1,3 +1,4 @@
+import { WikiText } from './WikiText'
 import { t } from '../i18n.ts'
 import { abilities } from '../domain/abilities'
 import { AbilityFields } from './AbilityScores'
@@ -103,7 +104,7 @@ export function MagicDetails({ race }: { race?: RaceDetails }) {
       return (race[key] || values.length > 0) && (
         <section key={key} className={'lore-' + key}>
           <h3>{t(label)}</h3>
-          {race[key] && <p className="archive-copy">{race[key]}</p>}
+          {race[key] && <p className="archive-copy"><WikiText text={race[key]} /></p>}
           {values.length > 0 && <p>{values.join(' · ')}</p>}
         </section>
       )

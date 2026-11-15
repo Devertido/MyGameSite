@@ -1,15 +1,20 @@
 import { t } from '../i18n.ts'
 import { useId, useState } from 'react'
-import type { TimelineCharacter } from '../domain/timeline'
+type Candidate = { id: string; name: string; surname?: string }
 
-function fullName({ name, surname }: TimelineCharacter) {
+function fullName({ name, surname }: Candidate) {
   return [name, surname].filter(Boolean).join(' ')
 }
 
-export function RelativePicker({ name, label, candidates, initialIds }: {
+export function RelativePicker({ name, label, candidates, initialIds, optionsLabel = 'Выбрать персонажей',
+  searchLabel = 'Поиск по имени или фамилии', emptyLabel = 'Нет доступных персонажей.', lockedId }: {
   name: string
   label: string
-  candidates: TimelineCharacter[]
+  candidates: Candidate[]
+  optionsLabel?: string
+  searchLabel?: string
+  emptyLabel?: string
+  lockedId?: string
   initialIds: string[]
 }) {
   const searchId = useId()
@@ -29,8 +34,8 @@ export function RelativePicker({ name, label, candidates, initialIds }: {
           {candidates.filter(({ id }) => selectedIds.includes(id)).map((candidate) => (
             <li key={candidate.id}>
               {fullName(candidate)}{' '}
-              <button className="form-icon-button form-icon-remove" type="button" aria-label={t('Убрать из списка «') + label + '» — ' + fullName(candidate)}
-                onClick={() => setSelectedIds((ids) => ids.filter((id) => id !== candidate.id))}>×</button>
+              {candidate.id !== lockedId && <button className="form-icon-button form-icon-remove" type="button" aria-label={t('Убрать из списка «') + label + '» — ' + fullName(candidate)}
+                onClick={() => setSelectedIds((ids) => ids.filter((id) => id !== candidate.id))}>×</button>}
             </li>
           ))}
         </ul>
@@ -39,8 +44,8 @@ export function RelativePicker({ name, label, candidates, initialIds }: {
         if (event.currentTarget.open) event.currentTarget.querySelector<HTMLInputElement>('input[type="search"]')?.focus()
         else setQuery('')
       }}>
-        <summary>{t("Выбрать персонажей")}</summary>
-        <label htmlFor={searchId}>{t("Поиск по имени или фамилии")}</label>
+        <summary>{t(optionsLabel)}</summary>
+        <label htmlFor={searchId}>{t(searchLabel)}</label>
         <input id={searchId} type="search" value={query} onChange={(event) => setQuery(event.currentTarget.value)}
           onKeyDown={(event) => { if (event.key === 'Enter') event.preventDefault() }} />
         {matches.length > 0 ? (
@@ -55,7 +60,7 @@ export function RelativePicker({ name, label, candidates, initialIds }: {
               </li>
             ))}
           </ul>
-        ) : <p>{normalizedQuery ? t('Совпадений нет.') : t('Нет доступных персонажей.')}</p>}
+        ) : <p>{normalizedQuery ? t('Совпадений нет.') : t(emptyLabel)}</p>}
       </details>
     </fieldset>
   )

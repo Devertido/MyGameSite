@@ -11,6 +11,7 @@ import { ArchivePage } from './components/ArchivePage'
 import { OrganizationsPage } from './components/OrganizationsPage'
 import { CharactersPage } from './components/CharactersPage'
 import { EventsPage } from './components/EventsPage'
+import { WikiLinksProvider } from './components/WikiText'
 import { TimelineScale } from './components/TimelineScale'
 import { LorePage } from './components/LorePage'
 import { removeMissingLoreLinks, updateAbilityNames } from './domain/lore'
@@ -355,7 +356,7 @@ function App({ backupTools, english, page, eventYear, eventId, characterId, orga
 
       if (page === 'lore') {
         const kind = loreSection === 'items' || loreSection === 'locations' ? loreSection : undefined
-        return <LorePage key={JSON.stringify([selected.id, loreSection, (loreSection === 'dynasties' || loreSection === 'abilities') ? entryId : null])} initialSection={loreSection} initialEntry={entryId} saveCharacters={saveCharacters}
+        return <LorePage key={JSON.stringify([selected.id, loreSection, entryId ?? null])} initialSection={loreSection} initialEntry={entryId} saveCharacters={saveCharacters}
           archive={kind && <ArchivePage embedded timeline={selected.timeline} kind={kind} entryId={entryId}
             entries={selected.timeline[kind] ?? []}
             save={(entries) => {
@@ -725,7 +726,9 @@ function App({ backupTools, english, page, eventYear, eventId, characterId, orga
           </select></label>
         </div>
       )}
-      <StatusFilter.Provider value={entryFilter}>{renderPage()}</StatusFilter.Provider>
+      <StatusFilter.Provider value={entryFilter}>
+        <WikiLinksProvider timeline={selected?.timeline}>{renderPage()}</WikiLinksProvider>
+      </StatusFilter.Provider>
     </>
   )
 }

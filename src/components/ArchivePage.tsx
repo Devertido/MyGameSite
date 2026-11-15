@@ -1,3 +1,4 @@
+import { WikiText } from './WikiText'
 import { itemMaterials, itemTypes, parseDamageFormula } from '../domain/itemDamage'
 import { appliedAbilityEffects, raceDetailsFor } from '../domain/lore'
 import { ItemDamage } from './ItemDamage'
@@ -11,6 +12,7 @@ import { CreationDialog } from './CreationDialog'
 import { EditIcon } from './EditIcon'
 import { TrashIcon } from './TrashIcon'
 import { DirectoryImage } from './DirectoryImage'
+import { RelativePicker } from './RelativePicker'
 import { ImageField } from './ImageField'
 import { useState, type CSSProperties, type FormEvent } from 'react'
 import type { ArchiveEntry, Timeline } from '../domain/timeline'
@@ -142,22 +144,12 @@ export function ArchivePage({ kind, entries, entryId, timeline, save, embedded =
             <label>{location ? t('История локации') : chronicle ? t('Текст летописи') : t('Свойства и история')}<textarea name="body" rows={8} defaultValue={original?.body} /></label>
             {chronicle ? (
               <>
-                <fieldset>
-                  <legend>{t("Связанные события")}</legend>
-                  {(timeline.events ?? []).map(({ id, title, year }) => (
-                    <label key={id}><span><input type="checkbox" name="events" value={id}
-                      defaultChecked={original?.eventIds?.includes(id)} /> {year} · {title}</span></label>
-                  ))}
-                  {!timeline.events?.length && <p>{t("В таймлайне пока нет событий.")}</p>}
-                </fieldset>
-                <fieldset>
-                  <legend>{t("Связанные персонажи")}</legend>
-                  {(timeline.characters ?? []).map(({ id, name }) => (
-                    <label key={id}><span><input type="checkbox" name="characters" value={id}
-                      defaultChecked={original?.characterIds?.includes(id)} /> {name}</span></label>
-                  ))}
-                  {!timeline.characters?.length && <p>{t("В таймлайне пока нет персонажей.")}</p>}
-                </fieldset>
+                <RelativePicker name="events" label={t('Связанные события')} optionsLabel="Выбрать события"
+                  searchLabel="Поиск по названию или году" emptyLabel="В таймлайне пока нет событий."
+                  candidates={(timeline.events ?? []).map(({ id, title, year }) => ({ id, name: year + ' · ' + title }))}
+                  initialIds={original?.eventIds ?? []} />
+                <RelativePicker name="characters" label={t('Связанные персонажи')}
+                  candidates={timeline.characters ?? []} initialIds={original?.characterIds ?? []} />
               </>
             ) : !location && (
               <label>{t("Владелец")}<select name="ownerId" defaultValue={original?.ownerId ?? ''}>
@@ -190,7 +182,7 @@ export function ArchivePage({ kind, entries, entryId, timeline, save, embedded =
               </section>}
               {kind === 'items' && selected.damageFormula && <ItemDamage key={JSON.stringify([selected.id, selected.damageFormula, ownerStrength])}
                 formula={selected.damageFormula} ownerStrength={ownerStrength} />}
-              {selected.summary && <p className="archive-copy">{selected.summary}</p>}
+              {selected.summary && <p className="archive-copy"><WikiText text={selected.summary} /></p>}
               {location && <LoreLinks timeline={timeline} kind="locations" id={selected.id} />}
               {location && selected.mapImage && <section>
                 <h3>{t('Карта локации')}</h3>
@@ -210,7 +202,7 @@ export function ArchivePage({ kind, entries, entryId, timeline, save, embedded =
               {selected.body && (
                 <section className="archive-body">
                   <h3>{location ? t('История локации') : chronicle ? t('Хроника') : t('Свойства и история')}</h3>
-                  <p className="archive-copy">{selected.body}</p>
+                  <p className="archive-copy"><WikiText text={selected.body} /></p>
                 </section>
               )}
               {selected.eventIds?.length ? (
@@ -265,7 +257,7 @@ export function ArchivePage({ kind, entries, entryId, timeline, save, embedded =
                         onClick={() => { setDeleting(null); setError('') }}>{entry.title}</a></td>
                       {!chronicle && <td>{entry.type ? t(entry.type) : '—'}</td>}
                       {kind === 'items' && <td>{entry.rarity ? t(entry.rarity) : '—'}</td>}
-                      <td>{entry.summary || '—'}</td>
+                      <td><WikiText text={entry.summary || '—'} /></td>
                     </tr>
                   ))}
                 </tbody>

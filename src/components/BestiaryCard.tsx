@@ -1,3 +1,4 @@
+import { WikiText } from './WikiText'
 import type { ReactNode } from 'react'
 import { t } from '../i18n.ts'
 import { AppliedAbilities } from './AbilityPicker'
@@ -23,7 +24,7 @@ export function BestiaryCard({ beast, controls, lore }: { beast: Beast; controls
         <div className="bestiary-lore">
           <h2>{beast.name}</h2>
           {beast.type && <p className="bestiary-type">{beast.type}</p>}
-          {beast.description && <p className="archive-copy">{beast.description}</p>}
+          {beast.description && <p className="archive-copy"><WikiText text={beast.description} /></p>}
         </div>
       </div>
       {showStatBlock && (
@@ -39,8 +40,8 @@ export function BestiaryCard({ beast, controls, lore }: { beast: Beast; controls
           </div>
           {(beast.combat?.traits || beast.combat?.actions) && (
             <div className="bestiary-actions">
-              {beast.combat.traits && <section><h3>{t('Особенности')}</h3><p className="archive-copy">{beast.combat.traits}</p></section>}
-              {beast.combat.actions && <section><h3>{t('Действия')}</h3><p className="archive-copy">{beast.combat.actions}</p></section>}
+              {beast.combat.traits && <section><h3>{t('Особенности')}</h3><p className="archive-copy"><WikiText text={beast.combat.traits} /></p></section>}
+              {beast.combat.actions && <section><h3>{t('Действия')}</h3><p className="archive-copy"><WikiText text={beast.combat.actions} /></p></section>}
             </div>
           )}
         </section>

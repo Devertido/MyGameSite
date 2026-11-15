@@ -1,3 +1,4 @@
+import { WikiText } from './WikiText'
 import { displayCalendarName, displayMonthName } from '../domain/calendar.ts'
 import { t } from '../i18n.ts'
 import { LoreLinks } from './LoreLinks'
@@ -200,7 +201,7 @@ export function EventsPage({ timeline, calendar, save, yearFilter, eventId }: {
               {renderParticipants((entry.characterIds ?? []).filter((id) =>
                 !entry.sides?.some((side) => side.characterIds.includes(id))
               ), true)}
-              {entry.description && <p>{entry.description}</p>}
+              {entry.description && <p><WikiText text={entry.description} /></p>}
               {timeline.chronicles?.some(({ eventIds }) => eventIds?.includes(entry.id)) && (
                 <section>
                   <h3>{t("Связанные летописи")}</h3>

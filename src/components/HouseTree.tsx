@@ -1,8 +1,9 @@
 import { Fragment, useId, useState, type CSSProperties } from 'react'
 import { t } from '../i18n.ts'
-import { addHouseRelationship, houseGenerations, removeHouseRelationship, type HouseRelationship } from '../domain/houseTree'
+import { CharacterEditor } from './CharacterEditor'
+import { addHouseRelationship, childSurname, sameHouse, houseGenerations, removeHouseRelationship, type HouseRelationship } from '../domain/houseTree'
 import { CreationDialog } from './CreationDialog'
-import type { TimelineCharacter } from '../domain/timeline'
+import type { Timeline, TimelineCharacter } from '../domain/timeline'
 
 const cardWidth = 144
 const cardHeight = 174
@@ -38,11 +39,13 @@ function fullName(person: TimelineCharacter) {
   return [person.name, person.surname].filter(Boolean).join(' ')
 }
 
-export function HouseTree({ house, characters, save }: {
+export function HouseTree({ house, timeline, save }: {
   house: string
-  characters: TimelineCharacter[]
+  timeline: Timeline
   save: (characters: TimelineCharacter[]) => void
 }) {
+  const characters = timeline.characters ?? []
+  const [creating, setCreating] = useState(false)
   const titleId = useId()
   const dialogTitleId = useId()
   const [editing, setEditing] = useState(false)
@@ -50,10 +53,13 @@ export function HouseTree({ house, characters, save }: {
   const [removal, setRemoval] = useState<Connection>()
   const [error, setError] = useState('')
   const person = selection ? characters.find(({ id }) => id === selection.id) : undefined
-  const candidates = selection && person ? characters
+  const spouse = person?.spouseId ? characters.find(({ id }) => id === person.spouseId) : undefined
+  const inheritance = timeline.lore?.houseDetails?.find(({ name }) => sameHouse(name, house))?.surnameInheritance
+  const candidates = !creating && selection && person ? characters
     .filter((relative) => addHouseRelationship(characters, person, relative, selection.relation))
     .sort((left, right) => fullName(left).localeCompare(fullName(right))) : []
   function closePicker() {
+    setCreating(false)
     setSelection(null)
     setRemoval(undefined)
     setError('')
@@ -190,7 +196,11 @@ export function HouseTree({ house, characters, save }: {
       }}>{t('Удалить')}</button>{' '}
       <button type="button" onClick={closePicker}>{t('Отмена')}</button>
     </CreationDialog>}
-    {selection && person && <CreationDialog titleId={dialogTitleId} onCancel={closePicker}>
+    {creating && selection && person && <CharacterEditor timeline={timeline} original={null} save={save}
+      cancel={closePicker} familyDefaults={selection.relation === 'child' ? {
+        dynasty: house, parentId: person.id, spouseId: spouse?.id, surname: childSurname(person, spouse, inheritance),
+      } : { childId: person.id }} />}
+    {!creating && selection && person && <CreationDialog titleId={dialogTitleId} onCancel={closePicker}>
       <h2 id={dialogTitleId}>{t(relationshipLabels[selection.relation])}</h2>
       <p>{fullName(person)}</p>
       {selection.relation === 'spouse' && <p>{t('У супругов должен быть указан разный пол: Муж и Жен.')}</p>}
@@ -218,6 +228,10 @@ export function HouseTree({ house, characters, save }: {
         </label></p> : <p>{t('Нет подходящих персонажей.')}</p>}
         {error && <p role="alert">{error}</p>}
         {candidates.length > 0 && <button type="submit">{t('Сохранить')}</button>}{' '}
+        {(selection.relation === 'child' || selection.relation === 'parent') && <button type="button" onClick={() => {
+          setCreating(true)
+          setError('')
+        }}>{t('Создать нового персонажа')}</button>}{' '}
         <button type="button" onClick={closePicker}>{t('Отмена')}</button>
       </form>
     </CreationDialog>}

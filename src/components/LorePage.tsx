@@ -1,3 +1,4 @@
+import { WikiText } from './WikiText'
 import { sameHouse } from '../domain/houseTree'
 import { AppliedAbilities, AbilityPicker } from './AbilityPicker'
 import { ClassProgressionDetails, ClassProgressionFields } from './ClassProgression'
@@ -15,7 +16,7 @@ import { ImageField } from './ImageField'
 import { useState, type CSSProperties, type FormEvent, type ReactNode } from 'react'
 import { MagicDetails, RaceFields, SpellFields } from './LoreDetails'
 import { CreationDialog } from './CreationDialog'
-import { appliedAbilityEffects, emptyLore, glossaryDescription, isGlossarySection, beastCombatFields, readRaceMeasure, surnameOrigins, spellComponents, validSpellDuration, formatSpellDuration, loreTargets, updateLoreAbilityLinks, validHouseYears, validLore, type HouseDetails, type LinkKind, type WorldLore } from '../domain/lore'
+import { appliedAbilityEffects, emptyLore, glossaryDescription, isGlossarySection, beastCombatFields, readRaceMeasure, surnameOrigins, spellComponents, validSpellDuration, formatSpellDuration, loreTargets, surnameInheritanceRules, updateLoreAbilityLinks, validHouseYears, validLore, type HouseDetails, type LinkKind, type WorldLore } from '../domain/lore'
 import type { Timeline } from '../domain/timeline'
 
 const sections = [
@@ -50,7 +51,7 @@ export function LorePage({ timeline, save, initialSection, initialEntry, archive
   const lore = { ...emptyLore, ...timeline.lore, bestiary: timeline.lore?.bestiary ?? [], classes: timeline.lore?.classes ?? [], spells: timeline.lore?.spells ?? [], abilities: timeline.lore?.abilities ?? [] }
   const section = sections.find(([key]) => key === initialSection)?.[0] ?? 'surnames'
   const [selectedId, setSelectedId] = useState<string | null>(() =>
-    section === 'dynasties' ? lore.dynasties.find((name) => sameHouse(initialEntry, name)) ?? null : section === 'abilities' ? initialEntry ?? null : null)
+    section === 'dynasties' ? lore.dynasties.find((name) => sameHouse(initialEntry, name)) ?? null : initialEntry ?? null)
   const [spellQuery, setSpellQuery] = useState('')
   const [editing, setEditing] = useState<string | null>(null)
   const [error, setError] = useState('')
@@ -144,7 +145,9 @@ export function LorePage({ timeline, save, initialSection, initialEntry, archive
           return
         }
         next.houseDetails = [...(lore.houseDetails ?? []).filter((entry) => entry.name !== editing), {
-          name, startYear, endYear, locationIds: [...new Set(data.getAll('house-location').map(String))],
+          name, startYear, endYear,
+          surnameInheritance: surnameInheritanceRules.find(([rule]) => rule === read('house-inheritance'))?.[0],
+          locationIds: [...new Set(data.getAll('house-location').map(String))],
         }]
       }
       if (section === 'dynasties' && editing && name !== editing && lore.surnameDetails) {
@@ -295,7 +298,7 @@ export function LorePage({ timeline, save, initialSection, initialEntry, archive
             {abilitySection && <AbilityBonuses scores={spell?.statBonuses} />}
             {race && <MagicDetails race={race} />}
             {isGlossarySection(section) && <p className={spellSection ? 'archive-copy' : undefined} hidden={!glossaryDescription(lore, section, name)}>
-              {glossaryDescription(lore, section, name)}
+              <WikiText text={glossaryDescription(lore, section, name)} />
             </p>}
             {details?.origin && <p><strong>{t("Происхождение")}</strong> · {t(details.origin)}</p>}
             {location && <p><strong>{t("Локация")}</strong> · <a href={'#lore?section=locations&entry=' + encodeURIComponent(location.id)}>{location.title}</a></p>}
@@ -313,10 +316,10 @@ export function LorePage({ timeline, save, initialSection, initialEntry, archive
             {section === 'classes' && <ClassProgressionDetails
               levels={lore.classProgression?.find((entry) => entry.name === name)?.levels ?? []} />}
             {details?.dynasty && <p><strong>{t("Род")}</strong> · {details.dynasty}</p>}
-            {details?.usage && <p className="archive-copy"><strong>{t("Значение и правила ношения")}</strong><br />{details.usage}</p>}
+            {details?.usage && <p className="archive-copy"><strong>{t("Значение и правила ношения")}</strong><br /><WikiText text={details.usage} /></p>}
             {typeof entry !== 'string' && 'fields' in entry && traditionKind && (
               <>
-                {entry.fields.map((value, index) => value && <p key={index}><strong>{t(fieldsByKind[traditionKind][index]!)}</strong> · {value}</p>)}
+                {entry.fields.map((value, index) => value && <p key={index}><strong>{t(fieldsByKind[traditionKind][index]!)}</strong> · <WikiText text={value} /></p>)}
                 {entry.links.map(({ kind, id }) => <p key={kind + id}>
                   <a href={(kind === 'locations' ? '#lore?section=locations&' : '#' + kind + '?') + linkParameters[kind] + '=' + encodeURIComponent(id)}>{linkedName(kind, id)}</a>
                 </p>)}
@@ -366,7 +369,7 @@ export function LorePage({ timeline, save, initialSection, initialEntry, archive
                       <td>{spell?.school || '—'}</td>
                       <td>{spell?.mana ?? '—'}</td>
                       <td>{spell?.components.map(t).join(' · ') || '—'}</td>
-                      <td>{glossaryDescription(lore, abilitySection ? 'abilities' : 'spells', name) || '—'}</td>
+                      <td><WikiText text={glossaryDescription(lore, abilitySection ? 'abilities' : 'spells', name) || '—'} /></td>
                     </>}
                     {section === 'dynasties' && typeof entry === 'string' && <>
                       <td>{timeline.characters?.filter(({ dynasty }) => sameHouse(dynasty, entry)).length ?? 0}</td>
@@ -385,7 +388,7 @@ export function LorePage({ timeline, save, initialSection, initialEntry, archive
           ) : entries.length > 0 && <p>{t('По этому запросу ничего не найдено.')}</p>}
         </section>
       </div>
-      {section === 'dynasties' && typeof selected === 'string' && <HouseTree key={selected} house={selected} characters={timeline.characters ?? []} save={saveCharacters} />}
+      {section === 'dynasties' && typeof selected === 'string' && <HouseTree key={selected} house={selected} timeline={timeline} save={saveCharacters} />}
       {editing !== null && (
         <CreationDialog onCancel={() => { setEditing(null); setError('') }}>
           <h2 id="creation-dialog-title">{label && t(label)}</h2>
@@ -416,6 +419,10 @@ export function LorePage({ timeline, save, initialSection, initialEntry, archive
               </fieldset>
             )}
             {section === 'dynasties' && <>
+              <p><label>{t('Наследование фамилии')} <select name="house-inheritance" defaultValue={house?.surnameInheritance ?? ''}>
+                <option value="">{t('Не указано')}</option>
+                {surnameInheritanceRules.map(([rule, label]) => <option value={rule} key={rule}>{t(label)}</option>)}
+              </select></label></p>
               <p><label>{t('Системный год основания')} <input type="number" step={1} name="house-start" defaultValue={house?.startYear} /></label></p>
               <p><label>{t('Системный год окончания')} <input type="number" step={1} name="house-end" defaultValue={house?.endYear} /></label></p>
               <fieldset>

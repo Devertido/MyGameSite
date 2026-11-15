@@ -1,10 +1,17 @@
-import { validFamily } from './lore.ts'
+import { validFamily, type SurnameInheritance } from './lore.ts'
 import type { TimelineCharacter } from './timeline.ts'
 
 export type HouseRelationship = 'parent' | 'child' | 'spouse' | 'lover'
 
 export function sameHouse(left: string | undefined, right: string): boolean {
   return left?.trim().toLocaleLowerCase('ru') === right.trim().toLocaleLowerCase('ru')
+}
+
+export function childSurname(parent: TimelineCharacter, spouse: TimelineCharacter | undefined, inheritance?: SurnameInheritance) {
+  if (!inheritance || !spouse || parent.spouseId !== spouse.id || spouse.spouseId !== parent.id ||
+      !oppositeSex(parent.sex, spouse.sex)) return undefined
+  const sex = inheritance === 'father' ? 'Муж' : 'Жен'
+  return (parent.sex === sex ? parent : spouse).surname
 }
 
 function oppositeSex(left?: string, right?: string): boolean {
