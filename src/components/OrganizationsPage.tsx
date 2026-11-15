@@ -1,4 +1,5 @@
 import { LoreLinks } from './LoreLinks'
+import { EntryFields, EntryGallery, EntryStatusLabel, readEntryMetadata, useStatusMatch } from './EntryMedia'
 import { CreationDialog } from './CreationDialog'
 import { EditIcon } from './EditIcon'
 import { TrashIcon } from './TrashIcon'
@@ -14,7 +15,8 @@ export function OrganizationsPage({ timeline, save, organizationId }: {
   save: (organizations: Organization[]) => void
 }) {
   const organizations = timeline.organizations ?? []
-  const selected = organizationId === undefined ? organizations[0] : organizations.find(({ id }) => id === organizationId)
+  const matchesStatus = useStatusMatch()
+  const selected = organizationId === undefined ? organizations.find(matchesStatus) : organizations.find(({ id }) => id === organizationId)
   const [draft, setDraft] = useState<Organization | 'new' | null>(null)
   const [deleting, setDeleting] = useState<Organization | null>(null)
   const [error, setError] = useState('')
@@ -25,6 +27,7 @@ export function OrganizationsPage({ timeline, save, organizationId }: {
     const fields = new FormData(event.currentTarget)
     const end = String(fields.get('endYear') ?? '')
     const organization = {
+      ...readEntryMetadata(fields),
       id: original?.id ?? crypto.randomUUID(),
       name: String(fields.get('name') ?? '').trim(),
       type: String(fields.get('type') ?? '').trim(),
@@ -92,6 +95,7 @@ export function OrganizationsPage({ timeline, save, organizationId }: {
                 </label>
               )) : <p>Добавьте персонажей во вкладке «Персонажи».</p>}
             </fieldset>
+            <EntryFields entry={original} />
             {error && <p role="alert">{error}</p>}
             <button type="submit">Сохранить</button>{' '}
             <button type="button" onClick={() => { setDraft(null); setError('') }}>Отмена</button>
@@ -107,6 +111,8 @@ export function OrganizationsPage({ timeline, save, organizationId }: {
               <h2><span className="atlas-color" style={{ backgroundColor: selected.color ?? defaultOrganizationColor }} aria-hidden="true" />{selected.name}</h2>
               <p>{selected.type} · {selected.startYear} — {selected.endYear ?? 'год окончания не указан'}</p>
               {selected.description && <p>{selected.description}</p>}
+              <EntryStatusLabel entry={selected} />
+              <EntryGallery key={selected.id} entry={selected} />
               <LoreLinks timeline={timeline} kind="organizations" id={selected.id} />
               {!!timeline.lore?.reigns.some(({ organizationId }) => organizationId === selected.id) && (
                 <section>
@@ -165,7 +171,7 @@ export function OrganizationsPage({ timeline, save, organizationId }: {
                   <tr><th scope="col">Название</th><th scope="col">Тип</th><th scope="col">Годы существования</th></tr>
                 </thead>
                 <tbody>
-                  {organizations.map(({ id, name, type, startYear, endYear, color }) => (
+                  {organizations.filter(matchesStatus).map(({ id, name, type, startYear, endYear, color }) => (
                     <tr key={id} data-selected={id === selected?.id}>
                       <td>
                         <span className="atlas-color" style={{ backgroundColor: color ?? defaultOrganizationColor }} aria-hidden="true" />

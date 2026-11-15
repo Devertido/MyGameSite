@@ -1,3 +1,4 @@
+import { useStatusMatch } from './EntryMedia'
 import { useLayoutEffect, useRef, useState, type FormEvent } from 'react'
 import { toCalendarYear } from '../domain/calendarYear'
 import { defaultOrganizationColor, type Timeline, type TimelineCalendar } from '../domain/timeline'
@@ -49,7 +50,8 @@ export function TimelineScale({ timeline, calendar }: { timeline: Timeline; cale
     return { year, position: positionOf(year) }
   })
 
-  const visibleEvents = (timeline.events ?? []).filter((event) => event.onTimeline !== false)
+  const matchesStatus = useStatusMatch()
+  const visibleEvents = (timeline.events ?? []).filter((event) => event.onTimeline !== false && matchesStatus(event))
   // Минимальная ширина оси учитывает внутренние отступы шкалы.
   const axisMinWidth = 36 * zoom - 11
   const rowEnds: number[] = []
@@ -70,7 +72,7 @@ export function TimelineScale({ timeline, calendar }: { timeline: Timeline; cale
     rowEnds[row] = right
     return { ...event, position: leftPosition, width, row }
   })
-  const organizationPeriods = (timeline.organizations ?? []).filter(({ onTimeline }) => onTimeline)
+  const organizationPeriods = (timeline.organizations ?? []).filter((organization) => organization.onTimeline && matchesStatus(organization))
   const highlightedYear = target?.year
 
   return (

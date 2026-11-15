@@ -1,4 +1,6 @@
+import { ObsidianImport } from './ObsidianImport'
 import { LoreLinks } from './LoreLinks'
+import { EntryFields, EntryGallery, EntryStatusLabel, readEntryMetadata, useStatusMatch } from './EntryMedia'
 import { CreationDialog } from './CreationDialog'
 import { EditIcon } from './EditIcon'
 import { TrashIcon } from './TrashIcon'
@@ -18,13 +20,15 @@ export function ArchivePage({ kind, entries, entryId, timeline, save }: {
   const chronicle = kind === 'chronicles'
   const location = kind === 'locations'
   const title = location ? 'Локации' : chronicle ? 'Летописи' : 'Предметы'
+  const matchesStatus = useStatusMatch()
+  const [importing, setImporting] = useState(false)
   const [draft, setDraft] = useState<ArchiveEntry | 'new' | null>(null)
   const [deleting, setDeleting] = useState<ArchiveEntry | null>(null)
   const [error, setError] = useState('')
   const [query, setQuery] = useState('')
   const original = draft === 'new' ? null : draft
-  const selected = entryId === undefined ? entries[0] : entries.find(({ id }) => id === entryId)
-  const matches = entries.filter(({ title }) => title.toLocaleLowerCase('ru').includes(query.trim().toLocaleLowerCase('ru')))
+  const selected = entryId === undefined ? entries.find(matchesStatus) : entries.find(({ id }) => id === entryId)
+  const matches = entries.filter(matchesStatus).filter(({ title }) => title.toLocaleLowerCase('ru').includes(query.trim().toLocaleLowerCase('ru')))
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -38,12 +42,13 @@ export function ArchivePage({ kind, entries, entryId, timeline, save }: {
 
     try {
       const entry = {
+        ...readEntryMetadata(fields),
         id: original?.id ?? crypto.randomUUID(),
         title,
         summary: read('summary'),
         body: read('body'),
         ...(chronicle
-          ? { eventIds: fields.getAll('events').map(String), characterIds: fields.getAll('characters').map(String) }
+          ? { chronicleIds: original?.chronicleIds, eventIds: fields.getAll('events').map(String), characterIds: fields.getAll('characters').map(String) }
           : location ? { type: read('type'), image: read('image') || undefined }
           : { type: read('type'), rarity: read('rarity'), ownerId: read('ownerId') || undefined, image: read('image') || undefined }),
       }
@@ -67,6 +72,12 @@ export function ArchivePage({ kind, entries, entryId, timeline, save }: {
           <button type="button" onClick={() => setDraft('new')}>{location ? 'Добавить локацию' : chronicle ? 'Создать летопись' : 'Добавить предмет'}</button>
         </div>
       )}
+      {chronicle && <button type="button" onClick={() => setImporting(true)}>Импорт из Obsidian</button>}
+      {importing && <ObsidianImport onClose={() => setImporting(false)}
+        onImport={(imported) => {
+          save([...entries, ...imported])
+          if (imported[0]) window.location.hash = 'chronicles?entry=' + encodeURIComponent(imported[0].id)
+        }} />}
       {draft !== null && (
         <CreationDialog onCancel={() => { setDraft(null); setError('') }}>
           <form className={chronicle ? 'archive-form parchment' : 'archive-form'} onSubmit={submit} onInput={() => setError('')}>
@@ -108,6 +119,7 @@ export function ArchivePage({ kind, entries, entryId, timeline, save }: {
                 {(timeline.characters ?? []).map(({ id, name }) => <option key={id} value={id}>{name}</option>)}
               </select></label>
             )}
+            <EntryFields entry={original} />
             {error && <p role="alert">{error}</p>}
             <div><button type="submit">Сохранить</button>{' '}
               <button type="button" onClick={() => { setDraft(null); setError('') }}>Отмена</button></div>
@@ -123,6 +135,16 @@ export function ArchivePage({ kind, entries, entryId, timeline, save }: {
               {!chronicle && <p className="item-rarity">{[selected.type, selected.rarity].filter(Boolean).join(' · ')}</p>}
               {selected.summary && <p className="archive-copy">{selected.summary}</p>}
               {location && <LoreLinks timeline={timeline} kind="locations" id={selected.id} />}
+              <EntryStatusLabel entry={selected} />
+              <EntryGallery key={selected.id} entry={selected} />
+              {!!selected.chronicleIds?.length && (
+                <section>
+                  <h3>Связанные летописи</h3>
+                  <ul>{entries.filter(({ id }) => selected.chronicleIds?.includes(id)).map(({ id, title }) => (
+                    <li key={id}><a href={'#chronicles?entry=' + encodeURIComponent(id)}>{title}</a></li>
+                  ))}</ul>
+                </section>
+              )}
               {selected.body && (
                 <section className="archive-body">
                   <h3>{location ? 'История локации' : chronicle ? 'Хроника' : 'Свойства и история'}</h3>

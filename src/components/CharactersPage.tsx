@@ -1,6 +1,8 @@
+import { RelativePicker } from './RelativePicker'
 import { FamilyTree } from './FamilyTree'
 import { LoreLinks } from './LoreLinks'
-import { validFamily } from '../domain/lore'
+import { glossaryDescription, validFamily } from '../domain/lore'
+import { EntryFields, EntryGallery, EntryStatusLabel, readEntryMetadata, useStatusMatch } from './EntryMedia'
 import { CreationDialog } from './CreationDialog'
 import { EditIcon } from './EditIcon'
 import { TrashIcon } from './TrashIcon'
@@ -25,20 +27,21 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
   save: (characters: TimelineCharacter[]) => void
 }) {
   const characters = timeline.characters ?? []
+  const matchesStatus = useStatusMatch()
   const [draft, setDraft] = useState<TimelineCharacter | 'new' | null>(null)
   const [deleting, setDeleting] = useState<TimelineCharacter | null>(null)
   const [error, setError] = useState('')
   const [sort, setSort] = useState<{ key: typeof columns[number]['key']; descending: boolean }>({
     key: 'name', descending: false,
   })
-  const sortedCharacters = [...characters].sort((left, right) => {
+  const sortedCharacters = characters.filter(matchesStatus).sort((left, right) => {
     const a = left[sort.key] ?? ''
     const b = right[sort.key] ?? ''
     if (!a || !b) return Number(!a) - Number(!b)
     return characterCollator.compare(a, b) * (sort.descending ? -1 : 1)
   })
   const selected = characters.find(({ id }) => id === characterId) ??
-    (characterId === undefined ? characters[0] : undefined)
+    (characterId === undefined ? characters.find(matchesStatus) : undefined)
   const original = draft === 'new' ? null : draft
   const months = timeline.calendars[0].months
   const busy = draft !== null || deleting !== null
@@ -88,6 +91,7 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
     const parentIds = fields.getAll('parents').map(String)
     const childIds = new Set(fields.getAll('children').map(String))
     const entry: TimelineCharacter = {
+      ...readEntryMetadata(fields),
       parentIds,
       ...(dynasty ? { dynasty } : {}),
       id: original?.id ?? crypto.randomUUID(), name, description, biography, color: String(fields.get('color')),
@@ -124,28 +128,29 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
             <h2 id="creation-dialog-title">{original ? 'Редактировать персонажа' : 'Новый персонаж'}</h2>
             <div className="character-name-fields">
               <label>Имя<br /><input name="name" defaultValue={original?.name} required /></label>
-              <label>Фамилия<br /><input name="surname" list="lore-surnames" defaultValue={original?.surname} /></label>
+              <label>Фамилия<br /><input name="surname" list="lore-surnames" defaultValue={original?.surname}
+                title={glossaryDescription(timeline.lore, 'surnames', original?.surname)}
+                onInput={(event) => { event.currentTarget.title = glossaryDescription(timeline.lore, 'surnames', event.currentTarget.value) ?? '' }} /></label>
             </div>
-            <p><label>Раса<br /><input name="race" list="lore-races" defaultValue={original?.race} /></label></p>
-            <p><label>Династия<br /><input name="dynasty" list="lore-dynasties" defaultValue={original?.dynasty} /></label></p>
+            <p><label>Раса<br /><input name="race" list="lore-races" defaultValue={original?.race}
+                title={glossaryDescription(timeline.lore, 'races', original?.race)}
+                onInput={(event) => { event.currentTarget.title = glossaryDescription(timeline.lore, 'races', event.currentTarget.value) ?? '' }} /></label></p>
+            <p><label>Династия<br /><input name="dynasty" list="lore-dynasties" defaultValue={original?.dynasty}
+                title={glossaryDescription(timeline.lore, 'dynasties', original?.dynasty)}
+                onInput={(event) => { event.currentTarget.title = glossaryDescription(timeline.lore, 'dynasties', event.currentTarget.value) ?? '' }} /></label></p>
             {(['surnames', 'races', 'dynasties'] as const).map((field) => (
               <datalist key={field} id={'lore-' + field}>
                 {(timeline.lore?.[field] ?? []).map((value) => <option key={value} value={value} />)}
               </datalist>
             ))}
-            {(['parents', 'children'] as const).map((relation) => (
-              <fieldset key={relation}>
-                <legend>{relation === 'parents' ? 'Родители' : 'Дети'}</legend>
-                {characters.filter(({ id }) => id !== original?.id).map((candidate) => (
-                  <label className="event-participant" key={candidate.id}>
-                    <input type="checkbox" name={relation} value={candidate.id} defaultChecked={relation === 'parents'
-                      ? original?.parentIds?.includes(candidate.id)
-                      : candidate.parentIds?.includes(original?.id ?? '')} />{' '}
-                    {[candidate.name, candidate.surname].filter(Boolean).join(' ')}
-                  </label>
-                ))}
-              </fieldset>
-            ))}
+            {(['parents', 'children'] as const).map((relation) => {
+              const candidates = characters.filter(({ id }) => id !== original?.id)
+              const initialIds = candidates.filter((candidate) => relation === 'parents'
+                ? original?.parentIds?.includes(candidate.id)
+                : candidate.parentIds?.includes(original?.id ?? '')).map(({ id }) => id)
+              return <RelativePicker key={relation} name={relation} label={relation === 'parents' ? 'Родители' : 'Дети'}
+                candidates={candidates} initialIds={initialIds} />
+            })}
             <p><label>Пол<br />
               <select name="sex" defaultValue={original?.sex || ''}>
                 <option value="">Не указан</option>
@@ -159,6 +164,7 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
             <CharacterDateFields prefix="birth" label="Дата рождения" months={months} initial={original?.birth} />
             <CharacterDateFields prefix="death" label="Дата смерти" months={months} initial={original?.death} />
             <ImageField name="portrait" label="Вертикальный портрет" initial={original?.portrait} />
+            <EntryFields entry={original} />
             <p><label>Описание<br /><textarea name="description" rows={4} defaultValue={original?.description} /></label></p>
             <p><label>Биография<br /><textarea name="biography" rows={8} defaultValue={original?.biography} /></label></p>
             <p><label>Цвет персонажа <input name="color" type="color" defaultValue={original?.color ?? '#174b43'} /></label></p>
@@ -196,14 +202,16 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
                       {character.color && <span className="atlas-color" style={{ backgroundColor: character.color }} aria-hidden="true" />}
                       <button className="event-action" type="button" disabled={busy} onClick={() => setDraft(character)} aria-label="Редактировать" title="Редактировать"><EditIcon /></button>
                       <button className="event-action" type="button" disabled={busy} onClick={() => setDeleting(character)} aria-label="Удалить персонажа" title="Удалить персонажа"><TrashIcon /></button>
-                      <h2>{fullName}</h2>
+                      <h2>{character.name}{character.surname && (
+                        <> <span title={glossaryDescription(timeline.lore, 'surnames', character.surname)}>{character.surname}</span></>
+                      )}</h2>
                       <button className="family-tree-button" type="button" onClick={() => { window.location.hash = 'characters?character=' + encodeURIComponent(character.id) + '&family=1' }}>Родословная</button>
                     </div>
                     {(character.birth || character.death) && (
                       <p>Годы жизни · {character.birth?.year ?? '?'} — {character.death?.year ?? '…'}</p>
                     )}
                     {character.description && <p>{character.description}</p>}
-                    {character.race && <p>Раса · {character.race}</p>}
+                    {character.race && <p>Раса · <span title={glossaryDescription(timeline.lore, 'races', character.race)}>{character.race}</span></p>}
                     {character.sex && <p>Пол · {character.sex}</p>}
                   </div>
                 </div>
@@ -215,7 +223,9 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
                 )}
                 {(
                   <>
-                    {character.dynasty && <p>Династия · {character.dynasty}</p>}
+                    {character.dynasty && <p>Династия · <span title={glossaryDescription(timeline.lore, 'dynasties', character.dynasty)}>{character.dynasty}</span></p>}
+                  <EntryStatusLabel entry={character} />
+                  <EntryGallery key={character.id} entry={character} />
                   <LoreLinks timeline={timeline} kind="characters" id={character.id} />
                   <h3>Биография</h3>
                     <p>{character.biography || 'Биография пока не добавлена.'}</p>
@@ -288,8 +298,8 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
                           {character.name}
                         </a>
                       </td>
-                      <td>{character.surname || '—'}</td>
-                      <td>{character.race || '—'}</td>
+                      <td><span title={glossaryDescription(timeline.lore, 'surnames', character.surname)}>{character.surname || '—'}</span></td>
+                      <td><span title={glossaryDescription(timeline.lore, 'races', character.race)}>{character.race || '—'}</span></td>
                       <td>{character.sex || '—'}</td>
                     </tr>
                   ))}

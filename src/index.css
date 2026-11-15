@@ -478,6 +478,53 @@ button:focus-visible {
   flex-wrap: wrap;
 }
 
+.relative-picker {
+  margin-block: 0.75rem;
+}
+
+.relative-picker summary {
+  width: fit-content;
+  cursor: pointer;
+}
+
+.relative-picker label {
+  display: block;
+  margin-block: 0.5rem 0.25rem;
+}
+
+.relative-picker-options,
+.relative-picker-selected {
+  list-style: none;
+  padding: 0;
+}
+
+.relative-picker-options {
+  max-height: 12rem;
+  overflow: auto;
+}
+
+.relative-picker-options button {
+  width: 100%;
+  text-align: start;
+  background: #d5ebe5;
+  color: #174b43;
+  padding: 0.4rem 0.65rem;
+}
+
+.relative-picker-options button:hover {
+  background: #bfe0d6;
+}
+
+.relative-picker-selected {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.relative-picker-selected button {
+  padding: 0.15rem 0.45rem;
+}
+
 .family-tree {
   display: grid;
   justify-items: center;
@@ -1032,6 +1079,58 @@ button.event-action:hover:enabled {
   inset: 0;
   max-width: min(30rem, 85vw);
   z-index: 3;
+}
+
+.entry-filter {
+  padding-inline: clamp(1rem, 4vw, 3rem);
+  padding-top: 0.75rem;
+}
+
+.entry-draft {
+  font-weight: 600;
+}
+
+.entry-gallery {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.entry-gallery figure {
+  width: min(8rem, 100%);
+  margin: 0;
+}
+
+.entry-gallery button {
+  width: 100%;
+  padding: 0.25rem;
+}
+
+.entry-gallery img {
+  display: block;
+  width: 100%;
+  height: 6rem;
+  object-fit: contain;
+}
+
+.gallery-enlarged {
+  display: block;
+  max-width: 100%;
+  max-height: 65dvh;
+  margin-bottom: 0.75rem;
+  object-fit: contain;
+}
+
+.gallery-editor-row {
+  padding-block: 0.75rem;
+  border-bottom: 1px solid #a2b9b3;
+}
+
+.obsidian-preview {
+  max-height: 15rem;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .creation-dialog {

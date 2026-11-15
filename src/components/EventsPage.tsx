@@ -1,4 +1,5 @@
 import { LoreLinks } from './LoreLinks'
+import { EntryFields, EntryGallery, EntryStatusLabel, readEntryMetadata, useStatusMatch } from './EntryMedia'
 import { CreationDialog } from './CreationDialog'
 import { EditIcon } from './EditIcon'
 import { TrashIcon } from './TrashIcon'
@@ -19,6 +20,7 @@ export function EventsPage({ timeline, calendar, save, yearFilter, eventId }: {
   const characterDialog = useRef<HTMLDialogElement>(null)
   const [activeCharacter, setActiveCharacter] = useState<TimelineCharacter | null>(null)
   const events = timeline.events ?? []
+  const matchesStatus = useStatusMatch()
   const [draft, setDraft] = useState<TimelineEvent | 'new' | null>(null)
   const [deleting, setDeleting] = useState<TimelineEvent | null>(null)
   const [period, setPeriod] = useState(false)
@@ -30,7 +32,7 @@ export function EventsPage({ timeline, calendar, save, yearFilter, eventId }: {
   const query = search.trim().toLocaleLowerCase('ru')
   const original = draft === 'new' ? null : draft
   const sorted = events
-    .filter(({ id }) => eventId === undefined || id === eventId)
+    .filter((entry) => eventId === undefined ? matchesStatus(entry) : entry.id === eventId)
     .filter(({ year, end }) => yearFilter === undefined || (year <= yearFilter && (end?.year ?? year) >= yearFilter))
     .filter(({ title, description }) => [title, description].some((text) => text.toLocaleLowerCase('ru').includes(query)))
     .filter(({ year, end }) => (!from || (end?.year ?? year) >= Number(from)) && (!to || year <= Number(to)))
@@ -93,7 +95,7 @@ export function EventsPage({ timeline, calendar, save, yearFilter, eventId }: {
       setError('Введите название каждой стороны.')
       return
     }
-    const entry = { id: original?.id ?? crypto.randomUUID(), ...details, characterIds, sides, onTimeline: original ? original.onTimeline !== false : false }
+    const entry = { id: original?.id ?? crypto.randomUUID(), ...details, ...readEntryMetadata(fields), characterIds, sides, onTimeline: original ? original.onTimeline !== false : false }
     persist(original ? events.map((item) => item.id === original.id ? entry : item) : [...events, entry])
   }
 
@@ -157,6 +159,7 @@ export function EventsPage({ timeline, calendar, save, yearFilter, eventId }: {
             )}
             <p><label>Описание<br /><textarea name="description" defaultValue={original?.description} rows={4} /></label></p>
             <p><label>Цвет события <input name="color" type="color" defaultValue={original?.color ?? '#174b43'} /></label></p>
+            <EntryFields entry={original} />
             <EventParticipants characters={characters} organizations={timeline.organizations ?? []} original={original} />
             {error && <p role="alert">{error}</p>}
             <button type="submit">Сохранить</button>{' '}
@@ -178,6 +181,8 @@ export function EventsPage({ timeline, calendar, save, yearFilter, eventId }: {
         <ul className="event-list">
           {sorted.map((entry) => (
             <li key={entry.id}>
+              <EntryStatusLabel entry={entry} />
+              <EntryGallery entry={entry} />
               <LoreLinks timeline={timeline} kind="events" id={entry.id} />
               <h2>{entry.color && <span className="atlas-color" style={{ backgroundColor: entry.color }} aria-hidden="true" />}{entry.year}{entry.end && ` — ${entry.end.year}`} · {entry.title}</h2>
               <p>

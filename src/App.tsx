@@ -1,4 +1,6 @@
 import { useRef, useState, type FormEvent } from 'react'
+import { StatusFilter } from './components/EntryMedia'
+import type { EntryStatus } from './domain/timeline'
 import { createPortal } from 'react-dom'
 import { TrashIcon } from './components/TrashIcon'
 import { standardYear, validateMonths, validateWeek } from './domain/calendar'
@@ -15,6 +17,7 @@ import { calendarDay, validateEvent, validateTimelineBounds, type Timeline, type
 import { deleteTimeline, exportAtlas, exportTimeline, previewBackup, saveTimelineCopies, loadTimelines, rememberSelection, restoreSelection, saveTimeline, timelineSnapshot } from './data/timelineStorage'
 
 function App({ backupTools, english, page, eventYear, eventId, characterId, organizationId, entryId, loreSection, familyOpen }: { backupTools: HTMLDivElement | null; english: boolean; page: 'timeline' | 'events' | 'characters' | 'organizations' | 'chronicles' | 'items' | 'locations' | 'lore'; loreSection?: string; familyOpen?: boolean; eventYear?: number; eventId?: string; characterId?: string; organizationId?: string; entryId?: string }) {
+  const [entryFilter, setEntryFilter] = useState<EntryStatus | 'all'>('all')
   const [backupMessage, setBackupMessage] = useState('')
   const [backupPreview, setBackupPreview] = useState<Timeline[] | null>(null)
   const backupDialogRef = useRef<HTMLDialogElement>(null)
@@ -351,7 +354,9 @@ function App({ backupTools, english, page, eventYear, eventId, characterId, orga
               const ids = new Set(entries.map(({ id }) => id))
               saveSelectedContent((timeline) => ({
                 ...timeline,
-                [page]: entries,
+                [page]: page === 'chronicles' ? entries.map((entry) => entry.chronicleIds ? {
+                  ...entry, chronicleIds: entry.chronicleIds.filter((id) => ids.has(id)),
+                } : entry) : entries,
                 ...(page === 'locations' && timeline.organizations ? {
                   organizations: timeline.organizations.map((organization) => organization.locationIds ? {
                     ...organization, locationIds: organization.locationIds.filter((id) => ids.has(id)),
@@ -702,7 +707,19 @@ function App({ backupTools, english, page, eventYear, eventId, characterId, orga
         <button type="button" onClick={confirmBackup}>Импортировать копии</button>
       </dialog>
       {page !== 'timeline' && backupMessage && <p className="backup-status" role="status">{backupMessage}</p>}
-      {renderPage()}
+      {selected && page !== 'lore' && (
+        <div className="entry-filter">
+          <label>Показывать <select value={entryFilter} onChange={(event) => {
+            const status = event.currentTarget.value
+            setEntryFilter(status === 'canon' || status === 'draft' ? status : 'all')
+          }}>
+            <option value="all">Все записи</option>
+            <option value="canon">Канон</option>
+            <option value="draft">Черновики</option>
+          </select></label>
+        </div>
+      )}
+      <StatusFilter.Provider value={entryFilter}>{renderPage()}</StatusFilter.Provider>
     </>
   )
 }

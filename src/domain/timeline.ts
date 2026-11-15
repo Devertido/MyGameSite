@@ -2,6 +2,10 @@ import type { WorldLore } from './lore.ts'
 import type { CalendarMonth } from './calendar'
 import type { CalendarEra } from './calendarYear'
 
+export type EntryStatus = 'draft' | 'canon'
+export type GalleryImage = { image: string; caption: string }
+export type EntryMetadata = { status?: EntryStatus; gallery?: GalleryImage[] }
+
 export type Timeline = {
   lore?: WorldLore
   name: string
@@ -46,7 +50,7 @@ export function validateTimelineBounds(
   return null
 }
 
-export type TimelineEvent = {
+export type TimelineEvent = EntryMetadata & {
   color?: string
   id: string
   year: number
@@ -116,7 +120,7 @@ export function isCharacterLifeOrderValid(birth?: CharacterDate, death?: Charact
     (birth.year === death.year && birth.dayOfYear <= death.dayOfYear)
 }
 
-export type TimelineCharacter = {
+export type TimelineCharacter = EntryMetadata & {
   parentIds?: string[]
   dynasty?: string
   surname?: string
@@ -141,7 +145,7 @@ export type EventSide = {
 
 export const defaultOrganizationColor = '#805423'
 
-export type Organization = {
+export type Organization = EntryMetadata & {
   color?: string
   description?: string
   locationIds?: string[]
@@ -174,7 +178,8 @@ export function validateOrganization(organization: Organization, timeline: Timel
   return null
 }
 
-export type ArchiveEntry = {
+export type ArchiveEntry = EntryMetadata & {
+  chronicleIds?: string[]
   image?: string
   eventIds?: string[]
   characterIds?: string[]

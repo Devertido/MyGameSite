@@ -61,6 +61,8 @@ function parseTimeline(value: unknown): Timeline | null {
           characterIds.has(character.id) || typeof character.name !== 'string' || !character.name.trim() ||
           typeof character.description !== 'string' || ('color' in character && !isAtlasColor(character.color)) ||
           ('biography' in character && typeof character.biography !== 'string')) return null
+      if (!validMetadata(character)) return null
+      const { status, gallery } = character as TimelineCharacter
       const { surname, race, sex, birth, death, portrait, parentIds, dynasty } = character
       if ((parentIds !== undefined && !isIdList(parentIds)) ||
           (dynasty !== undefined && typeof dynasty !== 'string') ||
@@ -73,6 +75,8 @@ function parseTimeline(value: unknown): Timeline | null {
           !isCharacterLifeOrderValid(birth, death)) return null
       characterIds.add(character.id)
       parsed.push({ id: character.id, name: character.name, description: character.description,
+        ...(status !== undefined ? { status } : {}),
+        ...(gallery !== undefined ? { gallery } : {}),
         ...(parentIds !== undefined ? { parentIds } : {}),
         ...(dynasty !== undefined ? { dynasty } : {}),
         ...(surname !== undefined ? { surname } : {}),
@@ -93,7 +97,7 @@ function parseTimeline(value: unknown): Timeline | null {
     const events = value.events
     if (!Array.isArray(events) || !events.every((event: unknown): event is TimelineEvent =>
       isRecord(event) && typeof event.id === 'string' && Boolean(event.id.trim()) &&
-      typeof event.year === 'number' && typeof event.title === 'string' &&
+      validMetadata(event) && typeof event.year === 'number' && typeof event.title === 'string' &&
       typeof event.description === 'string' && (!('color' in event) || isAtlasColor(event.color)) &&
       (!('onTimeline' in event) || typeof event.onTimeline === 'boolean') &&
       (!('characterIds' in event) || (Array.isArray(event.characterIds) &&
@@ -111,7 +115,7 @@ function parseTimeline(value: unknown): Timeline | null {
     const organizations = value.organizations
     if (!Array.isArray(organizations) || !organizations.every((item: unknown): item is Organization =>
       isRecord(item) && typeof item.id === 'string' && Boolean(item.id.trim()) &&
-      typeof item.name === 'string' && typeof item.type === 'string' &&
+      validMetadata(item) && typeof item.name === 'string' && typeof item.type === 'string' &&
       typeof item.startYear === 'number' && (!('endYear' in item) || typeof item.endYear === 'number') &&
       Array.isArray(item.memberIds) && item.memberIds.every((id: unknown) => typeof id === 'string') &&
       (!('emblem' in item) || isStoredImage(item.emblem)) &&
@@ -133,6 +137,7 @@ function parseTimeline(value: unknown): Timeline | null {
     if (!Array.isArray(entries) || !entries.every(isArchiveEntry) ||
         new Set(entries.map(({ id }) => id)).size !== entries.length) return null
     if (entries.some((entry) =>
+      entry.chronicleIds?.some((id) => field !== 'chronicles' || id === entry.id || !entries.some((note) => note.id === id)) ||
       entry.characterIds?.some((id) => !characterIds.has(id)) ||
       (entry.ownerId !== undefined && !characterIds.has(entry.ownerId)) ||
       entry.eventIds?.some((id) => !timeline.events?.some((event) => event.id === id))
@@ -160,10 +165,17 @@ function isStoredImage(value: unknown): value is string {
     /^data:image\/(webp|png);base64,[A-Za-z0-9+/]+={0,2}$/.test(value)
 }
 
+function validMetadata(entry: Record<string, unknown>): boolean {
+  return (entry.status === undefined || entry.status === 'draft' || entry.status === 'canon') &&
+    (entry.gallery === undefined || (Array.isArray(entry.gallery) && entry.gallery.every((image: unknown) =>
+      isRecord(image) && isStoredImage(image.image) && typeof image.caption === 'string')))
+}
+
 function isArchiveEntry(entry: unknown): entry is ArchiveEntry {
   return isRecord(entry) &&
     typeof entry.id === 'string' && Boolean(entry.id.trim()) &&
     typeof entry.title === 'string' && Boolean(entry.title.trim()) &&
+    validMetadata(entry) && (!('chronicleIds' in entry) || isIdList(entry.chronicleIds)) &&
     typeof entry.summary === 'string' && typeof entry.body === 'string' &&
     (!('eventIds' in entry) || isIdList(entry.eventIds)) &&
     (!('characterIds' in entry) || isIdList(entry.characterIds)) &&

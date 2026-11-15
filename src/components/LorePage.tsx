@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { CreationDialog } from './CreationDialog'
-import { emptyLore, linkKinds, loreTargets, validLore, type LinkKind, type WorldLore } from '../domain/lore'
+import { emptyLore, glossaryDescription, isGlossarySection, linkKinds, loreTargets, validLore, type LinkKind, type WorldLore } from '../domain/lore'
 import type { Timeline } from '../domain/timeline'
 
 const sections = [
@@ -63,14 +63,21 @@ export function LorePage({ timeline, save, initialSection }: { timeline: Timelin
         setError('Такое значение уже есть в справочнике.')
         return
       }
-      persist({ ...lore, [section]: [...lore[section].filter((item) => item !== editing), name] })
+      const text = read('description')
+      const descriptions = (lore.descriptions ?? []).filter((entry) => entry.section !== section || entry.name !== editing)
+      if (text) descriptions.push({ section, name, text })
+      persist({ ...lore, descriptions, [section]: [...lore[section].filter((item) => item !== editing), name] })
     }
   }
 
   function remove(id: string) {
     if (!window.confirm('Удалить запись из справочника?')) return
     const entries = lore[section]
-    persist({ ...lore, [section]: entries.filter((entry) => typeof entry === 'string' ? entry !== id : entry.id !== id) })
+    persist({
+      ...lore,
+      descriptions: lore.descriptions?.filter((entry) => entry.section !== section || entry.name !== id),
+      [section]: entries.filter((entry) => typeof entry === 'string' ? entry !== id : entry.id !== id),
+    })
   }
 
   function linkedName(kind: LinkKind, id: string) {
@@ -97,6 +104,9 @@ export function LorePage({ timeline, save, initialSection }: { timeline: Timelin
           const name = typeof entry === 'string' ? entry : 'title' in entry ? entry.title : entry.name
           return <li key={id}>
             <h2>{name}</h2>
+            {isGlossarySection(section) && <p hidden={!glossaryDescription(lore, section, name)}>
+              {glossaryDescription(lore, section, name)}
+            </p>}
             {typeof entry !== 'string' && 'title' in entry && (
               <p>{linkedName('characters', entry.characterId)} · {linkedName('organizations', entry.organizationId)} · {entry.start} — {entry.end ?? '…'}{entry.accession && ' · ' + entry.accession}</p>
             )}
@@ -118,6 +128,10 @@ export function LorePage({ timeline, save, initialSection }: { timeline: Timelin
           <h2 id="creation-dialog-title">{label}</h2>
           <form onSubmit={submit}>
             <p><label>Название <input name="name" required defaultValue={tradition?.name ?? reign?.title ?? editing} /></label></p>
+            {isGlossarySection(section) && (
+              <p><label>Описание<br /><textarea name="description" rows={4}
+                defaultValue={glossaryDescription(lore, section, editing)} /></label></p>
+            )}
             {traditionKind && (
               <>
                 {fieldsByKind[traditionKind].map((field, index) => (
