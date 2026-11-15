@@ -43,6 +43,33 @@ export default function SiteNavigation() {
   const helpDialog = useRef<HTMLDialogElement>(null)
   const english = language === 'en'
 
+  const [fullscreen, setFullscreen] = useState(() => Boolean(document.fullscreenElement))
+  const [fullscreenError, setFullscreenError] = useState(false)
+
+  async function toggleFullscreen() {
+    setFullscreenError(false)
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen()
+      else await document.documentElement.requestFullscreen({ navigationUI: 'hide' })
+    } catch {
+      setFullscreenError(true)
+    }
+  }
+
+  useEffect(() => {
+    function syncFullscreen() {
+      setFullscreen(Boolean(document.fullscreenElement))
+      setFullscreenError(false)
+    }
+    document.addEventListener('fullscreenchange', syncFullscreen)
+    return () => document.removeEventListener('fullscreenchange', syncFullscreen)
+  }, [])
+
+  const fullscreenLabel = fullscreen
+    ? (english ? 'Exit fullscreen' : 'Выйти из полноэкранного режима')
+    : (english ? 'Enter fullscreen' : 'На весь экран')
+
+
   useEffect(() => {
     document.documentElement.classList.toggle('atlas-large-text', largeText)
     return () => document.documentElement.classList.remove('atlas-large-text')
@@ -83,8 +110,14 @@ export default function SiteNavigation() {
             title={english ? 'Settings' : 'Настройки'} onClick={() => settingsDialog.current?.showModal()}>
             <span aria-hidden="true">⚙</span>
           </button>
+          <button className="site-fullscreen" type="button" aria-label={fullscreenLabel}
+            title={fullscreenLabel} aria-pressed={fullscreen} disabled={!document.fullscreenEnabled}
+            onClick={() => void toggleFullscreen()}>F11</button>
         </div>
       </header>
+      {fullscreenError && <p className="backup-status" role="status">
+        {english ? 'Fullscreen is unavailable. Try pressing F11 in your browser.' : 'Полноэкранный режим недоступен. Попробуйте нажать F11 в браузере.'}
+      </p>}
 
       <dialog ref={languageDialog} lang={language} aria-labelledby="atlas-language-title">
         <h2 id="atlas-language-title">{english ? 'Navigation language' : 'Язык навигации'}</h2>

@@ -981,6 +981,14 @@ button.event-action:hover:enabled {
   background: transparent;
 }
 
+.site-tools .site-fullscreen {
+  font-size: 0.75rem;
+}
+
+.site-tools .site-fullscreen[aria-pressed='true'] {
+  background: #24665b;
+}
+
 .site-tools button:hover {
   background: #174b43;
 }
