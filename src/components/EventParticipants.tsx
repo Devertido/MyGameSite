@@ -1,3 +1,5 @@
+import { displayOrganizationType } from '../domain/timeline.ts'
+import { t } from '../i18n.ts'
 import { useState } from 'react'
 import { TrashIcon } from './TrashIcon'
 import type { Organization, TimelineCharacter, TimelineEvent } from '../domain/timeline'
@@ -29,16 +31,14 @@ export function EventParticipants({ characters, organizations, original }: {
     return (
       <>
         <button type="button" disabled={available.length === 0} aria-expanded={picker === sideId}
-          aria-label={`Добавить участника · ${label}`}
-          onClick={() => setPicker((current) => current === sideId ? null : sideId)}>
-          Добавить участника
-        </button>
+          aria-label={`${t("Добавить участника · ")}${label}`}
+          onClick={() => setPicker((current) => current === sideId ? null : sideId)}>{t("Добавить участника")}</button>
         {picker === sideId && available.length > 0 && (
-          <select aria-label={`Выбрать участника · ${label}`} value="" autoFocus onChange={(event) => {
+          <select aria-label={`${t("Выбрать участника · ")}${label}`} value="" autoFocus onChange={(event) => {
             assign(event.currentTarget.value, sideId)
             setPicker(null)
           }}>
-            <option value="" disabled>Выберите персонажа</option>
+            <option value="" disabled>{t("Выберите персонажа")}</option>
             {available.map((character) => (
               <option key={character.id} value={character.id}>{fullName(character)}</option>
             ))}
@@ -53,12 +53,10 @@ export function EventParticipants({ characters, organizations, original }: {
                   {name}
                   {sideId !== 'unassigned' && (
                     <button type="button" className="event-action" onClick={() => assign(character.id, 'unassigned')}
-                      aria-label={`Убрать со стороны · ${name}`} title="Убрать со стороны">
-                      Убрать со стороны
-                    </button>
+                      aria-label={`${t("Убрать со стороны · ")}${name}`} title={t("Убрать со стороны")}>{t("Убрать со стороны")}</button>
                   )}
                   <button type="button" className="event-action" onClick={() => assign(character.id, '')}
-                    aria-label={`Удалить из события · ${name}`} title="Удалить из события"><TrashIcon /></button>
+                    aria-label={`${t("Удалить из события · ")}${name}`} title={t("Удалить из события")}><TrashIcon /></button>
                 </li>
               )
             })}
@@ -78,12 +76,12 @@ export function EventParticipants({ characters, organizations, original }: {
 
   return (
     <fieldset>
-      <legend>Стороны и участники</legend>
+      <legend>{t("Стороны и участники")}</legend>
       {sides.map((side, index) => (
         <div className="event-side-row" key={side.id}>
           <input type="hidden" name="sideId" value={side.id} />
           {organizations.length > 0 && (
-            <label>Организация стороны {index + 1}{' '}
+            <label>{t("Организация стороны ")}{index + 1}{' '}
               <select name={'side-organization-' + side.id} value={side.organizationId ?? ''}
                 onChange={(event) => {
                   const organization = organizations.find(({ id }) => id === event.currentTarget.value)
@@ -91,30 +89,30 @@ export function EventParticipants({ characters, organizations, original }: {
                     ? { ...item, organizationId: organization?.id, name: organization?.name ?? item.name }
                     : item))
                 }}>
-                <option value="">Своя сторона</option>
-                {organizations.map(({ id, name, type }) => <option key={id} value={id}>{name} · {type}</option>)}
+                <option value="">{t("Своя сторона")}</option>
+                {organizations.map(({ id, name, type }) => <option key={id} value={id}>{name} · {displayOrganizationType(type)}</option>)}
               </select>
             </label>
           )}{' '}
-          <label>Название стороны {index + 1}{' '}
+          <label>{t("Название стороны ")}{index + 1}{' '}
             <input name={'side-name-' + side.id} value={organizations.find(({ id }) => id === side.organizationId)?.name ?? side.name} readOnly={Boolean(side.organizationId)} required onChange={(event) => {
               const name = event.currentTarget.value
               setSides((current) => current.map((item) => item.id === side.id ? { ...item, name } : item))
             }} />
           </label>{' '}
           <button type="button" className="event-action" onClick={() => removeSide(side.id)}
-            aria-label={`Убрать сторону ${index + 1}`} title={`Убрать сторону ${index + 1}`}><TrashIcon /></button>
-          {participantControls(side.id, side.name.trim() || `Сторона ${index + 1}`)}
+            aria-label={`${t("Убрать сторону ")}${index + 1}`} title={`${t("Убрать сторону ")}${index + 1}`}><TrashIcon /></button>
+          {participantControls(side.id, side.name.trim() || `${t("Сторона ")}${index + 1}`)}
         </div>
       ))}
       <button type="button" onClick={() => setSides((current) => [
         ...current, { id: crypto.randomUUID(), name: '', characterIds: [] },
-      ])}>Добавить сторону</button>
-      {characters.length === 0 && <p>Создайте персонажей во вкладке «Персонажи», чтобы добавить их в событие.</p>}
+      ])}>{t("Добавить сторону")}</button>
+      {characters.length === 0 && <p>{t("Создайте персонажей во вкладке «Персонажи», чтобы добавить их в событие.")}</p>}
       {characters.length > 0 && (
         <div className="event-side-row">
-          <span>Участники без стороны</span>
-          {participantControls('unassigned', 'без стороны')}
+          <span>{t("Участники без стороны")}</span>
+          {participantControls('unassigned', t('без стороны'))}
         </div>
       )}
       {characters.map(({ id }) => (

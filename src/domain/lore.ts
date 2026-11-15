@@ -1,3 +1,4 @@
+import { t } from '../i18n.ts'
 import { validAbilityScores, type AbilityScores } from './abilities.ts'
 import type { Timeline } from './timeline.ts'
 
@@ -85,9 +86,9 @@ export function surnameTooltip(timeline: Timeline, name?: string) {
   const location = timeline.locations?.find(({ id }) => id === details?.locationId)
   return [
     glossaryDescription(lore, 'surnames', name),
-    details?.origin && 'Происхождение · ' + details.origin,
-    location && 'Локация · ' + location.title,
-    details?.dynasty && 'Династия · ' + details.dynasty,
+    details?.origin && t('Происхождение · ') + t(details.origin),
+    location && t('Локация · ') + location.title,
+    details?.dynasty && t('Династия · ') + details.dynasty,
     details?.usage,
   ].filter(Boolean).join('\n') || undefined
 }

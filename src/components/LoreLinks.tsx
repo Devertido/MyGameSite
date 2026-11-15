@@ -1,3 +1,4 @@
+import { t } from '../i18n.ts'
 import type { LinkKind } from '../domain/lore'
 import type { Timeline } from '../domain/timeline'
 
@@ -8,8 +9,8 @@ export function LoreLinks({ timeline, kind, id }: { timeline: Timeline; kind: Li
   if (!cultures.length && !faiths.length) return null
   return (
     <section>
-      {cultures.length > 0 && <p>Культуры · <a href="#lore?section=cultures">{cultures.map(({ name }) => name).join(', ')}</a></p>}
-      {faiths.length > 0 && <p>Верования · <a href="#lore?section=faiths">{faiths.map(({ name }) => name).join(', ')}</a></p>}
+      {cultures.length > 0 && <p>{t("Культуры · ")}<a href="#lore?section=cultures">{cultures.map(({ name }) => name).join(', ')}</a></p>}
+      {faiths.length > 0 && <p>{t("Верования · ")}<a href="#lore?section=faiths">{faiths.map(({ name }) => name).join(', ')}</a></p>}
     </section>
   )
 }

@@ -1,3 +1,4 @@
+import { setInterfaceLanguage, t, type Language } from './i18n.ts'
 import { useEffect, useRef, useState } from 'react'
 import { version } from '../package.json'
 import App from './App'
@@ -9,13 +10,13 @@ const pages = [
   { id: 'events', title: 'События' },
   { id: 'organizations', title: 'Фракции и организации' },
   { id: 'chronicles', title: 'Летописи' },
-  { id: 'locations', title: 'Локации' },
   { id: 'lore', title: 'Справочник' },
 ] as const
 
 function currentPage() {
   const [path, query] = window.location.hash.slice(1).split('?')
-  const page = pages.find(({ id }) => (path === 'items' ? 'lore' : path) === id) ?? pages[0]
+  const archiveSection = path === 'items' || path === 'locations' ? path : undefined
+  const page = pages.find(({ id }) => (archiveSection ? 'lore' : path) === id) ?? pages[0]
   const params = new URLSearchParams(query)
   const rawYear = params.get('year')
   const year = rawYear && /^-?\d+$/.test(rawYear) ? Number(rawYear) : undefined
@@ -23,7 +24,7 @@ function currentPage() {
   return {
     ...page,
     familyOpen: params.get('family') === '1',
-    loreSection: path === 'items' ? 'items' : params.get('section') ?? undefined,
+    loreSection: archiveSection ?? params.get('section') ?? undefined,
     entryId: params.get('entry') ?? undefined,
     organizationId: page.id === 'organizations' ? params.get('organization') ?? undefined : undefined,
     characterId: page.id === 'characters' ? params.get('character') ?? undefined : undefined,
@@ -34,7 +35,11 @@ function currentPage() {
 
 export default function SiteNavigation() {
   const [page, setPage] = useState(currentPage)
-  const [language, setLanguage] = useState(() => readPreference('language') === 'en' ? 'en' : 'ru')
+  const [language, setLanguage] = useState<Language>(() => {
+    const preference = readPreference('language') === 'en' ? 'en' : 'ru'
+    setInterfaceLanguage(preference)
+    return preference
+  })
   const [largeText, setLargeText] = useState(() => readPreference('large-text') === 'true')
   const languageDialog = useRef<HTMLDialogElement>(null)
   const [musicButtonTarget, setMusicButtonTarget] = useState<HTMLDivElement | null>(null)
@@ -42,6 +47,11 @@ export default function SiteNavigation() {
   const [backupTools, setBackupTools] = useState<HTMLDivElement | null>(null)
   const helpDialog = useRef<HTMLDialogElement>(null)
   const english = language === 'en'
+
+  useEffect(() => {
+    document.documentElement.lang = language
+    document.title = english ? 'Arena Atlas' : 'Атлас Арены'
+  }, [language, english])
 
   const [fullscreen, setFullscreen] = useState(() => Boolean(document.fullscreenElement))
   const [fullscreenError, setFullscreenError] = useState(false)
@@ -84,6 +94,14 @@ export default function SiteNavigation() {
     return () => window.removeEventListener('hashchange', updatePage)
   }, [])
 
+  function renderLinks(links: readonly (typeof pages)[number][]) {
+    return links.map(({ id, title }) => (
+      <a key={id} href={'#' + id} aria-current={page.id === id ? 'page' : undefined}>
+        {english ? englishTitles[id] : title}
+      </a>
+    ))
+  }
+
   return (
     <>
       <header className="site-header">
@@ -91,13 +109,14 @@ export default function SiteNavigation() {
           <span>{english ? 'F11 — fullscreen' : 'F11 — на весь экран'}</span>
           <span lang="en">Version {version}</span>
         </span>
-        <a className="site-brand" href="#timeline">{english ? 'Atlas' : 'Атлас'}</a>
         <nav lang={language} aria-label={english ? "Atlas sections" : "Разделы Атласа"}>
-          {pages.map(({ id, title }) => (
-            <a key={id} href={'#' + id} aria-current={page.id === id ? 'page' : undefined}>
-              {english ? englishTitles[id] : title}
-            </a>
-          ))}
+          <div className="site-nav-group">
+            {renderLinks(pages.slice(0, 4))}
+          </div>
+          <a className="site-brand" href="#timeline">{english ? 'Atlas' : 'Атлас'}</a>
+          <div className="site-nav-group">
+            {renderLinks(pages.slice(4))}
+          </div>
         </nav>
         <div className="site-tools" lang={language}>
           <div className="site-backup-tools" ref={setBackupTools} />
@@ -124,14 +143,15 @@ export default function SiteNavigation() {
       </p>}
 
       <dialog ref={languageDialog} lang={language} aria-labelledby="atlas-language-title">
-        <h2 id="atlas-language-title">{english ? 'Navigation language' : 'Язык навигации'}</h2>
+        <h2 id="atlas-language-title">{english ? 'Interface language' : 'Язык интерфейса'}</h2>
         <div className="language-picker" role="group" aria-label={english ? 'Language' : 'Язык'}>
           {([
             { code: 'ru', short: 'Ru', name: 'Русский' },
             { code: 'en', short: 'Eng', name: 'English' },
           ] as const).map(({ code, short, name }) => (
-            <button key={code} type="button" aria-label={name} lang={code} aria-pressed={language === code}
+            <button key={code} type="button" aria-label={t(name)} aria-pressed={language === code}
               onClick={() => {
+                setInterfaceLanguage(code)
                 setLanguage(code)
                 writePreference('language', code)
               }}>
@@ -183,7 +203,6 @@ const englishTitles = {
   events: 'Events',
   organizations: 'Factions and organizations',
   chronicles: 'Chronicles',
-  locations: 'Locations',
   lore: 'World reference',
 }
 

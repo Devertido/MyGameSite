@@ -1,3 +1,4 @@
+import { t } from '../i18n.ts'
 import { CreationDialog } from './CreationDialog'
 import type { TimelineCharacter } from '../domain/timeline'
 
@@ -18,20 +19,20 @@ export function FamilyTree({ character, characters, onClose }: {
         <h3>{title}</h3>
         {entries.length ? <ul>{entries.map((entry) => (
           <li key={entry.id}><a href={'#characters?character=' + encodeURIComponent(entry.id) + '&family=1'}>{name(entry)}</a></li>
-        ))}</ul> : <p>Нет записей.</p>}
+        ))}</ul> : <p>{t("Нет записей.")}</p>}
       </section>
     )
   }
   return (
     <CreationDialog onCancel={onClose}>
-      <h2 id="creation-dialog-title">Родословная</h2>
+      <h2 id="creation-dialog-title">{t("Родословная")}</h2>
       <div className="family-tree">
-        {group('Родители', parents)}
+        {group(t('Родители'), parents)}
         <p className="family-focus">{name(character)}</p>
-        {group('Дети', children)}
+        {group(t('Дети'), children)}
       </div>
-      {siblings.length > 0 && group('Братья и сёстры', siblings)}
-      <button type="button" onClick={onClose}>Закрыть</button>
+      {siblings.length > 0 && group(t('Братья и сёстры'), siblings)}
+      <button type="button" onClick={onClose}>{t("Закрыть")}</button>
     </CreationDialog>
   )
 }

@@ -1,3 +1,4 @@
+import { t } from '../i18n.ts'
 import { validAbilityScores } from '../domain/abilities.ts'
 import { validFamily, validLore } from '../domain/lore.ts'
 import { validateMonths, validateWeek } from '../domain/calendar.ts'
@@ -224,11 +225,11 @@ export function saveTimeline(
   timeline: Timeline,
   storage: Pick<Storage, 'setItem'> = window.localStorage,
 ): void {
-  if (!id.trim()) throw new Error('Для сохранения нужен идентификатор таймлайна.')
+  if (!id.trim()) throw new Error(t('Для сохранения нужен идентификатор таймлайна.'))
 
   // Каждый таймлайн записывается отдельно.
   const json = JSON.stringify(timeline)
-  if (!parseTimeline(JSON.parse(json))) throw new Error('Данные таймлайна не прошли проверку.')
+  if (!parseTimeline(JSON.parse(json))) throw new Error(t('Данные таймлайна не прошли проверку.'))
   storage.setItem(keyPrefix + id, json)
 }
 
@@ -268,7 +269,7 @@ export function deleteTimeline(
   id: string,
   storage: Pick<Storage, 'removeItem'> = window.localStorage,
 ): void {
-  if (!id.trim()) throw new Error('Для удаления нужен идентификатор таймлайна.')
+  if (!id.trim()) throw new Error(t('Для удаления нужен идентификатор таймлайна.'))
 
   storage.removeItem(keyPrefix + id)
 }
@@ -321,7 +322,7 @@ export function exportTimeline(timeline: Timeline): string {
 export function importTimeline(json: string): Timeline {
   const backup: unknown = JSON.parse(json)
   const timeline = isRecord(backup) && backup.version === 1 ? parseTimeline(backup.timeline) : null
-  if (!timeline) throw new Error('Файл не содержит корректной копии таймлайна.')
+  if (!timeline) throw new Error(t('Файл не содержит корректной копии таймлайна.'))
   return timeline
 }
 
@@ -332,10 +333,10 @@ export function exportAtlas(timelines: readonly Timeline[]): string {
 export function previewBackup(json: string): Timeline[] {
   const backup: unknown = JSON.parse(json)
   if (isRecord(backup) && backup.kind === 'atlas' && backup.version === 1 && Array.isArray(backup.timelines)) {
-    if (!backup.timelines.length) throw new Error('В копии нет таймлайнов.')
+    if (!backup.timelines.length) throw new Error(t('В копии нет таймлайнов.'))
     return backup.timelines.map((value: unknown) => {
       const timeline = parseTimeline(value)
-      if (!timeline) throw new Error('В копии есть некорректный таймлайн.')
+      if (!timeline) throw new Error(t('В копии есть некорректный таймлайн.'))
       return timeline
     })
   }
@@ -353,7 +354,7 @@ export function saveTimelineCopies(
   }))
   const keys = entries.map(({ id }) => keyPrefix + id)
   if (new Set(keys).size !== keys.length || keys.some((key) => storage.getItem(key) !== null)) {
-    throw new Error('Не удалось выделить идентификаторы для копий.')
+    throw new Error(t('Не удалось выделить идентификаторы для копий.'))
   }
 
   const savedKeys: string[] = []

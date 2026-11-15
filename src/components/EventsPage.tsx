@@ -1,3 +1,5 @@
+import { displayCalendarName, displayMonthName } from '../domain/calendar.ts'
+import { t } from '../i18n.ts'
 import { LoreLinks } from './LoreLinks'
 import { EntryFields, EntryGallery, EntryStatusLabel, readEntryMetadata, useStatusMatch } from './EntryMedia'
 import { CreationDialog } from './CreationDialog'
@@ -51,7 +53,7 @@ export function EventsPage({ timeline, calendar, save, yearFilter, eventId }: {
       setDeleting(null)
       setError('')
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Не удалось сохранить изменения.')
+      setError(error instanceof Error ? error.message : t('Не удалось сохранить изменения.'))
     }
   }
 
@@ -72,7 +74,7 @@ export function EventsPage({ timeline, calendar, save, yearFilter, eventId }: {
     const date = readDays('start', original?.date)
     const endDate = period ? readDays('end', original?.end?.date) : undefined
     if (date === null || endDate === null) {
-      setError('Выберите месяц и укажите допустимый день или оставьте день пустым.')
+      setError(t('Выберите месяц и укажите допустимый день или оставьте день пустым.'))
       return
     }
     const end = period ? { year: Number(fields.get('endYear')), date: endDate } : undefined
@@ -95,7 +97,7 @@ export function EventsPage({ timeline, calendar, save, yearFilter, eventId }: {
       characterIds: assignments.filter(({ side }) => side === id).map(({ id: characterId }) => characterId),
     }))
     if (sides.some(({ name }) => !name)) {
-      setError('Введите название каждой стороны.')
+      setError(t('Введите название каждой стороны.'))
       return
     }
     const entry = { id: original?.id ?? crypto.randomUUID(), ...details, ...readEntryMetadata(fields), characterIds, sides, onTimeline: original ? original.onTimeline !== false : false }
@@ -108,7 +110,7 @@ export function EventsPage({ timeline, calendar, save, yearFilter, eventId }: {
 
     return (
       <>
-        {unassigned && <h3>Участники без стороны</h3>}
+        {unassigned && <h3>{t("Участники без стороны")}</h3>}
         <ul className="event-people">
           {participants.map((character) => (
             <li key={character.id}>
@@ -125,51 +127,50 @@ export function EventsPage({ timeline, calendar, save, yearFilter, eventId }: {
 
   return (
     <main className="section-page">
-      <h1>{yearFilter === undefined ? 'События' : `События за системный год ${yearFilter}`}</h1>
-      {(yearFilter !== undefined || eventId !== undefined) && <p><a href="#events">Все события</a></p>}
-      <p>{timeline.name} · системные годы {timeline.startYear} — {timeline.endYear}</p>
+      <h1>{yearFilter === undefined ? t('События') : `${t("События за системный год ")}${yearFilter}`}</h1>
+      {(yearFilter !== undefined || eventId !== undefined) && <p><a href="#events">{t("Все события")}</a></p>}
+      <p>{timeline.name}{t(" · системные годы ")}{timeline.startYear} — {timeline.endYear}</p>
       {draft !== null && (
         <CreationDialog onCancel={() => { setDraft(null); setError('') }}>
           <form onSubmit={submit} onInput={() => setError('')}>
-            <h2 id="creation-dialog-title">{original ? 'Редактировать событие' : 'Новое событие'}</h2>
-            <p><label>Название<br /><input className="event-title-input" name="title" size={32} defaultValue={original?.title} required /></label></p>
+            <h2 id="creation-dialog-title">{original ? t('Редактировать событие') : t('Новое событие')}</h2>
+            <p><label>{t("Название")}<br /><input className="event-title-input" name="title" size={32} defaultValue={original?.title} required /></label></p>
             <p>
-              <label>
-                Системный год<br />
+              <label>{t("Системный год")}<br />
                 <input name="year" type="number" step={1} min={timeline.startYear}
                   max={timeline.endYear} defaultValue={initialYear} required />
               </label>
             </p>
             <DateFields prefix="start" months={calendar.months} previous={original?.date} />
-            <p><label><input type="checkbox" checked={period} onChange={(event) => setPeriod(event.currentTarget.checked)} /> Указать конец периода</label></p>
+            <p><label><input type="checkbox" checked={period} onChange={(event) => setPeriod(event.currentTarget.checked)} />{t(" Указать конец периода")}</label></p>
             {period && (
               <fieldset>
-                <legend>Конец периода</legend>
-                <p><label>Конечный системный год <input name="endYear" type="number" step={1}
+                <legend>{t("Конец периода")}</legend>
+                <p><label>{t("Конечный системный год ")}<input name="endYear" type="number" step={1}
                   min={timeline.startYear} max={timeline.endYear} defaultValue={original?.end?.year ?? initialYear} required /></label></p>
                 <DateFields prefix="end" months={calendar.months} previous={original?.end?.date} />
               </fieldset>
             )}
-            <p><label>Тип события <select name="type" defaultValue={original?.type ?? "other"}>
-              {Object.entries(eventTypes).map(([key, type]) => <option key={key} value={key}>{type.label}</option>)}
+            <p><label>{t("Тип события ")}<select name="type" defaultValue={original?.type ?? "other"}>
+              {Object.entries(eventTypes).map(([key, type]) => <option key={key} value={key}>{t(type.label)}</option>)}
             </select></label></p>
-            <p><label>Описание<br /><textarea name="description" defaultValue={original?.description} rows={4} /></label></p>
+            <p><label>{t("Описание")}<br /><textarea name="description" defaultValue={original?.description} rows={4} /></label></p>
             <EntryFields entry={original} beforeStatus={
-              <label>Цвет события <input name="color" type="color" defaultValue={original?.color ?? '#174b43'} /></label>
+              <label>{t("Цвет события ")}<input name="color" type="color" defaultValue={original?.color ?? '#174b43'} /></label>
             } />
             <EventParticipants characters={characters} organizations={timeline.organizations ?? []} original={original} />
             {error && <p role="alert">{error}</p>}
-            <button type="submit">Сохранить</button>{' '}
-            <button type="button" onClick={() => { setDraft(null); setError('') }}>Отмена</button>
+            <button type="submit">{t("Сохранить")}</button>{' '}
+            <button type="button" onClick={() => { setDraft(null); setError('') }}>{t("Отмена")}</button>
           </form>
         </CreationDialog>
       )}
 
       {deleting && (
         <section aria-labelledby="delete-event-heading">
-          <h2 id="delete-event-heading">Удалить событие «{deleting.title}»?</h2>
-          <button type="button" autoFocus onClick={() => { setDeleting(null); setError('') }}>Отмена</button>{' '}
-          <button type="button" onClick={() => persist(events.filter(({ id }) => id !== deleting.id))}>Удалить</button>
+          <h2 id="delete-event-heading">{t("Удалить событие «")}{deleting.title}»?</h2>
+          <button type="button" autoFocus onClick={() => { setDeleting(null); setError('') }}>{t("Отмена")}</button>{' '}
+          <button type="button" onClick={() => persist(events.filter(({ id }) => id !== deleting.id))}>{t("Удалить")}</button>
         </section>
       )}
 
@@ -183,15 +184,15 @@ export function EventsPage({ timeline, calendar, save, yearFilter, eventId }: {
               <LoreLinks timeline={timeline} kind="events" id={entry.id} />
               <h2>{entry.color && <span className="atlas-color" style={{ backgroundColor: entry.color }} aria-hidden="true" />}{entry.year}{entry.end && ` — ${entry.end.year}`} · {entry.title}</h2>
               <p>
-                {calendar.name} · {formatEndpoint(entry, calendar)}
+                {displayCalendarName(calendar.name)} · {formatEndpoint(entry, calendar)}
                 {entry.end && ` → ${formatEndpoint(entry.end, calendar)}`}
               </p>
               {(entry.sides?.length ?? 0) > 0 && (
-                <div className="event-sides" aria-label="Стороны события">
+                <div className="event-sides" aria-label={t("Стороны события")}>
                   {entry.sides?.map((side) => (
                     <section key={side.id}>
                       <h3><EventSideLink side={side} organizations={timeline.organizations} /></h3>
-                      {side.characterIds.length ? renderParticipants(side.characterIds) : <p>Нет участников.</p>}
+                      {side.characterIds.length ? renderParticipants(side.characterIds) : <p>{t("Нет участников.")}</p>}
                     </section>
                   ))}
                 </div>
@@ -202,40 +203,40 @@ export function EventsPage({ timeline, calendar, save, yearFilter, eventId }: {
               {entry.description && <p>{entry.description}</p>}
               {timeline.chronicles?.some(({ eventIds }) => eventIds?.includes(entry.id)) && (
                 <section>
-                  <h3>Связанные летописи</h3>
+                  <h3>{t("Связанные летописи")}</h3>
                   <ul>{timeline.chronicles.filter(({ eventIds }) => eventIds?.includes(entry.id)).map(({ id, title }) => (
                     <li key={id}><a href={'#chronicles?entry=' + encodeURIComponent(id)}>{title}</a></li>
                   ))}</ul>
                 </section>
               )}
-              <button className="event-action" type="button" disabled={draft !== null || deleting !== null} onClick={() => { setPeriod(Boolean(entry.end)); setDraft(entry) }} aria-label="Редактировать" title="Редактировать"><EditIcon /></button>{' '}
-              <button className="event-action" type="button" disabled={draft !== null || deleting !== null} onClick={() => setDeleting(entry)} aria-label="Удалить событие" title="Удалить событие">
+              <button className="event-action" type="button" disabled={draft !== null || deleting !== null} onClick={() => { setPeriod(Boolean(entry.end)); setDraft(entry) }} aria-label={t("Редактировать")} title={t("Редактировать")}><EditIcon /></button>{' '}
+              <button className="event-action" type="button" disabled={draft !== null || deleting !== null} onClick={() => setDeleting(entry)} aria-label={t("Удалить событие")} title={t("Удалить событие")}>
                 <TrashIcon />
               </button>
             </article>
-          )) : <p>События по этим условиям не найдены.</p>}
+          )) : <p>{t("События по этим условиям не найдены.")}</p>}
         </div>
-        <section className="directory-table" aria-label="Список событий">
+        <section className="directory-table" aria-label={t("Список событий")}>
           <div className="directory-actions">
             <fieldset className="catalog-filters">
-        <legend>Фильтры событий</legend>
-        <label>Поиск <input type="search" value={search} onChange={(event) => setSearch(event.currentTarget.value)} /></label>
-        <label>С года <input type="number" value={from} onChange={(event) => setFrom(event.currentTarget.value)} /></label>
-        <label>По год <input type="number" value={to} onChange={(event) => setTo(event.currentTarget.value)} /></label>
+        <legend>{t("Фильтры событий")}</legend>
+        <label>{t("Поиск ")}<input type="search" value={search} onChange={(event) => setSearch(event.currentTarget.value)} /></label>
+        <label>{t("С года ")}<input type="number" value={from} onChange={(event) => setFrom(event.currentTarget.value)} /></label>
+        <label>{t("По год ")}<input type="number" value={to} onChange={(event) => setTo(event.currentTarget.value)} /></label>
       </fieldset>
       {deleting === null && (
-        <button type="button" onClick={() => { setPeriod(false); setDraft('new') }}>Добавить событие</button>
+        <button type="button" onClick={() => { setPeriod(false); setDraft('new') }}>{t("Добавить событие")}</button>
       )}
           </div>
           <div className="directory-table-scroll">
             <table>
-              <thead><tr><th scope="col">Событие</th><th scope="col">Системные годы</th></tr></thead>
+              <thead><tr><th scope="col">{t("Событие")}</th><th scope="col">{t("Системные годы")}</th></tr></thead>
               <tbody>{sorted.map((entry) => {
                 const type = eventTypes[entry.type ?? 'other']
                 return (
                 <tr key={entry.id} data-selected={entry.id === selected?.id}>
                   <td><button className="directory-select" type="button" aria-pressed={entry.id === selected?.id}
-                    onClick={() => setSelectedId(entry.id)}><span className="event-type-icon" role="img" aria-label={type.label} title={type.label}>{type.icon}</span> {entry.title}</button></td>
+                    onClick={() => setSelectedId(entry.id)}><span className="event-type-icon" role="img" aria-label={t(type.label)} title={t(type.label)}>{type.icon}</span> {entry.title}</button></td>
                   <td>{entry.year}{entry.end && ' — ' + entry.end.year}</td>
                 </tr>
               )})}</tbody>
@@ -245,9 +246,9 @@ export function EventsPage({ timeline, calendar, save, yearFilter, eventId }: {
       </div>
       <dialog ref={characterDialog} aria-labelledby="event-character-name">
         <h2 id="event-character-name">{activeCharacter?.name}</h2>
-        <p className="event-character-description">{activeCharacter?.description || 'Описание пока не добавлено.'}</p>
-        {activeCharacter && <p><a href={`#characters?character=${encodeURIComponent(activeCharacter.id)}`}>Открыть карточку персонажа</a></p>}
-        <button type="button" onClick={() => characterDialog.current?.close()}>Закрыть</button>
+        <p className="event-character-description">{activeCharacter?.description || t('Описание пока не добавлено.')}</p>
+        {activeCharacter && <p><a href={`#characters?character=${encodeURIComponent(activeCharacter.id)}`}>{t("Открыть карточку персонажа")}</a></p>}
+        <button type="button" onClick={() => characterDialog.current?.close()}>{t("Закрыть")}</button>
       </dialog>
     </main>
   )
@@ -255,10 +256,10 @@ export function EventsPage({ timeline, calendar, save, yearFilter, eventId }: {
 
 function formatEndpoint({ year, date }: EventEndpoint, calendar: TimelineCalendar) {
   const localYear = String(toCalendarYear(year, calendar.era))
-  if (!date) return `местный год ${localYear}`
+  if (!date) return `${t("местный год ")}${localYear}`
   const first = calendarDay(calendar.months, date.first)
   const days = date.first === date.last ? first : `${first} — ${calendarDay(calendar.months, date.last)}`
-  return `${days}, местный год ${localYear}`
+  return `${days}${t(", местный год ")}${localYear}`
 }
 
 function DateFields({ prefix, months, previous }: {
@@ -269,16 +270,14 @@ function DateFields({ prefix, months, previous }: {
   const [month, setMonth] = useState('')
   return (
     <p>
-      <label>
-        Месяц{' '}
+      <label>{t("Месяц")}{' '}
         <select name={prefix + 'Month'} value={month} onChange={(event) => setMonth(event.currentTarget.value)}>
-          <option value="">{previous ? 'Сохранить дату' : 'Весь год'}</option>
-          {previous && <option value="year">Весь год</option>}
-          {months.map(({ name }, index) => <option key={index} value={index + 1}>{name}</option>)}
+          <option value="">{previous ? t('Сохранить дату') : t('Весь год')}</option>
+          {previous && <option value="year">{t("Весь год")}</option>}
+          {months.map(({ name }, index) => <option key={index} value={index + 1}>{displayMonthName(name)}</option>)}
         </select>
       </label>{' '}
-      <label>
-        День{' '}
+      <label>{t("День")}{' '}
         <input name={prefix + 'Day'} type="number" min={1} step={1}
           max={months[Number(month) - 1]?.days} disabled={!months[Number(month) - 1]} />
       </label>

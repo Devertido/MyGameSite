@@ -1,3 +1,5 @@
+import { displayMonthName } from '../domain/calendar.ts'
+import { t } from '../i18n.ts'
 import { AbilityDetails, AbilityFields } from './AbilityScores'
 import { adjustedAbilities, readAbilityScores } from '../domain/abilities'
 import { RelativePicker } from './RelativePicker'
@@ -65,7 +67,7 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
       save(next)
       cancel()
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Не удалось сохранить персонажей.')
+      setError(error instanceof Error ? error.message : t('Не удалось сохранить персонажей.'))
     }
   }
 
@@ -74,7 +76,7 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
     const fields = new FormData(event.currentTarget)
     const name = String(fields.get('name') ?? '').trim()
     if (!name) {
-      setError('Введите имя персонажа.')
+      setError(t('Введите имя персонажа.'))
       return
     }
 
@@ -87,11 +89,11 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
     const birth = readDate(fields, 'birth', months, timeline.daysPerYear)
     const death = readDate(fields, 'death', months, timeline.daysPerYear)
     if (birth === null || death === null) {
-      setError('Укажите допустимый системный год, месяц и день для каждой выбранной даты.')
+      setError(t('Укажите допустимый системный год, месяц и день для каждой выбранной даты.'))
       return
     }
     if (!isCharacterLifeOrderValid(birth, death)) {
-      setError('Дата смерти должна быть не раньше даты рождения.')
+      setError(t('Дата смерти должна быть не раньше даты рождения.'))
       return
     }
 
@@ -121,7 +123,7 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
     })
     next.splice(original ? characters.findIndex(({ id }) => id === original.id) : next.length, 0, entry)
     if (!validFamily(next)) {
-      setError('Проверьте родство. Персонаж не может быть собственным предком.')
+      setError(t('Проверьте родство. Персонаж не может быть собственным предком.'))
       return
     }
     persist(next)
@@ -129,26 +131,26 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
 
   return (
     <main className="section-page">
-      <h1>Персонажи</h1>
+      <h1>{t("Персонажи")}</h1>
       <p>{timeline.name}</p>
-      {characterId !== undefined && !characters.some(({ id }) => id === characterId) && <p>Персонаж не найден.</p>}
+      {characterId !== undefined && !characters.some(({ id }) => id === characterId) && <p>{t("Персонаж не найден.")}</p>}
       {draft !== null && (
         <CreationDialog onCancel={cancel}>
           <form onSubmit={submit} onInput={() => setError('')}>
-            <h2 id="creation-dialog-title">{original ? 'Редактировать персонажа' : 'Новый персонаж'}</h2>
+            <h2 id="creation-dialog-title">{original ? t('Редактировать персонажа') : t('Новый персонаж')}</h2>
             <div className="character-name-fields">
-              <label>Имя<br /><input name="name" defaultValue={original?.name} required /></label>
-              <label>Фамилия<br /><input name="surname" list="lore-surnames" defaultValue={original?.surname}
+              <label>{t("Имя")}<br /><input name="name" defaultValue={original?.name} required /></label>
+              <label>{t("Фамилия")}<br /><input name="surname" list="lore-surnames" defaultValue={original?.surname}
                 title={surnameTooltip(timeline, original?.surname)}
                 onInput={(event) => { event.currentTarget.title = surnameTooltip(timeline, event.currentTarget.value) ?? '' }} /></label>
             </div>
-            <p><label>Раса<br /><input name="race" list="lore-races" value={draftRace}
+            <p><label>{t("Раса")}<br /><input name="race" list="lore-races" value={draftRace}
                 title={glossaryDescription(timeline.lore, 'races', draftRace)}
                 onChange={(event) => setDraftRace(event.currentTarget.value)} /></label></p>
-            <p><label>Династия<br /><input name="dynasty" list="lore-dynasties" defaultValue={original?.dynasty}
+            <p><label>{t("Династия")}<br /><input name="dynasty" list="lore-dynasties" defaultValue={original?.dynasty}
                 title={glossaryDescription(timeline.lore, 'dynasties', original?.dynasty)}
                 onInput={(event) => { event.currentTarget.title = glossaryDescription(timeline.lore, 'dynasties', event.currentTarget.value) ?? '' }} /></label></p>
-            <p><label>Класс<br /><input name="characterClass" list="lore-classes" defaultValue={original?.characterClass}
+            <p><label>{t("Класс")}<br /><input name="characterClass" list="lore-classes" defaultValue={original?.characterClass}
                 title={glossaryDescription(timeline.lore, 'classes', original?.characterClass)}
                 onInput={(event) => { event.currentTarget.title = glossaryDescription(timeline.lore, 'classes', event.currentTarget.value) ?? '' }} /></label></p>
             {(['surnames', 'races', 'dynasties', 'classes'] as const).map((field) => (
@@ -161,45 +163,43 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
               const initialIds = candidates.filter((candidate) => relation === 'parents'
                 ? original?.parentIds?.includes(candidate.id)
                 : candidate.parentIds?.includes(original?.id ?? '')).map(({ id }) => id)
-              return <RelativePicker key={relation} name={relation} label={relation === 'parents' ? 'Родители' : 'Дети'}
+              return <RelativePicker key={relation} name={relation} label={relation === 'parents' ? t('Родители') : t('Дети')}
                 candidates={candidates} initialIds={initialIds} />
             })}
-            <p><label>Пол<br />
+            <p><label>{t("Пол")}<br />
               <select name="sex" defaultValue={original?.sex || ''}>
-                <option value="">Не указан</option>
-                <option value="Муж">Муж</option>
-                <option value="Жен">Жен</option>
+                <option value="">{t("Не указан")}</option>
+                <option value="Муж">{t("Муж")}</option>
+                <option value="Жен">{t("Жен")}</option>
                 {original?.sex && original.sex !== 'Муж' && original.sex !== 'Жен' && (
-                  <option value={original.sex}>{original.sex}</option>
+                  <option value={original.sex}>{t(original.sex)}</option>
                 )}
               </select>
             </label></p>
-            <CharacterDateFields prefix="birth" label="Дата рождения" months={months} initial={original?.birth} />
-            <CharacterDateFields prefix="death" label="Дата смерти" months={months} initial={original?.death} />
-            <ImageField name="portrait" allowGif label="Вертикальный портрет" initial={original?.portrait} />
+            <CharacterDateFields prefix="birth" label={t("Дата рождения")} months={months} initial={original?.birth} />
+            <CharacterDateFields prefix="death" label={t("Дата смерти")} months={months} initial={original?.death} />
+            <ImageField name="portrait" allowGif label={t("Вертикальный портрет")} initial={original?.portrait} />
             <EntryFields entry={original} />
             <AbilityFields scores={original?.abilities} race={raceDetailsFor(timeline.lore, draftRace)} />
-            <p><label>Описание<br /><textarea name="description" rows={4} defaultValue={original?.description} /></label></p>
-            <p><label>Биография<br /><textarea name="biography" rows={8} defaultValue={original?.biography} /></label></p>
-            <p><label>Цвет персонажа <input name="color" type="color" defaultValue={original?.color ?? '#174b43'} /></label></p>
+            <p><label>{t("Описание")}<br /><textarea name="description" rows={4} defaultValue={original?.description} /></label></p>
+            <p><label>{t("Биография")}<br /><textarea name="biography" rows={8} defaultValue={original?.biography} /></label></p>
+            <p><label>{t("Цвет персонажа ")}<input name="color" type="color" defaultValue={original?.color ?? '#174b43'} /></label></p>
             {error && <p role="alert">{error}</p>}
-            <button type="submit">Сохранить</button>{' '}
-            <button type="button" onClick={cancel}>Отмена</button>
+            <button type="submit">{t("Сохранить")}</button>{' '}
+            <button type="button" onClick={cancel}>{t("Отмена")}</button>
           </form>
         </CreationDialog>
       )}
       {deleting && (
         <section aria-labelledby="delete-character-title">
-          <h2 id="delete-character-title">Удалить персонажа «{deleting.name}»?</h2>
-          <p>Связи этого персонажа с событиями будут удалены.</p>
-          <button type="button" autoFocus onClick={cancel}>Отмена</button>{' '}
-          <button type="button" onClick={() => persist(characters.filter(({ id }) => id !== deleting.id))}>
-            Удалить
-          </button>
+          <h2 id="delete-character-title">{t("Удалить персонажа «")}{deleting.name}»?</h2>
+          <p>{t("Связи этого персонажа с событиями будут удалены.")}</p>
+          <button type="button" autoFocus onClick={cancel}>{t("Отмена")}</button>{' '}
+          <button type="button" onClick={() => persist(characters.filter(({ id }) => id !== deleting.id))}>{t("Удалить")}</button>
         </section>
       )}
       {draft === null && error && <p role="alert">{error}</p>}
-      {characters.length === 0 && <p>В этом таймлайне пока нет персонажей.</p>}
+      {characters.length === 0 && <p>{t("В этом таймлайне пока нет персонажей.")}</p>}
       <div className="directory-layout">
         <ul className="event-list">
           {(selected ? [selected] : []).map((character) => {
@@ -216,20 +216,20 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
                   <div className="character-summary">
                     <div className="character-heading">
                       {character.color && <span className="atlas-color" style={{ backgroundColor: character.color }} aria-hidden="true" />}
-                      <button className="event-action" type="button" disabled={busy} onClick={() => editCharacter(character)} aria-label="Редактировать" title="Редактировать"><EditIcon /></button>
-                      <button className="event-action" type="button" disabled={busy} onClick={() => setDeleting(character)} aria-label="Удалить персонажа" title="Удалить персонажа"><TrashIcon /></button>
-                      <button className="family-tree-button" type="button" onClick={() => { window.location.hash = 'characters?character=' + encodeURIComponent(character.id) + '&family=1' }}>Родословная</button>
+                      <button className="event-action" type="button" disabled={busy} onClick={() => editCharacter(character)} aria-label={t("Редактировать")} title={t("Редактировать")}><EditIcon /></button>
+                      <button className="event-action" type="button" disabled={busy} onClick={() => setDeleting(character)} aria-label={t("Удалить персонажа")} title={t("Удалить персонажа")}><TrashIcon /></button>
+                      <button className="family-tree-button" type="button" onClick={() => { window.location.hash = 'characters?character=' + encodeURIComponent(character.id) + '&family=1' }}>{t("Родословная")}</button>
                     </div>
                     <h2 className="character-name">{character.name}{character.surname && (
                       <> <span title={surnameTooltip(timeline, character.surname)}>{character.surname}</span></>
                     )}</h2>
                     <dl className="character-facts">
-                      {character.sex && <div><dt>Пол</dt><dd>{character.sex}</dd></div>}
-                      {character.characterClass && <div><dt>Класс</dt><dd title={glossaryDescription(timeline.lore, 'classes', character.characterClass)}>{character.characterClass}</dd></div>}
-                      {character.race && <div><dt>Раса</dt><dd title={glossaryDescription(timeline.lore, 'races', character.race)}>{character.race}</dd></div>}
-                      {character.dynasty && <div><dt>Династия</dt><dd title={glossaryDescription(timeline.lore, 'dynasties', character.dynasty)}>{character.dynasty}</dd></div>}
+                      {character.sex && <div><dt>{t("Пол")}</dt><dd>{t(character.sex)}</dd></div>}
+                      {character.characterClass && <div><dt>{t("Класс")}</dt><dd title={glossaryDescription(timeline.lore, 'classes', character.characterClass)}>{character.characterClass}</dd></div>}
+                      {character.race && <div><dt>{t("Раса")}</dt><dd title={glossaryDescription(timeline.lore, 'races', character.race)}>{character.race}</dd></div>}
+                      {character.dynasty && <div><dt>{t("Династия")}</dt><dd title={glossaryDescription(timeline.lore, 'dynasties', character.dynasty)}>{character.dynasty}</dd></div>}
                       {(character.birth || character.death) && (
-                        <div><dt>Годы жизни</dt><dd>{character.birth?.year ?? '?'} — {character.death?.year ?? '…'}
+                        <div><dt>{t("Годы жизни")}</dt><dd>{character.birth?.year ?? '?'} — {character.death?.year ?? '…'}
                           {lifespan && ' (' + lifespan + ')'}
                         </dd></div>
                       )}
@@ -239,28 +239,28 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
                 </div>
                 <AbilityDetails scores={adjustedAbilities(character.abilities, raceDetails?.abilityBonuses, raceDetails?.abilityPenalties)} />
                 {character.birth && (
-                  <p>Дата рождения · {calendarDay(months, character.birth.dayOfYear)} · {character.birth.year} г. системы</p>
+                  <p>{t("Дата рождения · ")}{calendarDay(months, character.birth.dayOfYear)} · {character.birth.year}{t(" г. системы")}</p>
                 )}
                 {character.death && (
-                  <p>Дата смерти · {calendarDay(months, character.death.dayOfYear)} · {character.death.year} г. системы</p>
+                  <p>{t("Дата смерти · ")}{calendarDay(months, character.death.dayOfYear)} · {character.death.year}{t(" г. системы")}</p>
                 )}
                 {(
                   <>
                   <EntryStatusLabel entry={character} />
                   <EntryGallery key={character.id} entry={character} />
                   <LoreLinks timeline={timeline} kind="characters" id={character.id} />
-                  <h3>Биография</h3>
-                    <p>{character.biography || 'Биография пока не добавлена.'}</p>
+                  <h3>{t("Биография")}</h3>
+                    <p>{character.biography || t('Биография пока не добавлена.')}</p>
                   </>
                 )}
                 {(
                   <>
                     {[
-                      { heading: 'Организации', route: 'organizations?organization=', links: (timeline.organizations ?? [])
+                      { heading: t('Организации'), route: 'organizations?organization=', links: (timeline.organizations ?? [])
                         .filter(({ memberIds }) => memberIds.includes(character.id)).map(({ id, name }) => ({ id, title: name })) },
-                      { heading: 'Летописи', route: 'chronicles?entry=', links: (timeline.chronicles ?? [])
+                      { heading: t('Летописи'), route: 'chronicles?entry=', links: (timeline.chronicles ?? [])
                         .filter(({ characterIds }) => characterIds?.includes(character.id)) },
-                      { heading: 'Предметы', route: 'lore?section=items&entry=', links: (timeline.items ?? [])
+                      { heading: t('Предметы'), route: 'lore?section=items&entry=', links: (timeline.items ?? [])
                         .filter(({ ownerId }) => ownerId === character.id) },
                     ].filter(({ links }) => links.length > 0).map(({ heading, route, links }) => (
                       <section key={route}>
@@ -272,10 +272,10 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
                     ))}
                   </>
                 )}
-                {events.length === 0 && <p>Участие в событиях пока не указано.</p>}
+                {events.length === 0 && <p>{t("Участие в событиях пока не указано.")}</p>}
                 {events.length > 0 && (
                   <>
-                    <h3>Участие в событиях</h3>
+                    <h3>{t("Участие в событиях")}</h3>
                     <ol>{events.sort((a, b) => a.year - b.year || (a.date?.first ?? 1) - (b.date?.first ?? 1)).map((event) => {
                       const side = event.sides?.find((item) => item.characterIds.includes(character.id))
                       return (
@@ -283,7 +283,7 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
                         <a href={`#events?event=${encodeURIComponent(event.id)}`}>
                           {event.year}{event.end && ` — ${event.end.year}`} · {event.title}
                         </a>
-                        {' · '}{side ? <EventSideLink side={side} organizations={timeline.organizations} /> : 'Без стороны'}
+                        {' · '}{side ? <EventSideLink side={side} organizations={timeline.organizations} /> : t('Без стороны')}
                       </li>
                       )
                     })}</ol>
@@ -295,9 +295,9 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
         </ul>
         <section className="directory-table" aria-labelledby="character-directory-title">
           <div className="directory-actions">
-          {!deleting && <button type="button" onClick={() => editCharacter('new')}>Добавить персонажа</button>}
+          {!deleting && <button type="button" onClick={() => editCharacter('new')}>{t("Добавить персонажа")}</button>}
           </div>
-          <h2 id="character-directory-title">Все персонажи</h2>
+          <h2 id="character-directory-title">{t("Все персонажи")}</h2>
           <div className="directory-table-scroll">
             <table>
               <thead>
@@ -308,7 +308,7 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
                     <button type="button" onClick={() => setSort({
                       key, descending: sort.key === key && !sort.descending,
                     })}>
-                      {title}{sort.key === key && <span aria-hidden="true">{sort.descending ? ' ↓' : ' ↑'}</span>}
+                      {t(title)}{sort.key === key && <span aria-hidden="true">{sort.descending ? ' ↓' : ' ↑'}</span>}
                     </button>
                   </th>
                 ))}</tr>
@@ -324,7 +324,7 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
                     </td>
                     <td><span title={surnameTooltip(timeline, character.surname)}>{character.surname || '—'}</span></td>
                     <td><span title={glossaryDescription(timeline.lore, 'races', character.race)}>{character.race || '—'}</span></td>
-                    <td>{character.sex || '—'}</td>
+                    <td>{character.sex ? t(character.sex) : '—'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -343,7 +343,7 @@ function formatLifespan(birth: CharacterDate, death: CharacterDate) {
   const years = BigInt(death.year) - BigInt(birth.year) - (death.dayOfYear < birth.dayOfYear ? 1n : 0n)
   const last = years % 10n
   const lastTwo = years % 100n
-  const unit = lastTwo >= 11n && lastTwo <= 14n ? 'лет' : last === 1n ? 'год' : last >= 2n && last <= 4n ? 'года' : 'лет'
+  const unit = lastTwo >= 11n && lastTwo <= 14n ? t('лет') : last === 1n ? t('год') : last >= 2n && last <= 4n ? t('года') : t('лет')
   return years.toString() + ' ' + unit
 }
 
@@ -379,17 +379,15 @@ function CharacterDateFields({ prefix, label, months, initial }: {
       <legend>{label}</legend>
       <label>
         <input name={prefix + '-enabled'} type="checkbox" checked={enabled}
-          onChange={(event) => setEnabled(event.currentTarget.checked)} />{' '}
-        Указать дату
-      </label>
+          onChange={(event) => setEnabled(event.currentTarget.checked)} />{' '}{t("Указать дату")}</label>
       <div hidden={!enabled}>
-        <label>Системный год <input name={prefix + '-year'} type="number" step={1}
+        <label>{t("Системный год ")}<input name={prefix + '-year'} type="number" step={1}
           defaultValue={initial?.year} disabled={!enabled} required /></label>{' '}
-        <label>Месяц <select name={prefix + '-month'} value={month + 1} disabled={!enabled}
+        <label>{t("Месяц ")}<select name={prefix + '-month'} value={month + 1} disabled={!enabled}
           onChange={(event) => setMonth(Number(event.currentTarget.value) - 1)}>
-          {months.map(({ name }, index) => <option key={index} value={index + 1}>{name}</option>)}
+          {months.map(({ name }, index) => <option key={index} value={index + 1}>{displayMonthName(name)}</option>)}
         </select></label>{' '}
-        <label>День <input name={prefix + '-day'} type="number" min={1} max={months[month]?.days}
+        <label>{t("День ")}<input name={prefix + '-day'} type="number" min={1} max={months[month]?.days}
           defaultValue={initialDay} disabled={!enabled} required /></label>
       </div>
     </fieldset>

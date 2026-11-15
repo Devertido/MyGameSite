@@ -1,6 +1,7 @@
+import { t } from '../i18n.ts'
 import type { AbilityScores } from './abilities.ts'
 import type { WorldLore } from './lore.ts'
-import type { CalendarMonth } from './calendar'
+import { displayMonthName, type CalendarMonth } from './calendar.ts'
 import type { CalendarEra } from './calendarYear'
 
 export type EntryStatus = 'draft' | 'canon'
@@ -37,15 +38,15 @@ export function validateTimelineBounds(
   original?: Pick<Timeline, 'startYear' | 'endYear'>,
 ): string | null {
   if (!Number.isSafeInteger(startYear) || !Number.isSafeInteger(endYear)) {
-    return 'Введите целые годы от −9 007 199 254 740 991 до 9 007 199 254 740 991.'
+    return t('Введите целые годы от −9 007 199 254 740 991 до 9 007 199 254 740 991.')
   }
 
   if (endYear < startYear) {
-    return 'Конечный год должен быть не раньше начального.'
+    return t('Конечный год должен быть не раньше начального.')
   }
 
   if (original && (startYear > original.startYear || endYear < original.endYear)) {
-    return 'Новые границы должны включать весь текущий диапазон таймлайна.'
+    return t('Новые границы должны включать весь текущий диапазон таймлайна.')
   }
 
   return null
@@ -76,13 +77,13 @@ export function validateEvent(
   event: Omit<TimelineEvent, 'id'>,
   bounds: Pick<Timeline, 'startYear' | 'endYear' | 'daysPerYear'>,
 ): string | null {
-  if (!event.title.trim()) return 'Введите название события.'
+  if (!event.title.trim()) return t('Введите название события.')
   if (!isEventEndpoint(event, bounds) || (event.end !== undefined && !isEventEndpoint(event.end, bounds))) {
-    return 'Укажите допустимые даты в пределах таймлайна.'
+    return t('Укажите допустимые даты в пределах таймлайна.')
   }
   if (event.end && (event.end.year < event.year ||
       (event.end.year === event.year && (event.end.date?.last ?? bounds.daysPerYear) < (event.date?.first ?? 1)))) {
-    return 'Конец периода должен быть не раньше начала.'
+    return t('Конец периода должен быть не раньше начала.')
   }
   return null
 }
@@ -109,10 +110,10 @@ export function eventDays(months: readonly CalendarMonth[], month: number, day?:
 export function calendarDay(months: readonly CalendarMonth[], offset: number): string {
   let day = offset
   for (const month of months) {
-    if (day <= month.days) return `${day} · ${month.name}`
+    if (day <= month.days) return `${day} · ${displayMonthName(month.name)}`
     day -= month.days
   }
-  throw new RangeError('День вне календарного года.')
+  throw new RangeError(t('День вне календарного года.'))
 }
 
 export type CharacterDate = { year: number; dayOfYear: number }
@@ -175,17 +176,17 @@ export function isAtlasColor(value: unknown): value is string {
 }
 
 export function validateOrganization(organization: Organization, timeline: Timeline): string | null {
-  if (organization.color !== undefined && !isAtlasColor(organization.color)) return 'Выберите допустимый цвет организации.'
-  if (!organization.name.trim() || !organization.type.trim()) return 'Укажите название и тип организации.'
+  if (organization.color !== undefined && !isAtlasColor(organization.color)) return t('Выберите допустимый цвет организации.')
+  if (!organization.name.trim() || !organization.type.trim()) return t('Укажите название и тип организации.')
   if (!Number.isSafeInteger(organization.startYear) || organization.startYear < timeline.startYear ||
       organization.startYear > timeline.endYear || (organization.endYear !== undefined &&
       (!Number.isSafeInteger(organization.endYear) || organization.endYear > timeline.endYear ||
       organization.endYear < organization.startYear))) {
-    return 'Укажите годы в пределах таймлайна. Окончание должно быть не раньше основания.'
+    return t('Укажите годы в пределах таймлайна. Окончание должно быть не раньше основания.')
   }
   const ids = new Set(timeline.characters?.map(({ id }) => id))
   if (new Set(organization.memberIds).size !== organization.memberIds.length ||
-      organization.memberIds.some((id) => !ids.has(id))) return 'Проверьте список членов организации.'
+      organization.memberIds.some((id) => !ids.has(id))) return t('Проверьте список членов организации.')
   return null
 }
 
@@ -201,4 +202,10 @@ export type ArchiveEntry = EntryMetadata & {
   body: string
   type?: string
   rarity?: string
+}
+
+export const organizationTypes = ['Государство', 'Банда', 'Орден', 'Клан', 'Гильдия', 'Союз', 'Фракция']
+
+export function displayOrganizationType(type: string): string {
+  return organizationTypes.includes(type) ? t(type) : type
 }

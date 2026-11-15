@@ -1,3 +1,4 @@
+import { t } from '../i18n.ts'
 import { useStatusMatch } from './EntryMedia'
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from 'react'
 import { toCalendarYear } from '../domain/calendarYear'
@@ -102,21 +103,19 @@ export function TimelineScale({ timeline, calendar }: { timeline: Timeline; cale
     <section className="timeline-view" aria-labelledby="timeline-title">
       <h1 id="timeline-title">{timeline.name}</h1>
       <div className="timeline-controls timeline-navigation">
-        <p className="timeline-years">
-          Системные годы: {timeline.startYear} — {timeline.endYear}<br />
-          Местные годы: {String(toCalendarYear(timeline.startYear, calendar.era))}
+        <p className="timeline-years">{t("Системные годы: ")}{timeline.startYear} — {timeline.endYear}<br />{t("Местные годы: ")}{String(toCalendarYear(timeline.startYear, calendar.era))}
           {' — '}{String(toCalendarYear(timeline.endYear, calendar.era))}
         </p>
-        <div className="timeline-zoom" role="group" aria-label="Масштаб шкалы">
-          <button className="timeline-zoom-icon" type="button" aria-label="Уменьшить" title="Уменьшить" disabled={zoomIndex === 0} onClick={() => setZoomIndex(zoomIndex - 1)}>
+        <div className="timeline-zoom" role="group" aria-label={t("Масштаб шкалы")}>
+          <button className="timeline-zoom-icon" type="button" aria-label={t("Уменьшить")} title={t("Уменьшить")} disabled={zoomIndex === 0} onClick={() => setZoomIndex(zoomIndex - 1)}>
             <ZoomIcon />
           </button>
           <output aria-live="polite">{zoom}×</output>
           <button
             type="button"
             className="timeline-zoom-icon"
-            aria-label="Увеличить"
-            title="Увеличить"
+            aria-label={t("Увеличить")}
+            title={t("Увеличить")}
             disabled={zoomIndex === zoomLevels.length - 1}
             onClick={() => setZoomIndex(zoomIndex + 1)}
           >
@@ -124,37 +123,36 @@ export function TimelineScale({ timeline, calendar }: { timeline: Timeline; cale
           </button>
         </div>
         <form onSubmit={jumpToYear}>
-          <label>Системный год{' '}
+          <label>{t("Системный год")}{' '}
             <input name="year" type="number" step={1} min={timeline.startYear} max={timeline.endYear} required />
           </label>{' '}
-          <button type="submit">Перейти к году</button>
+          <button type="submit">{t("Перейти к году")}</button>
         </form>
         {visibleEvents.length > 0 && (
-          <label>
-            Перейти к событию{' '}
+          <label>{t("Перейти к событию")}{' '}
             <select value="" onChange={(event) => {
               const selected = visibleEvents.find(({ id }) => id === event.currentTarget.value)
               if (selected) setTarget({ year: selected.year, day: (selected.date?.first ?? 1) - 1 })
             }}>
-              <option value="" disabled>Выберите событие</option>
+              <option value="" disabled>{t("Выберите событие")}</option>
               {[...visibleEvents].sort((left, right) => left.year - right.year).map(({ id, year, title }) => (
                 <option key={id} value={id}>{year} · {title}</option>
               ))}
             </select>
           </label>
         )}
-        {highlightedYear !== undefined && <output aria-live="polite">Год {highlightedYear}</output>}
+        {highlightedYear !== undefined && <output aria-live="polite">{t("Год ")}{highlightedYear}</output>}
       </div>
 
-      <div ref={scrollRef} className="timeline-scroll" tabIndex={0} role="region" aria-label="Шкала системных лет">
+      <div ref={scrollRef} className="timeline-scroll" tabIndex={0} role="region" aria-label={t("Шкала системных лет")}>
         <div className="timeline-track" style={{ width: `${100 * zoom}%`, minWidth: `${36 * zoom}rem` }}>
           {markers.length > 0 && (
-            <ul className="timeline-markers" style={{ height: `${rowEnds.length * 2.5}rem` }} aria-label="События на шкале">
+            <ul className="timeline-markers" style={{ height: `${rowEnds.length * 2.5}rem` }} aria-label={t("События на шкале")}>
               {markers.map(({ id, year, title, position, width, row, end, color }) => (
                 <li key={id} className={end ? "timeline-period" : undefined} style={{ width: end ? `${width}%` : undefined, left: `${position}%`, bottom: `${row * 2.5 + 0.4}rem` }}>
                   <a href={`#events?event=${encodeURIComponent(id)}`} data-highlighted={year === highlightedYear}
                     style={color ? { backgroundColor: color, color: markerTextColor(color) } : undefined}
-                    aria-label={`${title}, системный год ${year}`} title={`${title} · ${year}`}>
+                    aria-label={`${title}${t(", системный год ")}${year}`} title={`${title} · ${year}`}>
                     {title}
                   </a>
                 </li>
@@ -172,7 +170,7 @@ export function TimelineScale({ timeline, calendar }: { timeline: Timeline; cale
             </div>
           )}
           {organizationPeriods.length > 0 && (
-            <ul className="timeline-organizations" aria-label="Периоды существования организаций">
+            <ul className="timeline-organizations" aria-label={t("Периоды существования организаций")}>
               {organizationPeriods.map(({ id, name, startYear, endYear, color = defaultOrganizationColor }) => {
                 const left = positionOf(BigInt(startYear))
                 const right = positionOf(BigInt(endYear ?? timeline.endYear) + 1n)

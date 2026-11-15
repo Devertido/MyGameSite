@@ -1,3 +1,4 @@
+import { t } from '../i18n.ts'
 import { useId, useState } from 'react'
 import type { TimelineCharacter } from '../domain/timeline'
 
@@ -28,7 +29,7 @@ export function RelativePicker({ name, label, candidates, initialIds }: {
           {candidates.filter(({ id }) => selectedIds.includes(id)).map((candidate) => (
             <li key={candidate.id}>
               {fullName(candidate)}{' '}
-              <button className="form-icon-button form-icon-remove" type="button" aria-label={'Убрать из списка «' + label + '» — ' + fullName(candidate)}
+              <button className="form-icon-button form-icon-remove" type="button" aria-label={t('Убрать из списка «') + label + '» — ' + fullName(candidate)}
                 onClick={() => setSelectedIds((ids) => ids.filter((id) => id !== candidate.id))}>×</button>
             </li>
           ))}
@@ -38,8 +39,8 @@ export function RelativePicker({ name, label, candidates, initialIds }: {
         if (event.currentTarget.open) event.currentTarget.querySelector<HTMLInputElement>('input[type="search"]')?.focus()
         else setQuery('')
       }}>
-        <summary>Выбрать персонажей</summary>
-        <label htmlFor={searchId}>Поиск по имени или фамилии</label>
+        <summary>{t("Выбрать персонажей")}</summary>
+        <label htmlFor={searchId}>{t("Поиск по имени или фамилии")}</label>
         <input id={searchId} type="search" value={query} onChange={(event) => setQuery(event.currentTarget.value)}
           onKeyDown={(event) => { if (event.key === 'Enter') event.preventDefault() }} />
         {matches.length > 0 ? (
@@ -54,7 +55,7 @@ export function RelativePicker({ name, label, candidates, initialIds }: {
               </li>
             ))}
           </ul>
-        ) : <p>{normalizedQuery ? 'Совпадений нет.' : 'Нет доступных персонажей.'}</p>}
+        ) : <p>{normalizedQuery ? t('Совпадений нет.') : t('Нет доступных персонажей.')}</p>}
       </details>
     </fieldset>
   )

@@ -1,3 +1,4 @@
+import { t } from '../i18n.ts'
 import { ObsidianImport } from './ObsidianImport'
 import { LoreLinks } from './LoreLinks'
 import { EntryFields, EntryGallery, EntryStatusLabel, readEntryMetadata, useStatusMatch } from './EntryMedia'
@@ -20,10 +21,10 @@ export function ArchivePage({ kind, entries, entryId, timeline, save, embedded =
 }) {
   const chronicle = kind === 'chronicles'
   const location = kind === 'locations'
-  const route = kind === 'items' ? 'lore?section=items' : kind
-  const entryRoute = route + (kind === 'items' ? '&entry=' : '?entry=')
+  const route = chronicle ? kind : 'lore?section=' + kind
+  const entryRoute = route + (chronicle ? '?entry=' : '&entry=')
   const Wrapper = embedded ? 'section' : 'main'
-  const title = location ? 'Локации' : chronicle ? 'Летописи' : 'Предметы'
+  const title = location ? t('Локации') : chronicle ? t('Летописи') : t('Предметы')
   const matchesStatus = useStatusMatch()
   const [importing, setImporting] = useState(false)
   const [draft, setDraft] = useState<ArchiveEntry | 'new' | null>(null)
@@ -40,7 +41,7 @@ export function ArchivePage({ kind, entries, entryId, timeline, save, embedded =
     const read = (name: string) => String(fields.get(name) ?? '').trim()
     const title = read('title')
     if (!title) {
-      setError('Введите название.')
+      setError(t('Введите название.'))
       return
     }
 
@@ -61,7 +62,7 @@ export function ArchivePage({ kind, entries, entryId, timeline, save, embedded =
       setError('')
       window.location.hash = entryRoute + encodeURIComponent(entry.id)
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Не удалось сохранить запись.')
+      setError(error instanceof Error ? error.message : t('Не удалось сохранить запись.'))
     }
   }
 
@@ -69,7 +70,7 @@ export function ArchivePage({ kind, entries, entryId, timeline, save, embedded =
     <Wrapper className={embedded ? undefined : "section-page"}>
       {embedded ? <h2>{title}</h2> : <h1>{title}</h1>}
       {entryId !== undefined && <p><a href={'#' + route}>{!location && <span aria-hidden="true">← </span>}
-        {location ? 'Все локации' : chronicle ? 'Назад к летописям' : 'Назад к предметам'}
+        {location ? t('Все локации') : chronicle ? t('Назад к летописям') : t('Назад к предметам')}
       </a></p>}
       {importing && <ObsidianImport onClose={() => setImporting(false)}
         onImport={(imported) => {
@@ -79,65 +80,65 @@ export function ArchivePage({ kind, entries, entryId, timeline, save, embedded =
       {draft !== null && (
         <CreationDialog onCancel={() => { setDraft(null); setError('') }}>
           <form className={chronicle ? 'archive-form parchment' : 'archive-form'} onSubmit={submit} onInput={() => setError('')}>
-            <h2 id="creation-dialog-title">{original ? 'Редактировать' : location ? 'Новая локация' : chronicle ? 'Новая летопись' : 'Новый предмет'}</h2>
-            <label>Название<input name="title" defaultValue={original?.title} required /></label>
+            <h2 id="creation-dialog-title">{original ? t('Редактировать') : location ? t('Новая локация') : chronicle ? t('Новая летопись') : t('Новый предмет')}</h2>
+            <label>{t("Название")}<input name="title" defaultValue={original?.title} required /></label>
             {!chronicle && (
               <>
-                <ImageField name="image" label={location ? "Изображение локации" : "Изображение предмета"} initial={original?.image} />
-                <label>Тип<input name="type" defaultValue={original?.type} placeholder={location ? "Город, крепость, регион" : "Оружие, броня, артефакт"} /></label>
-                {!location && <label>Редкость<select name="rarity" defaultValue={original?.rarity ?? rarities[0]}>
-                  {rarities.map((rarity) => <option key={rarity}>{rarity}</option>)}
+                <ImageField name="image" label={location ? t("Изображение локации") : t("Изображение предмета")} initial={original?.image} />
+                <label>{t("Тип")}<input name="type" defaultValue={original?.type} placeholder={location ? t("Город, крепость, регион") : t("Оружие, броня, артефакт")} /></label>
+                {!location && <label>{t("Редкость")}<select name="rarity" defaultValue={original?.rarity ?? rarities[0]}>
+                  {rarities.map((rarity) => <option key={rarity} value={rarity}>{t(rarity)}</option>)}
                 </select></label>}
               </>
             )}
-            <label>{chronicle ? 'Краткая справка' : 'Краткое описание'}<textarea name="summary" rows={3} defaultValue={original?.summary} /></label>
-            <label>{location ? 'История локации' : chronicle ? 'Текст летописи' : 'Свойства и история'}<textarea name="body" rows={8} defaultValue={original?.body} /></label>
+            <label>{chronicle ? t('Краткая справка') : t('Краткое описание')}<textarea name="summary" rows={3} defaultValue={original?.summary} /></label>
+            <label>{location ? t('История локации') : chronicle ? t('Текст летописи') : t('Свойства и история')}<textarea name="body" rows={8} defaultValue={original?.body} /></label>
             {chronicle ? (
               <>
                 <fieldset>
-                  <legend>Связанные события</legend>
+                  <legend>{t("Связанные события")}</legend>
                   {(timeline.events ?? []).map(({ id, title, year }) => (
                     <label key={id}><span><input type="checkbox" name="events" value={id}
                       defaultChecked={original?.eventIds?.includes(id)} /> {year} · {title}</span></label>
                   ))}
-                  {!timeline.events?.length && <p>В таймлайне пока нет событий.</p>}
+                  {!timeline.events?.length && <p>{t("В таймлайне пока нет событий.")}</p>}
                 </fieldset>
                 <fieldset>
-                  <legend>Связанные персонажи</legend>
+                  <legend>{t("Связанные персонажи")}</legend>
                   {(timeline.characters ?? []).map(({ id, name }) => (
                     <label key={id}><span><input type="checkbox" name="characters" value={id}
                       defaultChecked={original?.characterIds?.includes(id)} /> {name}</span></label>
                   ))}
-                  {!timeline.characters?.length && <p>В таймлайне пока нет персонажей.</p>}
+                  {!timeline.characters?.length && <p>{t("В таймлайне пока нет персонажей.")}</p>}
                 </fieldset>
               </>
             ) : !location && (
-              <label>Владелец<select name="ownerId" defaultValue={original?.ownerId ?? ''}>
-                <option value="">Не указан</option>
+              <label>{t("Владелец")}<select name="ownerId" defaultValue={original?.ownerId ?? ''}>
+                <option value="">{t("Не указан")}</option>
                 {(timeline.characters ?? []).map(({ id, name }) => <option key={id} value={id}>{name}</option>)}
               </select></label>
             )}
             <EntryFields entry={original} />
             {error && <p role="alert">{error}</p>}
-            <div><button type="submit">Сохранить</button>{' '}
-              <button type="button" onClick={() => { setDraft(null); setError('') }}>Отмена</button></div>
+            <div><button type="submit">{t("Сохранить")}</button>{' '}
+              <button type="button" onClick={() => { setDraft(null); setError('') }}>{t("Отмена")}</button></div>
           </form>
         </CreationDialog>
       )}
       <div className="directory-layout archive-directory">
-        <section aria-label="Карточка записи">
+        <section aria-label={t("Карточка записи")}>
           {selected && (
             <article className={chronicle ? 'archive-card parchment' : 'archive-card item-card item-tooltip'} style={chronicle ? undefined : itemAccent(selected)}>
               {!chronicle && <ItemImage entry={selected} />}
               <h2>{selected.title}</h2>
-              {!chronicle && <p className="item-rarity">{[selected.type, selected.rarity].filter(Boolean).join(' · ')}</p>}
+              {!chronicle && <p className="item-rarity">{[selected.type, selected.rarity && t(selected.rarity)].filter(Boolean).join(' · ')}</p>}
               {selected.summary && <p className="archive-copy">{selected.summary}</p>}
               {location && <LoreLinks timeline={timeline} kind="locations" id={selected.id} />}
               <EntryStatusLabel entry={selected} />
               <EntryGallery key={selected.id} entry={selected} />
               {!!selected.chronicleIds?.length && (
                 <section>
-                  <h3>Связанные летописи</h3>
+                  <h3>{t("Связанные летописи")}</h3>
                   <ul>{entries.filter(({ id }) => selected.chronicleIds?.includes(id)).map(({ id, title }) => (
                     <li key={id}><a href={'#chronicles?entry=' + encodeURIComponent(id)}>{title}</a></li>
                   ))}</ul>
@@ -145,13 +146,13 @@ export function ArchivePage({ kind, entries, entryId, timeline, save, embedded =
               )}
               {selected.body && (
                 <section className="archive-body">
-                  <h3>{location ? 'История локации' : chronicle ? 'Хроника' : 'Свойства и история'}</h3>
+                  <h3>{location ? t('История локации') : chronicle ? t('Хроника') : t('Свойства и история')}</h3>
                   <p className="archive-copy">{selected.body}</p>
                 </section>
               )}
               {selected.eventIds?.length ? (
                 <section>
-                  <h3>Связанные события</h3>
+                  <h3>{t("Связанные события")}</h3>
                   <ul>{timeline.events?.filter(({ id }) => selected.eventIds?.includes(id)).map(({ id, title, year }) => (
                     <li key={id}><a href={'#events?event=' + encodeURIComponent(id)}>{year} · {title}</a></li>
                   ))}</ul>
@@ -159,36 +160,36 @@ export function ArchivePage({ kind, entries, entryId, timeline, save, embedded =
               ) : null}
               {selected.characterIds?.length || selected.ownerId ? (
                 <section>
-                  <h3>{chronicle ? 'Связанные персонажи' : 'Владелец'}</h3>
+                  <h3>{chronicle ? t('Связанные персонажи') : t('Владелец')}</h3>
                   <ul>{timeline.characters?.filter(({ id }) => chronicle
                     ? selected.characterIds?.includes(id) : selected.ownerId === id).map(({ id, name }) => (
                     <li key={id}><a href={'#characters?character=' + encodeURIComponent(id)}>{name}</a></li>
                   ))}</ul>
                 </section>
               ) : null}
-              <button type="button" onClick={() => setDraft(selected)} aria-label="Редактировать" title="Редактировать"><EditIcon /></button>{' '}
-              <button type="button" aria-label="Удалить запись" title="Удалить запись"
+              <button type="button" onClick={() => setDraft(selected)} aria-label={t("Редактировать")} title={t("Редактировать")}><EditIcon /></button>{' '}
+              <button type="button" aria-label={t("Удалить запись")} title={t("Удалить запись")}
                 onClick={() => { setError(''); setDeleting(selected) }}><TrashIcon /></button>
             </article>
           )}
-          {entryId !== undefined && !selected && <p>Запись не найдена в выбранном таймлайне.</p>}
-          {entries.length === 0 && <p>{location ? 'Здесь пока нет локаций.' : chronicle ? 'Здесь пока нет летописей.' : 'Здесь пока нет предметов.'}</p>}
+          {entryId !== undefined && !selected && <p>{t("Запись не найдена в выбранном таймлайне.")}</p>}
+          {entries.length === 0 && <p>{location ? t('Здесь пока нет локаций.') : chronicle ? t('Здесь пока нет летописей.') : t('Здесь пока нет предметов.')}</p>}
         </section>
         <section className="directory-table" aria-label={title}>
           <div className="directory-actions">
-            <button type="button" onClick={() => setDraft('new')}>{location ? 'Добавить локацию' : chronicle ? 'Создать летопись' : 'Добавить предмет'}</button>
-            {chronicle && <button type="button" onClick={() => setImporting(true)}>Импорт из Obsidian</button>}
+            <button type="button" onClick={() => setDraft('new')}>{location ? t('Добавить локацию') : chronicle ? t('Создать летопись') : t('Добавить предмет')}</button>
+            {chronicle && <button type="button" onClick={() => setImporting(true)}>{t("Импорт из Obsidian")}</button>}
           </div>
-          {entries.length > 0 && <label>Поиск <input type="search" value={query} onChange={(event) => setQuery(event.currentTarget.value)} /></label>}
+          {entries.length > 0 && <label>{t("Поиск ")}<input type="search" value={query} onChange={(event) => setQuery(event.currentTarget.value)} /></label>}
           {matches.length ? (
             <div className="directory-table-scroll">
               <table>
                 <thead>
                   <tr>
-                    <th scope="col">Название</th>
-                    {!chronicle && <th scope="col">Тип</th>}
-                    {kind === 'items' && <th scope="col">Редкость</th>}
-                    <th scope="col">Краткое описание</th>
+                    <th scope="col">{t("Название")}</th>
+                    {!chronicle && <th scope="col">{t("Тип")}</th>}
+                    {kind === 'items' && <th scope="col">{t("Редкость")}</th>}
+                    <th scope="col">{t("Краткое описание")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -198,31 +199,31 @@ export function ArchivePage({ kind, entries, entryId, timeline, save, embedded =
                         aria-current={entry.id === selected?.id ? 'true' : undefined}
                         onClick={() => { setDeleting(null); setError('') }}>{entry.title}</a></td>
                       {!chronicle && <td>{entry.type || '—'}</td>}
-                      {kind === 'items' && <td>{entry.rarity || '—'}</td>}
+                      {kind === 'items' && <td>{entry.rarity ? t(entry.rarity) : '—'}</td>}
                       <td>{entry.summary || '—'}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          ) : entries.length > 0 && <p>По этому запросу ничего не найдено.</p>}
+          ) : entries.length > 0 && <p>{t("По этому запросу ничего не найдено.")}</p>}
         </section>
       </div>
       {deleting && (
         <dialog open className="card-delete-dialog" aria-labelledby="card-delete-title">
-          <h2 id="card-delete-title">Удалить запись «{deleting.title}»?</h2>
-          <p>Запись будет удалена из текущего таймлайна.</p>
+          <h2 id="card-delete-title">{t("Удалить запись «")}{deleting.title}»?</h2>
+          <p>{t("Запись будет удалена из текущего таймлайна.")}</p>
           {error && <p role="alert">{error}</p>}
-          <button type="button" autoFocus onClick={() => { setDeleting(null); setError('') }}>Отмена</button>{' '}
+          <button type="button" autoFocus onClick={() => { setDeleting(null); setError('') }}>{t("Отмена")}</button>{' '}
           <button type="button" onClick={() => {
             try {
               save(entries.filter(({ id }) => id !== deleting.id))
               setDeleting(null)
               window.location.hash = kind
             } catch (error) {
-              setError(error instanceof Error ? error.message : 'Не удалось удалить запись.')
+              setError(error instanceof Error ? error.message : t('Не удалось удалить запись.'))
             }
-          }}>Удалить</button>
+          }}>{t("Удалить")}</button>
         </dialog>
       )}
     </Wrapper>

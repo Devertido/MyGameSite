@@ -1,3 +1,4 @@
+import { t } from '../i18n.ts'
 import { useEffect, useRef } from 'react'
 import mapUrl from '../assets/world-map-glacier.png'
 
@@ -83,7 +84,7 @@ export function WorldMap() {
 
   return (
     <div ref={viewportRef} className="world-map-viewport" tabIndex={0} role="region" aria-labelledby="world-map-title">
-      <img ref={imageRef} src={mapUrl} alt="Карта мира Атласа Арены" width={1448} height={1086} draggable={false} />
+      <img ref={imageRef} src={mapUrl} alt={t("Карта мира Атласа Арены")} width={1448} height={1086} draggable={false} />
     </div>
   )
 }
