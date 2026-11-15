@@ -1,3 +1,4 @@
+import { validAbilityScores } from '../domain/abilities.ts'
 import { validFamily, validLore } from '../domain/lore.ts'
 import { validateMonths, validateWeek } from '../domain/calendar.ts'
 import { validateCalendarEra } from '../domain/calendarYear.ts'
@@ -63,8 +64,9 @@ function parseTimeline(value: unknown): Timeline | null {
           ('biography' in character && typeof character.biography !== 'string')) return null
       if (!validMetadata(character)) return null
       const { status, gallery } = character as TimelineCharacter
-      const { surname, race, sex, birth, death, portrait, parentIds, dynasty, characterClass } = character
+      const { surname, race, sex, birth, death, portrait, parentIds, dynasty, characterClass, abilities } = character
       if ((parentIds !== undefined && !isIdList(parentIds)) ||
+          (abilities !== undefined && !validAbilityScores(abilities)) ||
           (characterClass !== undefined && typeof characterClass !== 'string') ||
           (dynasty !== undefined && typeof dynasty !== 'string') ||
           (surname !== undefined && typeof surname !== 'string') ||
@@ -79,6 +81,7 @@ function parseTimeline(value: unknown): Timeline | null {
         ...(status !== undefined ? { status } : {}),
         ...(gallery !== undefined ? { gallery } : {}),
         ...(parentIds !== undefined ? { parentIds } : {}),
+        ...(abilities !== undefined ? { abilities } : {}),
         ...(characterClass !== undefined ? { characterClass } : {}),
         ...(dynasty !== undefined ? { dynasty } : {}),
         ...(surname !== undefined ? { surname } : {}),

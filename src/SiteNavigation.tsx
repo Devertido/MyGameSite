@@ -9,14 +9,13 @@ const pages = [
   { id: 'events', title: 'События' },
   { id: 'organizations', title: 'Фракции и организации' },
   { id: 'chronicles', title: 'Летописи' },
-  { id: 'items', title: 'Предметы' },
   { id: 'locations', title: 'Локации' },
   { id: 'lore', title: 'Справочник' },
 ] as const
 
 function currentPage() {
   const [path, query] = window.location.hash.slice(1).split('?')
-  const page = pages.find(({ id }) => path === id) ?? pages[0]
+  const page = pages.find(({ id }) => (path === 'items' ? 'lore' : path) === id) ?? pages[0]
   const params = new URLSearchParams(query)
   const rawYear = params.get('year')
   const year = rawYear && /^-?\d+$/.test(rawYear) ? Number(rawYear) : undefined
@@ -24,7 +23,7 @@ function currentPage() {
   return {
     ...page,
     familyOpen: params.get('family') === '1',
-    loreSection: params.get('section') ?? undefined,
+    loreSection: path === 'items' ? 'items' : params.get('section') ?? undefined,
     entryId: params.get('entry') ?? undefined,
     organizationId: page.id === 'organizations' ? params.get('organization') ?? undefined : undefined,
     characterId: page.id === 'characters' ? params.get('character') ?? undefined : undefined,
@@ -184,7 +183,6 @@ const englishTitles = {
   events: 'Events',
   organizations: 'Factions and organizations',
   chronicles: 'Chronicles',
-  items: 'Items',
   locations: 'Locations',
   lore: 'World reference',
 }

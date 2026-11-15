@@ -1388,3 +1388,30 @@ button.event-action:hover:enabled {
 .creation-dialog textarea {
   max-inline-size: 100%;
 }
+
+.ability-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  gap: .5rem;
+}
+
+.ability-grid > label,
+.ability-grid > div {
+  display: grid;
+  gap: .25rem;
+  padding: .5rem;
+}
+
+.ability-grid > div {
+  border: 1px solid currentColor;
+  border-radius: .375rem;
+}
+
+.ability-grid input {
+  width: 5rem;
+}
+
+.ability-grid dd {
+  margin: 0;
+  font-weight: 700;
+}

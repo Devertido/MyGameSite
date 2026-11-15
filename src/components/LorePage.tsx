@@ -1,4 +1,7 @@
-import { useState, type CSSProperties, type FormEvent } from 'react'
+import { AbilityDetails, AbilityFields } from './AbilityScores'
+import { readAbilityScores } from '../domain/abilities'
+import { ImageField } from './ImageField'
+import { useState, type CSSProperties, type FormEvent, type ReactNode } from 'react'
 import { MagicDetails, RaceFields, SpellFields } from './LoreDetails'
 import { CreationDialog } from './CreationDialog'
 import { emptyLore, glossaryDescription, isGlossarySection, surnameOrigins, spellComponents, loreTargets, validLore, type LinkKind, type WorldLore } from '../domain/lore'
@@ -7,7 +10,7 @@ import type { Timeline } from '../domain/timeline'
 const sections = [
   ['surnames', 'Фамилии'], ['races', 'Расы'], ['dynasties', 'Династии'],
   ['classes', 'Классы'], ['spells', 'Заклинания'],
-  ['cultures', 'Народы и культуры'], ['faiths', 'Религии и верования'], ['reigns', 'Титулы и наследование'],
+  ['cultures', 'Народы и культуры'], ['faiths', 'Религии и верования'], ['bestiary', 'Бестиарий'], ['items', 'Предметы'],
 ] as const
 
 const fieldsByKind = {
@@ -25,19 +28,19 @@ function entryName(entry: string | { name: string } | { title: string }) {
   return typeof entry === 'string' ? entry : 'title' in entry ? entry.title : entry.name
 }
 
-export function LorePage({ timeline, save, initialSection }: { timeline: Timeline; save: (lore: WorldLore) => void; initialSection?: string }) {
-  const lore = { ...emptyLore, ...timeline.lore, classes: timeline.lore?.classes ?? [], spells: timeline.lore?.spells ?? [] }
-  const [section, setSection] = useState<typeof sections[number][0]>(() => sections.find(([key]) => key === initialSection)?.[0] ?? 'surnames')
+export function LorePage({ timeline, save, initialSection, items }: { timeline: Timeline; save: (lore: WorldLore) => void; initialSection?: string; items: ReactNode }) {
+  const lore = { ...emptyLore, ...timeline.lore, bestiary: timeline.lore?.bestiary ?? [], classes: timeline.lore?.classes ?? [], spells: timeline.lore?.spells ?? [] }
+  const section = sections.find(([key]) => key === initialSection)?.[0] ?? 'surnames'
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [editing, setEditing] = useState<string | null>(null)
   const [error, setError] = useState('')
-  const entries = lore[section]
+  const entries = section === 'items' ? [] : lore[section]
   const selected = entries.find((entry) => entryId(entry) === selectedId) ?? entries[0]
   const label = sections.find(([key]) => key === section)?.[1]
   const traditionKind = section === 'cultures' || section === 'faiths' ? section : null
   const tradition = traditionKind ? lore[traditionKind].find(({ id }) => id === editing) : undefined
   const surname = section === 'surnames' ? lore.surnameDetails?.find(({ name }) => name === editing) : undefined
-  const reign = section === 'reigns' ? lore.reigns.find(({ id }) => id === editing) : undefined
+  const beast = section === 'bestiary' ? lore.bestiary.find(({ id }) => id === editing) : undefined
 
   function persist(next: WorldLore) {
     try {
@@ -67,10 +70,12 @@ export function LorePage({ timeline, save, initialSection }: { timeline: Timelin
       }
       persist({ ...lore, [traditionKind]: tradition
         ? lore[traditionKind].map((item) => item.id === id ? entry : item) : [...lore[traditionKind], entry] })
-    } else if (section === 'reigns') {
-      const entry = { id, title: name, characterId: read('character'), organizationId: read('organization'),
-        start: Number(read('start')), end: read('end') ? Number(read('end')) : null, accession: read('accession') }
-      persist({ ...lore, reigns: reign ? lore.reigns.map((item) => item.id === id ? entry : item) : [...lore.reigns, entry] })
+    } else if (section === 'bestiary') {
+      const entry = { id, name, type: read('beast-type'), description: read('description'),
+        image: read('beast-image'), abilities: readAbilityScores(data) }
+      persist({ ...lore, bestiary: beast
+        ? lore.bestiary.map((item) => item.id === id ? entry : item) : [...lore.bestiary, entry] })
+      setSelectedId(id)
     } else if (isGlossarySection(section)) {
       if (lore[section].some((item) => item !== editing && item.toLocaleLowerCase('ru') === name.toLocaleLowerCase('ru'))) {
         setError('Такое значение уже есть в справочнике.')
@@ -135,12 +140,11 @@ export function LorePage({ timeline, save, initialSection }: { timeline: Timelin
       <nav className="directory-actions" aria-label="Разделы справочника">
         {sections.map(([key, title]) => (
           <button type="button" className="lore-toggle" key={key} aria-pressed={section === key} onClick={() => {
-            setSection(key)
-            setSelectedId(null)
-            setError('')
+            window.location.hash = 'lore?section=' + key
           }}>{title}</button>
         ))}
       </nav>
+      {section === 'items' ? items : <>
       {error && editing === null && <p role="alert">{error}</p>}
       <div className="directory-layout">
         <div>
@@ -163,8 +167,13 @@ export function LorePage({ timeline, save, initialSection }: { timeline: Timelin
             {location && <p><strong>Локация</strong> · <a href={'#locations?entry=' + encodeURIComponent(location.id)}>{location.title}</a></p>}
             {details?.dynasty && <p><strong>Династия</strong> · {details.dynasty}</p>}
             {details?.usage && <p className="archive-copy"><strong>Значение и правила ношения</strong><br />{details.usage}</p>}
-            {typeof entry !== 'string' && 'title' in entry && (
-              <p>{linkedName('characters', entry.characterId)} · {linkedName('organizations', entry.organizationId)} · {entry.start} — {entry.end ?? '…'}{entry.accession && ' · ' + entry.accession}</p>
+            {typeof entry !== 'string' && 'abilities' in entry && (
+              <>
+                {entry.image && <img className="atlas-entry-image" src={entry.image} alt={entry.name} />}
+                {entry.type && <p>{entry.type}</p>}
+                {entry.description && <p className="archive-copy">{entry.description}</p>}
+                <AbilityDetails scores={entry.abilities} />
+              </>
             )}
             {typeof entry !== 'string' && 'fields' in entry && traditionKind && (
               <>
@@ -202,7 +211,7 @@ export function LorePage({ timeline, save, initialSection }: { timeline: Timelin
         <CreationDialog onCancel={() => { setEditing(null); setError('') }}>
           <h2 id="creation-dialog-title">{label}</h2>
           <form onSubmit={submit}>
-            <p><label>Название <input name="name" required defaultValue={tradition?.name ?? reign?.title ?? editing} /></label></p>
+            <p><label>Название <input name="name" required defaultValue={tradition?.name ?? beast?.name ?? editing} /></label></p>
             {isGlossarySection(section) && (
               <p><label>Описание<br /><textarea name="description" rows={4}
                 defaultValue={glossaryDescription(lore, section, editing)} /></label></p>
@@ -236,19 +245,12 @@ export function LorePage({ timeline, save, initialSection }: { timeline: Timelin
                 ))}
               </>
             )}
-            {section === 'reigns' && (
+            {section === 'bestiary' && (
               <>
-                <p><label>Правитель <select name="character" required defaultValue={reign?.characterId ?? ''}>
-                  <option value="">Выберите персонажа</option>
-                  {loreTargets(timeline, 'characters').map(({ id, name }) => <option key={id} value={id}>{name}</option>)}
-                </select></label></p>
-                <p><label>Государство <select name="organization" required defaultValue={reign?.organizationId ?? ''}>
-                  <option value="">Выберите организацию</option>
-                  {loreTargets(timeline, 'organizations').map(({ id, name }) => <option key={id} value={id}>{name}</option>)}
-                </select></label></p>
-                <p><label>Год вступления <input name="start" type="number" required min={timeline.startYear} max={timeline.endYear} defaultValue={reign?.start} /></label></p>
-                <p><label>Год окончания <input name="end" type="number" min={timeline.startYear} max={timeline.endYear} defaultValue={reign?.end ?? ''} /></label></p>
-                <p><label>Как получил титул <input name="accession" defaultValue={reign?.accession} /></label></p>
+                <ImageField name="beast-image" label="Изображение существа" initial={beast?.image} />
+                <p><label>Вид существа <input name="beast-type" defaultValue={beast?.type} /></label></p>
+                <p><label>Описание<br /><textarea name="description" rows={4} defaultValue={beast?.description} /></label></p>
+                <AbilityFields scores={beast?.abilities} />
               </>
             )}
             {error && <p role="alert">{error}</p>}
@@ -257,6 +259,7 @@ export function LorePage({ timeline, save, initialSection }: { timeline: Timelin
           </form>
         </CreationDialog>
       )}
+      </>}
     </main>
   )
 }

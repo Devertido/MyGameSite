@@ -1,3 +1,5 @@
+import { AbilityDetails, AbilityFields } from './AbilityScores'
+import { readAbilityScores } from '../domain/abilities'
 import { RelativePicker } from './RelativePicker'
 import { FamilyTree } from './FamilyTree'
 import { LoreLinks } from './LoreLinks'
@@ -94,6 +96,7 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
     const entry: TimelineCharacter = {
       ...readEntryMetadata(fields),
       parentIds,
+      abilities: readAbilityScores(fields),
       ...(characterClass ? { characterClass } : {}),
       ...(dynasty ? { dynasty } : {}),
       id: original?.id ?? crypto.randomUUID(), name, description, biography, color: String(fields.get('color')),
@@ -169,6 +172,7 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
             <CharacterDateFields prefix="death" label="Дата смерти" months={months} initial={original?.death} />
             <ImageField name="portrait" allowGif label="Вертикальный портрет" initial={original?.portrait} />
             <EntryFields entry={original} />
+            <AbilityFields scores={original?.abilities} />
             <p><label>Описание<br /><textarea name="description" rows={4} defaultValue={original?.description} /></label></p>
             <p><label>Биография<br /><textarea name="biography" rows={8} defaultValue={original?.biography} /></label></p>
             <p><label>Цвет персонажа <input name="color" type="color" defaultValue={original?.color ?? '#174b43'} /></label></p>
@@ -226,6 +230,7 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
                     {character.description && <p>{character.description}</p>}
                   </div>
                 </div>
+                <AbilityDetails scores={character.abilities} />
                 {character.birth && (
                   <p>Дата рождения · {calendarDay(months, character.birth.dayOfYear)} · {character.birth.year} г. системы</p>
                 )}
@@ -248,7 +253,7 @@ export function CharactersPage({ timeline, save, characterId, familyOpen }: {
                         .filter(({ memberIds }) => memberIds.includes(character.id)).map(({ id, name }) => ({ id, title: name })) },
                       { heading: 'Летописи', route: 'chronicles?entry=', links: (timeline.chronicles ?? [])
                         .filter(({ characterIds }) => characterIds?.includes(character.id)) },
-                      { heading: 'Предметы', route: 'items?entry=', links: (timeline.items ?? [])
+                      { heading: 'Предметы', route: 'lore?section=items&entry=', links: (timeline.items ?? [])
                         .filter(({ ownerId }) => ownerId === character.id) },
                     ].filter(({ links }) => links.length > 0).map(({ heading, route, links }) => (
                       <section key={route}>

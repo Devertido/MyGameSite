@@ -1,3 +1,4 @@
+import type { AbilityScores } from './abilities.ts'
 import type { WorldLore } from './lore.ts'
 import type { CalendarMonth } from './calendar'
 import type { CalendarEra } from './calendarYear'
@@ -121,6 +122,7 @@ export function isCharacterLifeOrderValid(birth?: CharacterDate, death?: Charact
 }
 
 export type TimelineCharacter = EntryMetadata & {
+  abilities?: AbilityScores
   parentIds?: string[]
   dynasty?: string
   characterClass?: string

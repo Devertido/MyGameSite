@@ -1,3 +1,4 @@
+import { validAbilityScores, type AbilityScores } from './abilities.ts'
 import type { Timeline } from './timeline.ts'
 
 export type Tradition = {
@@ -39,7 +40,17 @@ export type SurnameDetails = {
   usage: string
 }
 
+export type Beast = {
+  id: string
+  name: string
+  type: string
+  description: string
+  image: string
+  abilities: AbilityScores
+}
+
 export type WorldLore = {
+  bestiary?: Beast[]
   surnameDetails?: SurnameDetails[]
   spellDetails?: SpellDetails[]
   raceDetails?: RaceDetails[]
@@ -135,6 +146,13 @@ export function validLore(value: unknown, timeline: Timeline): value is WorldLor
       record(item) && typeof item.id === 'string' && item.id.trim() && valid(item),
     ) && new Set(items.map((item) => item.id)).size === items.length
   }
+  if (value.bestiary !== undefined && !records(value.bestiary, (item) =>
+    typeof item.name === 'string' && item.name.trim() &&
+    typeof item.type === 'string' && typeof item.description === 'string' &&
+    typeof item.image === 'string' && (item.image === '' || (item.image.length <= 900_000 &&
+      /^data:image\/(webp|png);base64,[A-Za-z0-9+/]+={0,2}$/.test(item.image))) &&
+    validAbilityScores(item.abilities),
+  )) return false
   return [value.cultures, value.faiths].every((items) => records(items, (item) =>
     typeof item.name === 'string' && item.name.trim() && strings(item.fields) && item.fields.length === 4 &&
     Array.isArray(item.links) && item.links.every((link) => record(link) &&

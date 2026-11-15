@@ -10,15 +10,19 @@ import type { ArchiveEntry, Timeline } from '../domain/timeline'
 
 const rarities = ['Обычный', 'Необычный', 'Редкий', 'Эпический', 'Легендарный']
 
-export function ArchivePage({ kind, entries, entryId, timeline, save }: {
+export function ArchivePage({ kind, entries, entryId, timeline, save, embedded = false }: {
   kind: 'chronicles' | 'items' | 'locations'
   entries: ArchiveEntry[]
   timeline: Timeline
   entryId?: string
   save: (entries: ArchiveEntry[]) => void
+  embedded?: boolean
 }) {
   const chronicle = kind === 'chronicles'
   const location = kind === 'locations'
+  const route = kind === 'items' ? 'lore?section=items' : kind
+  const entryRoute = route + (kind === 'items' ? '&entry=' : '?entry=')
+  const Wrapper = embedded ? 'section' : 'main'
   const title = location ? 'Локации' : chronicle ? 'Летописи' : 'Предметы'
   const matchesStatus = useStatusMatch()
   const [importing, setImporting] = useState(false)
@@ -55,16 +59,16 @@ export function ArchivePage({ kind, entries, entryId, timeline, save }: {
       save(original ? entries.map((item) => item.id === original.id ? entry : item) : [...entries, entry])
       setDraft(null)
       setError('')
-      window.location.hash = kind + '?entry=' + encodeURIComponent(entry.id)
+      window.location.hash = entryRoute + encodeURIComponent(entry.id)
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Не удалось сохранить запись.')
     }
   }
 
   return (
-    <main className="section-page">
-      <h1>{title}</h1>
-      {entryId !== undefined && <p><a href={'#' + kind}>{!location && <span aria-hidden="true">← </span>}
+    <Wrapper className={embedded ? undefined : "section-page"}>
+      {embedded ? <h2>{title}</h2> : <h1>{title}</h1>}
+      {entryId !== undefined && <p><a href={'#' + route}>{!location && <span aria-hidden="true">← </span>}
         {location ? 'Все локации' : chronicle ? 'Назад к летописям' : 'Назад к предметам'}
       </a></p>}
       {importing && <ObsidianImport onClose={() => setImporting(false)}
@@ -190,7 +194,7 @@ export function ArchivePage({ kind, entries, entryId, timeline, save }: {
                 <tbody>
                   {matches.map((entry) => (
                     <tr key={entry.id} data-selected={entry.id === selected?.id}>
-                      <td><a href={'#' + kind + '?entry=' + encodeURIComponent(entry.id)}
+                      <td><a href={'#' + entryRoute + encodeURIComponent(entry.id)}
                         aria-current={entry.id === selected?.id ? 'true' : undefined}
                         onClick={() => { setDeleting(null); setError('') }}>{entry.title}</a></td>
                       {!chronicle && <td>{entry.type || '—'}</td>}
@@ -221,7 +225,7 @@ export function ArchivePage({ kind, entries, entryId, timeline, save }: {
           }}>Удалить</button>
         </dialog>
       )}
-    </main>
+    </Wrapper>
   )
 }
 

@@ -16,7 +16,7 @@ import { validateCalendarEra } from './domain/calendarYear'
 import { calendarDay, validateEvent, validateTimelineBounds, type Timeline, type TimelineCalendar, type TimelineEvent, type TimelineCharacter } from './domain/timeline'
 import { deleteTimeline, exportAtlas, exportTimeline, previewBackup, saveTimelineCopies, loadTimelines, rememberSelection, restoreSelection, saveTimeline, timelineSnapshot } from './data/timelineStorage'
 
-function App({ backupTools, english, page, eventYear, eventId, characterId, organizationId, entryId, loreSection, familyOpen }: { backupTools: HTMLDivElement | null; english: boolean; page: 'timeline' | 'events' | 'characters' | 'organizations' | 'chronicles' | 'items' | 'locations' | 'lore'; loreSection?: string; familyOpen?: boolean; eventYear?: number; eventId?: string; characterId?: string; organizationId?: string; entryId?: string }) {
+function App({ backupTools, english, page, eventYear, eventId, characterId, organizationId, entryId, loreSection, familyOpen }: { backupTools: HTMLDivElement | null; english: boolean; page: 'timeline' | 'events' | 'characters' | 'organizations' | 'chronicles' | 'locations' | 'lore'; loreSection?: string; familyOpen?: boolean; eventYear?: number; eventId?: string; characterId?: string; organizationId?: string; entryId?: string }) {
   const [entryFilter, setEntryFilter] = useState<EntryStatus | 'all'>('all')
   const [backupMessage, setBackupMessage] = useState('')
   const [backupPreview, setBackupPreview] = useState<Timeline[] | null>(null)
@@ -334,7 +334,7 @@ function App({ backupTools, english, page, eventYear, eventId, characterId, orga
       if (!selected) {
         return (
           <main className="section-page">
-            <h1>{page === 'lore' ? 'Справочник мира' : page === 'locations' ? 'Локации' : page === 'chronicles' ? 'Летописи' : page === 'items' ? 'Предметы' : page === 'events' ? 'События' : page === 'organizations' ? 'Фракции и организации' : 'Персонажи'}</h1>
+            <h1>{page === 'lore' ? 'Справочник мира' : page === 'locations' ? 'Локации' : page === 'chronicles' ? 'Летописи' : page === 'events' ? 'События' : page === 'organizations' ? 'Фракции и организации' : 'Персонажи'}</h1>
             <p>Сначала создайте или импортируйте таймлайн.</p>
             <a href="#timeline">К таймлайну</a>
           </main>
@@ -343,10 +343,13 @@ function App({ backupTools, english, page, eventYear, eventId, characterId, orga
 
       if (page === 'lore') {
         return <LorePage key={JSON.stringify([selected.id, loreSection])} initialSection={loreSection}
+          items={<ArchivePage embedded timeline={selected.timeline} kind="items" entryId={entryId}
+            entries={selected.timeline.items ?? []}
+            save={(items) => saveSelectedContent((timeline) => ({ ...timeline, items }))} />}
           timeline={selected.timeline} save={(lore) => saveSelectedContent((timeline) => ({ ...timeline, lore }))} />
       }
 
-      if (page === 'chronicles' || page === 'items' || page === 'locations') {
+      if (page === 'chronicles' || page === 'locations') {
         return (
           <ArchivePage key={JSON.stringify([selected.id, page])}
             timeline={selected.timeline} kind={page} entryId={entryId} entries={selected.timeline[page] ?? []}

@@ -113,23 +113,6 @@ export function OrganizationsPage({ timeline, save, organizationId }: {
               <EntryStatusLabel entry={selected} />
               <EntryGallery key={selected.id} entry={selected} />
               <LoreLinks timeline={timeline} kind="organizations" id={selected.id} />
-              {!!timeline.lore?.reigns.some(({ organizationId }) => organizationId === selected.id) && (
-                <section>
-                  <h3>Правители</h3>
-                  <ul>{timeline.lore.reigns.filter(({ organizationId }) => organizationId === selected.id)
-                    .sort((left, right) => left.start - right.start).map((reign) => {
-                      const ruler = timeline.characters?.find(({ id }) => id === reign.characterId)
-                      return <li key={reign.id}>
-                        {reign.start} — {reign.end ?? '…'} · {reign.title} ·{' '}
-                        <a href={'#characters?character=' + encodeURIComponent(reign.characterId)}>
-                          {[ruler?.name, ruler?.surname].filter(Boolean).join(' ')}
-                        </a>
-                        {' · '}<a href={'#characters?character=' + encodeURIComponent(reign.characterId) + '&family=1'}>Родословная</a>
-                        {reign.accession && ' · ' + reign.accession}
-                      </li>
-                    })}</ul>
-                </section>
-              )}
               {!!selected.locationIds?.length && (
                 <section>
                   <h3>Локации фракции</h3>
