@@ -1677,3 +1677,7 @@ dl.ability-grid > div {
   display: block;
   margin-top: 0.15rem;
 }
+
+.location-map-generator input.location-map-seed {
+  width: 12ch;
+}

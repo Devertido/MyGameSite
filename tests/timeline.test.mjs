@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
+import { settlementStreets } from '../src/domain/settlementStreets.ts'
+import { settlementDistricts } from '../src/domain/settlementDistricts.ts'
+import { settlementFoundation } from '../src/domain/settlementFoundation.ts'
 import { adjustedAbilities, validAbilityScores } from '../src/domain/abilities.ts'
 import { standardYear, validateMonths, validateWeek } from '../src/domain/calendar.ts'
 import { toCalendarYear } from '../src/domain/calendarYear.ts'
@@ -191,4 +194,69 @@ test('Расовые поправки ограничивают итог от 0 �
   assert.deepEqual(adjustedAbilities(base, bonuses, penalties),
     { strength: 30, constitution: 12, wisdom: 0, charisma: 1 })
   assert.deepEqual(adjustedAbilities(base), { strength: 29, wisdom: 0, charisma: 0 })
+})
+
+test('Основа поселения повторяется по seed, но меняется с другим seed', () => {
+  const settings = { seed: 0, size: 'town', water: 'coast' }
+  const snapshot = ({ centerX, centerY, scale, waterline, water }) =>
+    [centerX, centerY, scale, waterline(0), waterline(250), waterline(500), water]
+  const first = settlementFoundation(settings)
+  assert.deepEqual(snapshot(first), snapshot(settlementFoundation(settings)))
+  assert.notDeepEqual(snapshot(first), snapshot(settlementFoundation({ ...settings, seed: 4294967295 })))
+  assert.ok(settlementFoundation({ ...settings, size: 'city' }).scale > first.scale)
+  assert.ok(first.centerX < first.waterline(first.centerY))
+})
+
+test('Кварталы Вороного воспроизводятся по seed, лежат на суше и не перекрываются', () => {
+  const settings = { seed: 42, size: 'city', water: 'river' }
+  const districts = settlementDistricts(settings)
+  assert.deepEqual(districts, settlementDistricts(settings))
+  assert.notDeepEqual(districts, settlementDistricts({ ...settings, seed: 43 }))
+  assert.equal(districts.filter(({ kind }) => kind === 'square').length, 1)
+  assert.equal(districts.length, 23)
+  assert.ok(settlementDistricts({ ...settings, size: 'village' }).length < districts.length)
+
+  const strictlyInside = ([x, y], vertices) => vertices.every(([ax, ay], index) => {
+    const [bx, by] = vertices[(index + 1) % vertices.length]
+    return (bx - ax) * (y - ay) - (by - ay) * (x - ax) > 1e-6
+  })
+  for (const water of ['river', 'coast']) {
+    for (const seed of [0, 1, 42, 2026, 4294967295]) {
+      const options = { ...settings, seed, water }
+      const { waterline } = settlementFoundation(options)
+      const cells = settlementDistricts(options)
+      for (const [index, { vertices }] of cells.entries()) {
+        assert.ok(vertices.length >= 3)
+        assert.ok(vertices.every(([x, y]) => x < waterline(y) - (water === 'river' ? 28 : 2)))
+        const center = vertices.reduce(([x, y], [vx, vy]) => [x + vx / vertices.length, y + vy / vertices.length], [0, 0])
+        assert.ok(strictlyInside(center, vertices))
+        assert.equal(cells.filter((cell, other) => index !== other &&
+          [...vertices, center].some((point) => strictlyInside(point, cell.vertices))).length, 0)
+      }
+    }
+  }
+})
+
+test('Подъезды входят через ворота, улицы ведут к площади, а у кварталов есть выходы к улицам', () => {
+  for (const size of ['village', 'town', 'city']) {
+    for (const seed of [0, 1, 42, 43, 2026, 4294967295]) {
+      const districts = settlementDistricts({ seed, size, water: 'river' })
+      const { routes, walls, towers, interior, squareCenter } = settlementStreets(districts, size === 'city' ? 4 : 3)
+      assert.equal(routes.length, size === 'city' ? 4 : 3)
+      assert.ok(routes.some(({ direction }) => direction === 'east'))
+      assert.ok(towers.length >= routes.length * 2)
+      for (const { gate, street } of routes) {
+        assert.deepEqual(street[0], gate)
+        assert.deepEqual(street.at(-1), squareCenter)
+        assert.ok(walls.every(([a, b]) => {
+          const separation = Math.hypot(a[0] - gate[0], a[1] - gate[1]) + Math.hypot(b[0] - gate[0], b[1] - gate[1])
+          return separation > Math.hypot(a[0] - b[0], a[1] - b[1]) + 1e-6
+        }))
+      }
+      const samePoint = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]) < 1e-5
+      for (const { vertices } of districts) {
+        assert.ok(interior.some(([a, b]) => vertices.some((v) => samePoint(v, a)) && vertices.some((v) => samePoint(v, b))))
+      }
+    }
+  }
 })
