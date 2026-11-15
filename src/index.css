@@ -989,10 +989,35 @@ button.event-action:hover:enabled {
   clear: both;
 }
 
+.spell-duration-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin-block: 0.6rem;
+}
+
+.spell-duration-fields input {
+  width: 8ch;
+}
+
 .spell-components {
-  display: table;
-  max-width: 100%;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
   margin: 0.4rem 0 0.75rem;
+}
+
+.spell-component-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.spell-component-list li {
   padding: 0.25rem 0.5rem;
   border: 1px solid #998561;
   border-radius: 0.3rem;
@@ -1018,6 +1043,29 @@ button.event-action:hover:enabled {
 
 .item-wow-meta p:first-child:not(:only-child) {
   color: var(--item-accent);
+}
+
+.item-mechanics,
+.item-damage {
+  margin-block: 0.65rem;
+}
+
+.item-mechanics p,
+.item-damage p {
+  margin-block: 0.25rem;
+}
+
+.item-damage code,
+.item-damage output {
+  color: #f2d38e;
+}
+
+.item-damage input {
+  width: 5ch;
+}
+
+.item-damage button:disabled {
+  opacity: 0.6;
 }
 
 .item-wow-card > .archive-copy {

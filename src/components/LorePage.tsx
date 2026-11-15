@@ -1,4 +1,6 @@
 import { sameHouse } from '../domain/houseTree'
+import { ItemDamage } from './ItemDamage'
+import { parseDamageFormula } from '../domain/itemDamage'
 import { DirectoryImage } from './DirectoryImage'
 import { EditIcon } from './EditIcon'
 import { TrashIcon } from './TrashIcon'
@@ -11,7 +13,7 @@ import { ImageField } from './ImageField'
 import { useState, type CSSProperties, type FormEvent, type ReactNode } from 'react'
 import { MagicDetails, RaceFields, SpellFields } from './LoreDetails'
 import { CreationDialog } from './CreationDialog'
-import { emptyLore, glossaryDescription, isGlossarySection, beastCombatFields, readRaceMeasure, surnameOrigins, spellComponents, loreTargets, validHouseYears, validLore, type HouseDetails, type LinkKind, type WorldLore } from '../domain/lore'
+import { emptyLore, glossaryDescription, isGlossarySection, beastCombatFields, readRaceMeasure, surnameOrigins, spellComponents, validSpellDuration, formatSpellDuration, loreTargets, validHouseYears, validLore, type HouseDetails, type LinkKind, type WorldLore } from '../domain/lore'
 import type { Timeline } from '../domain/timeline'
 
 const sections = [
@@ -144,8 +146,24 @@ export function LorePage({ timeline, save, initialSection, initialEntry, archive
           entry.dynasty === editing ? { ...entry, dynasty: name } : entry)
       }
       if (section === 'spells') {
+        const damageFormula = read('spell-damage')
+        if (damageFormula && !parseDamageFormula(damageFormula)) {
+          setError(t('Проверьте формулу урона. Пример: 1d8 + СИЛ + 5'))
+          return
+        }
+        const readDuration = (key: string) => read(key)
+          ? { amount: Number(read(key)), unit: read(key + '-unit') }
+          : undefined
+        const castingTime = readDuration('spell-casting')
+        const cooldown = readDuration('spell-cooldown')
+        if ((castingTime && !validSpellDuration(castingTime)) || (cooldown && !validSpellDuration(cooldown))) {
+          setError(t('Введите неотрицательное время и выберите единицу измерения.'))
+          return
+        }
         next.spellDetails = [...(lore.spellDetails ?? []).filter((entry) => entry.name !== editing), {
           name, image: read('lore-image'), mana: read('mana') ? Number(read('mana')) : null,
+          school: read('spell-school') || undefined, damageFormula: damageFormula || undefined,
+          castingTime, cooldown,
           components: spellComponents.filter((component) => data.getAll('components').includes(component)),
         }]
       }
@@ -224,12 +242,19 @@ export function LorePage({ timeline, save, initialSection, initialEntry, archive
               {spell?.image && <img className="atlas-entry-image" src={spell?.image} alt="" />}
             </div>}
             <h2>{name}</h2>
+            {spell?.school && <p className="item-rarity">{t('Школа магии')} · {spell.school}</p>}
             {spellSection && spell?.mana != null && <p className="item-rarity">
               {t('Мана · ')}{spell?.mana}
             </p>}
-            {spellSection && Boolean(spell?.components.length) && <p className="spell-components">
-              {t('Компоненты · ')}{spell?.components.map(t).join(' · ')}
-            </p>}
+            {spellSection && spell && spell.components.length > 0 && <div className="spell-components">
+              <span>{t('Компоненты')}</span>
+              <ul className="spell-component-list">
+                {spell.components.map((component) => <li key={component}>{t(component)}</li>)}
+              </ul>
+            </div>}
+            {spell?.castingTime && <p>{t('Время произнесения')} · {formatSpellDuration(spell.castingTime)}</p>}
+            {spell?.cooldown && <p>{t('Время восстановления')} · {formatSpellDuration(spell.cooldown)}</p>}
+            {spell?.damageFormula && <ItemDamage key={spell.damageFormula} formula={spell.damageFormula} />}
             {section === 'races' && <MagicDetails race={lore.raceDetails?.find((item) => item.name === name)} />}
             {isGlossarySection(section) && <p className={spellSection ? 'archive-copy' : undefined} hidden={!glossaryDescription(lore, section, name)}>
               {glossaryDescription(lore, section, name)}
@@ -273,6 +298,7 @@ export function LorePage({ timeline, save, initialSection, initialEntry, archive
                   {spellSection && <th className="directory-image-cell" scope="col">{t('Изображение')}</th>}
                   <th scope="col">{t("Название")}</th>
                   {spellSection && <>
+                    <th scope="col">{t('Школа магии')}</th>
                     <th scope="col">{t('Мана')}</th>
                     <th scope="col">{t('Компоненты')}</th>
                     <th scope="col">{t('Краткое описание')}</th>
@@ -296,6 +322,7 @@ export function LorePage({ timeline, save, initialSection, initialEntry, archive
                     <td><button className={spellSection ? 'directory-select directory-select-link' : 'directory-select'} type="button" aria-pressed={entry === selected}
                       onClick={() => setSelectedId(entryId(entry))}>{name}</button></td>
                     {spellSection && <>
+                      <td>{spell?.school || '—'}</td>
                       <td>{spell?.mana ?? '—'}</td>
                       <td>{spell?.components.map(t).join(' · ') || '—'}</td>
                       <td>{glossaryDescription(lore, 'spells', name) || '—'}</td>

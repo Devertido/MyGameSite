@@ -2,7 +2,7 @@ import { t } from '../i18n.ts'
 import { abilities } from '../domain/abilities'
 import { AbilityFields } from './AbilityScores'
 import { useState } from 'react'
-import { parseRaceMeasure, spellComponents, type RaceMeasure, type RaceDetails, type SpellDetails } from '../domain/lore'
+import { parseRaceMeasure, spellComponents, spellTimeUnits, type SpellDuration, type RaceMeasure, type RaceDetails, type SpellDetails } from '../domain/lore'
 import { ImageField } from './ImageField'
 
 const raceMeasures = [
@@ -40,10 +40,24 @@ export function RaceFields({ race }: { race?: RaceDetails }) {
   </>
 }
 
+function SpellTimeFields({ name, label, duration }: { name: string; label: string; duration?: SpellDuration }) {
+  return <fieldset className="spell-duration-fields">
+    <legend>{t(label)}</legend>
+    <label>{t('Число')} <input name={name} type="number" min={0} step="any" defaultValue={duration?.amount} /></label>
+    <label>{t('Единица измерения')} <select name={name + '-unit'} defaultValue={duration?.unit ?? 'second'}>
+      {spellTimeUnits.map(([unit, title]) => <option key={unit} value={unit}>{t(title)}</option>)}
+    </select></label>
+  </fieldset>
+}
+
 export function SpellFields({ spell }: { spell?: SpellDetails }) {
   const [components, setComponents] = useState(spell?.components ?? [])
   return <>
     <ImageField name="lore-image" label={t("Изображение заклинания")} initial={spell?.image} />
+    <p><label>{t('Школа магии')} <input name="spell-school" maxLength={120} defaultValue={spell?.school} /></label></p>
+    <p><label>{t('Формула урона')} (1d8 + СИЛ + 5) <input name="spell-damage" maxLength={120} defaultValue={spell?.damageFormula} /></label></p>
+    <SpellTimeFields name="spell-casting" label="Время произнесения" duration={spell?.castingTime} />
+    <SpellTimeFields name="spell-cooldown" label="Время восстановления" duration={spell?.cooldown} />
     <p><label>{t("Цена в мане ")}<input name="mana" type="number" min={0} step={1} defaultValue={spell?.mana ?? ''} /></label></p>
     <fieldset>
       <legend>{t("Компоненты заклинания")}</legend>

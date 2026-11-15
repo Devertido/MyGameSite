@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
+import { parseDamageFormula } from '../src/domain/itemDamage.ts'
 import { buildOppositeBank, createLocationMapPlan, editDistricts, mergeDistrictOutline, moveDistrictCorner, moveWaterChannel, waterXAt, rerollDistrict, validLocationMapPlan, warpDistricts } from '../src/domain/locationMapPlan.ts'
 import { insideDistrict, settlementBuildings } from '../src/domain/settlementBuildings.ts'
 import { settlementStreets } from '../src/domain/settlementStreets.ts'
@@ -410,6 +411,10 @@ test('Правки планировки, родство, бестиарий и �
     lore: { ...emptyLore, races: [race.name], raceDetails: [race], bestiary: [beast],
       dynasties: ['House'], houseDetails: [{ name: 'House', startYear: -10, endYear: 0, locationIds: [location.id] }] },
   }
+  const spell = { name: 'Fireball', image, mana: 15, components: [], school: 'Evocation',
+    damageFormula: '2d6 + 3', castingTime: { amount: 0.5, unit: 'second' }, cooldown: { amount: 2, unit: 'minute' } }
+  timeline.lore.spells = [spell.name]
+  timeline.lore.spellDetails = [spell]
   let saved
   const storage = { length: 1, key: () => 'arena-atlas:timeline:v1:verification',
     getItem: () => saved, setItem: (key, value) => { storage.key = () => key; saved = value } }
@@ -422,6 +427,7 @@ test('Правки планировки, родство, бестиарий и �
     assert.deepEqual(restored.lore.raceDetails[0], race)
     assert.deepEqual(restored.lore.bestiary[0], beast)
     assert.deepEqual(restored.lore.houseDetails, timeline.lore.houseDetails)
+    assert.deepEqual(restored.lore.spellDetails, [spell])
     assert.deepEqual(removeMissingLoreLinks({ ...restored, locations: [] }).lore.houseDetails[0].locationIds, [])
   }
 })
@@ -479,4 +485,15 @@ test('Districts can merge or be removed, and edits to the river and both banks s
     locations: [{ id: 'port', title: 'Port', summary: '', body: '', mapImage: 'data:image/webp;base64,AAAA', mapPlan }],
   }
   assert.deepEqual(importTimeline(exportTimeline(timeline)).locations[0].mapPlan, mapPlan)
+})
+
+test('Weapon damage uses dice, strength and arithmetic precedence without executing code', () => {
+  assert.equal(parseDamageFormula('1d8 + СИЛ + 5')(14, () => 0.5), 24)
+  assert.equal(parseDamageFormula('(2d6 + 4) / 2 - 1 * -3')(undefined, () => 0), 6)
+  assert.equal(parseDamageFormula('2,5 + 1')(undefined, () => 0), 3.5)
+  assert.ok(Number.isNaN(parseDamageFormula('1 / (3 - 3)')(undefined, () => 0)))
+  assert.ok(Number.isNaN(parseDamageFormula('СИЛ + 2')(undefined, () => 0)))
+  for (const formula of ['1d1', '500d20', '1d8 +', '2(3)', 'alert(1)', '(1 + 2', '5 ^ 2']) {
+    assert.equal(parseDamageFormula(formula), undefined, formula)
+  }
 })

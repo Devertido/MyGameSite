@@ -195,6 +195,9 @@ export function validateOrganization(organization: Organization, timeline: Timel
 }
 
 export type ArchiveEntry = EntryMetadata & {
+  massKg?: number
+  requiredSkill?: string
+  damageFormula?: string
   mapImage?: string
   mapPlan?: LocationMapPlan
   chronicleIds?: string[]

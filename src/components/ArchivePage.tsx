@@ -1,3 +1,7 @@
+import { adjustedAbilities } from '../domain/abilities'
+import { itemTypes, parseDamageFormula } from '../domain/itemDamage'
+import { raceDetailsFor } from '../domain/lore'
+import { ItemDamage } from './ItemDamage'
 import { LocationMapZoom } from './LocationMapZoom'
 import { validLocationMapPlan } from '../domain/locationMapPlan'
 import { t } from '../i18n.ts'
@@ -31,11 +35,15 @@ export function ArchivePage({ kind, entries, entryId, timeline, save, embedded =
   const matchesStatus = useStatusMatch()
   const [importing, setImporting] = useState(false)
   const [draft, setDraft] = useState<ArchiveEntry | 'new' | null>(null)
+  const [itemType, setItemType] = useState<string>('Прочее')
   const [deleting, setDeleting] = useState<ArchiveEntry | null>(null)
   const [error, setError] = useState('')
   const [query, setQuery] = useState('')
   const original = draft === 'new' ? null : draft
   const selected = entryId === undefined ? entries.find(matchesStatus) : entries.find(({ id }) => id === entryId)
+  const owner = selected?.ownerId ? timeline.characters?.find(({ id }) => id === selected.ownerId) : undefined
+  const ownerRace = raceDetailsFor(timeline.lore, owner?.race)
+  const ownerStrength = adjustedAbilities(owner?.abilities, ownerRace?.abilityBonuses, ownerRace?.abilityPenalties).strength
   const matches = entries.filter(matchesStatus).filter(({ title }) => title.toLocaleLowerCase('ru').includes(query.trim().toLocaleLowerCase('ru')))
 
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -49,6 +57,10 @@ export function ArchivePage({ kind, entries, entryId, timeline, save, embedded =
     }
 
     try {
+      const damageFormula = kind === 'items' && read('type') === 'Оружие' ? read('damageFormula') : ''
+      if (damageFormula && !parseDamageFormula(damageFormula)) {
+        throw new Error(t('Проверьте формулу урона. Пример: 1d8 + СИЛ + 5'))
+      }
       const mapImage = location ? read('mapImage') : ''
       const planText = location ? read('mapPlan') : ''
       const mapPlan: unknown = planText ? JSON.parse(planText) : undefined
@@ -62,7 +74,9 @@ export function ArchivePage({ kind, entries, entryId, timeline, save, embedded =
         ...(chronicle
           ? { chronicleIds: original?.chronicleIds, eventIds: fields.getAll('events').map(String), characterIds: fields.getAll('characters').map(String) }
           : location ? { type: read('type'), image: read('image') || undefined, mapImage: mapImage || undefined, mapPlan: mapImage ? mapPlan : undefined }
-          : { type: read('type'), rarity: read('rarity'), ownerId: read('ownerId') || undefined, image: read('image') || undefined }),
+          : { type: read('type'), rarity: read('rarity'), ownerId: read('ownerId') || undefined, image: read('image') || undefined,
+            massKg: read('massKg') ? Number(read('massKg').replace(',', '.')) : undefined,
+            requiredSkill: read('requiredSkill') || undefined, damageFormula: damageFormula || undefined }),
       }
       save(original ? entries.map((item) => item.id === original.id ? entry : item) : [...entries, entry])
       setDraft(null)
@@ -93,7 +107,18 @@ export function ArchivePage({ kind, entries, entryId, timeline, save, embedded =
               <>
                 <ImageField name="image" label={location ? t("Изображение локации") : t("Изображение предмета")} initial={original?.image} />
                 {location && <ImageField name="mapImage" label={t("Карта локации")} initial={original?.mapImage} initialMapPlan={original?.mapPlan} mapLocations={entries.filter(({ id }) => id !== original?.id)} generateMap />}
-                <label>{t("Тип")}<input name="type" defaultValue={original?.type} placeholder={location ? t("Город, крепость, регион") : t("Оружие, броня, артефакт")} /></label>
+                {location ? <label>{t('Тип')}<input name="type" defaultValue={original?.type} placeholder={t('Город, крепость, регион')} /></label> :
+                  <>
+                    <label>{t('Тип')}<select name="type" value={itemType} onChange={(event) => setItemType(event.currentTarget.value)}>
+                      {itemTypes.map((type) => <option key={type} value={type}>{t(type)}</option>)}
+                      {original?.type && !itemTypes.some((type) => type === original.type) && <option value={original.type}>{original.type}</option>}
+                    </select></label>
+                    <label>{t('Масса (кг)')}<input name="massKg" type="number" min={0} step="any" required defaultValue={original?.massKg} /></label>
+                    <label>{t('Требуемый навык')}<input name="requiredSkill" maxLength={120} placeholder={t('Не требуется')} defaultValue={original?.requiredSkill} /></label>
+                    {itemType === 'Оружие' && <label>{t('Формула урона')} <span>(1d8 + СИЛ + 5)</span>
+                      <input name="damageFormula" maxLength={120} required defaultValue={original?.damageFormula} />
+                    </label>}
+                  </>}
                 {!location && <label>{t("Редкость")}<select name="rarity" defaultValue={original?.rarity ?? rarities[0]}>
                   {rarities.map((rarity) => <option key={rarity} value={rarity}>{t(rarity)}</option>)}
                 </select></label>}
@@ -142,8 +167,14 @@ export function ArchivePage({ kind, entries, entryId, timeline, save, embedded =
               {location && <p className="item-rarity">{[selected.type, selected.rarity && t(selected.rarity)].filter(Boolean).join(' · ')}</p>}
               {kind === 'items' && (selected.type || selected.rarity) && <div className="item-wow-meta">
                 {selected.rarity && <p>{t(selected.rarity)}</p>}
-                {selected.type && <p>{selected.type}</p>}
+                {selected.type && <p>{t(selected.type)}</p>}
               </div>}
+              {kind === 'items' && <section className="item-mechanics">
+                <p>{t('Масса (кг)')} · {selected.massKg === undefined ? '—' : new Intl.NumberFormat().format(selected.massKg)}</p>
+                <p>{t('Требуемый навык')} · {selected.requiredSkill || t('Не требуется')}</p>
+              </section>}
+              {kind === 'items' && selected.damageFormula && <ItemDamage key={JSON.stringify([selected.id, selected.damageFormula, ownerStrength])}
+                formula={selected.damageFormula} ownerStrength={ownerStrength} />}
               {selected.summary && <p className="archive-copy">{selected.summary}</p>}
               {location && <LoreLinks timeline={timeline} kind="locations" id={selected.id} />}
               {location && selected.mapImage && <section>
@@ -184,7 +215,7 @@ export function ArchivePage({ kind, entries, entryId, timeline, save, embedded =
                   ))}</ul>
                 </section>
               ) : null}
-              <button type="button" onClick={() => setDraft(selected)} aria-label={t("Редактировать")} title={t("Редактировать")}><EditIcon /></button>{' '}
+              <button type="button" onClick={() => { setItemType(selected.type || 'Прочее'); setDraft(selected) }} aria-label={t("Редактировать")} title={t("Редактировать")}><EditIcon /></button>{' '}
               <button type="button" aria-label={t("Удалить запись")} title={t("Удалить запись")}
                 onClick={() => { setError(''); setDeleting(selected) }}><TrashIcon /></button>
             </article>
@@ -194,7 +225,7 @@ export function ArchivePage({ kind, entries, entryId, timeline, save, embedded =
         </section>
         <section className="directory-table" aria-label={title}>
           <div className="directory-actions">
-            <button type="button" onClick={() => setDraft('new')}>{location ? t('Добавить локацию') : chronicle ? t('Создать летопись') : t('Добавить предмет')}</button>
+            <button type="button" onClick={() => { setItemType('Прочее'); setDraft('new') }}>{location ? t('Добавить локацию') : chronicle ? t('Создать летопись') : t('Добавить предмет')}</button>
             {chronicle && <button type="button" onClick={() => setImporting(true)}>{t("Импорт из Obsidian")}</button>}
           </div>
           {entries.length > 0 && <label>{t("Поиск ")}<input type="search" value={query} onChange={(event) => setQuery(event.currentTarget.value)} /></label>}
@@ -217,7 +248,7 @@ export function ArchivePage({ kind, entries, entryId, timeline, save, embedded =
                       <td><a href={'#' + entryRoute + encodeURIComponent(entry.id)}
                         aria-current={entry.id === selected?.id ? 'true' : undefined}
                         onClick={() => { setDeleting(null); setError('') }}>{entry.title}</a></td>
-                      {!chronicle && <td>{entry.type || '—'}</td>}
+                      {!chronicle && <td>{entry.type ? (kind === 'items' ? t(entry.type) : entry.type) : '—'}</td>}
                       {kind === 'items' && <td>{entry.rarity ? t(entry.rarity) : '—'}</td>}
                       <td>{entry.summary || '—'}</td>
                     </tr>

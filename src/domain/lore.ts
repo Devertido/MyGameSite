@@ -1,3 +1,4 @@
+import { parseDamageFormula } from './itemDamage.ts'
 import { t } from '../i18n.ts'
 import { validAbilityScores, type AbilityScores } from './abilities.ts'
 import type { Timeline } from './timeline.ts'
@@ -29,7 +30,30 @@ export function isGlossarySection(value: unknown): value is GlossarySection {
 
 export const spellComponents = ['Слово', 'Реагент', 'Жест'] as const
 export type SpellComponent = typeof spellComponents[number]
-export type SpellDetails = { name: string; image: string; mana: number | null; components: SpellComponent[] }
+export const spellTimeUnits = [
+  ['second', 'сек.'], ['minute', 'мин.'], ['hour', 'ч.'], ['day', 'дн.'],
+] as const
+export type SpellDuration = { amount: number; unit: typeof spellTimeUnits[number][0] }
+export type SpellDetails = {
+  name: string
+  image: string
+  mana: number | null
+  components: SpellComponent[]
+  school?: string
+  damageFormula?: string
+  castingTime?: SpellDuration
+  cooldown?: SpellDuration
+}
+
+export function validSpellDuration(value: unknown): value is SpellDuration {
+  return record(value) && typeof value.amount === 'number' && Number.isFinite(value.amount) &&
+    value.amount >= 0 && spellTimeUnits.some(([unit]) => unit === value.unit)
+}
+
+export function formatSpellDuration(duration: SpellDuration) {
+  const label = spellTimeUnits.find(([unit]) => unit === duration.unit)![1]
+  return new Intl.NumberFormat(undefined, { maximumSignificantDigits: 15 }).format(duration.amount) + ' ' + t(label)
+}
 export type RaceMeasure = 'lifespan' | 'height'
 
 export function parseRaceMeasure(value: string, measure: RaceMeasure): string[] | null {
@@ -192,6 +216,10 @@ export function validLore(value: unknown, timeline: Timeline): value is WorldLor
       new Set(items.map((entry) => entry.name)).size === items.length)
   }
   if (!validDetails(value.spellDetails, value.spells, (entry) =>
+    (entry.school === undefined || (typeof entry.school === 'string' && entry.school.length <= 120)) &&
+    (entry.damageFormula === undefined || (typeof entry.damageFormula === 'string' && Boolean(parseDamageFormula(entry.damageFormula)))) &&
+    (entry.castingTime === undefined || validSpellDuration(entry.castingTime)) &&
+    (entry.cooldown === undefined || validSpellDuration(entry.cooldown)) &&
     (entry.mana === null || (typeof entry.mana === 'number' && Number.isSafeInteger(entry.mana) && entry.mana >= 0)) &&
     strings(entry.components) && entry.components.every((component) => spellComponents.some((item) => item === component)) &&
     new Set(entry.components).size === entry.components.length)) return false
