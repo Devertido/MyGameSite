@@ -25,7 +25,14 @@ export function isGlossarySection(value: unknown): value is GlossarySection {
   return value === 'surnames' || value === 'races' || value === 'dynasties' || value === 'classes' || value === 'spells'
 }
 
+export const spellComponents = ['Слово', 'Реагент', 'Жест'] as const
+export type SpellComponent = typeof spellComponents[number]
+export type SpellDetails = { name: string; image: string; mana: number | null; components: SpellComponent[] }
+export type RaceDetails = { name: string; image: string; lifespan: string; height: string; size: string; bonuses: string; debuffs: string }
+
 export type WorldLore = {
+  spellDetails?: SpellDetails[]
+  raceDetails?: RaceDetails[]
   descriptions?: { section: GlossarySection; name: string; text: string }[]
   surnames: string[]
   races: string[]
@@ -73,6 +80,19 @@ export function validLore(value: unknown, timeline: Timeline): value is WorldLor
         typeof entry.name === 'string' && typeof entry.text === 'string' &&
         (value[entry.section] as string[] | undefined)?.includes(entry.name)))) return false
   if ([value.classes, value.spells].some((items) => items !== undefined && !strings(items))) return false
+  function validDetails(items: unknown, names: unknown, valid: (entry: Record<string, unknown>) => boolean) {
+    return items === undefined || (Array.isArray(items) && strings(names) &&
+      items.every((entry) => record(entry) && typeof entry.name === 'string' && names.includes(entry.name) &&
+        typeof entry.image === 'string' && (entry.image === '' || (entry.image.length <= 900_000 &&
+          /^data:image\/(webp|png);base64,[A-Za-z0-9+/]+={0,2}$/.test(entry.image))) && valid(entry)) &&
+      new Set(items.map((entry) => entry.name)).size === items.length)
+  }
+  if (!validDetails(value.spellDetails, value.spells, (entry) =>
+    (entry.mana === null || (typeof entry.mana === 'number' && Number.isSafeInteger(entry.mana) && entry.mana >= 0)) &&
+    strings(entry.components) && entry.components.every((component) => spellComponents.some((item) => item === component)) &&
+    new Set(entry.components).size === entry.components.length)) return false
+  if (!validDetails(value.raceDetails, value.races, (entry) =>
+    [entry.lifespan, entry.height, entry.size, entry.bonuses, entry.debuffs].every((item) => typeof item === 'string'))) return false
   const targets = new Map(linkKinds.map((kind) => [kind, new Set(loreTargets(timeline, kind).map(({ id }) => id))]))
   const known = (kind: LinkKind, id: unknown) => typeof id === 'string' && targets.get(kind)?.has(id)
   function records(items: unknown, valid: (item: Record<string, unknown>) => unknown) {

@@ -13,7 +13,8 @@ export function TimelineScale({ timeline, calendar }: { timeline: Timeline; cale
   const [target, setTarget] = useState<{ year: number; day?: number } | null>(null)
   const zoom = zoomLevels[zoomIndex]!
   const start = BigInt(timeline.startYear)
-  const span = BigInt(timeline.endYear) - start
+  const scaleEnd = timeline.startYear < 0 ? Math.max(timeline.endYear, 0) : timeline.endYear
+  const span = BigInt(scaleEnd) - start
   const daysPerYear = BigInt(timeline.daysPerYear)
   const totalDays = (span + 1n) * daysPerYear
 
@@ -66,6 +67,11 @@ export function TimelineScale({ timeline, calendar }: { timeline: Timeline; cale
     const year = start + BigInt(index) * yearStep
     return { year, position: positionOf(year) }
   })
+
+  if (start < 0n && !ticks.some(({ year }) => year === 0n)) {
+    const afterZero = ticks.findIndex(({ year }) => year > 0n)
+    ticks.splice(afterZero < 0 ? ticks.length : afterZero, 0, { year: 0n, position: positionOf(0n) })
+  }
 
   const matchesStatus = useStatusMatch()
   const visibleEvents = (timeline.events ?? []).filter((event) => event.onTimeline !== false && matchesStatus(event))
@@ -157,7 +163,7 @@ export function TimelineScale({ timeline, calendar }: { timeline: Timeline; cale
           )}
           <ol ref={axisRef} className="timeline-axis">
             {ticks.map(({ year, position }) => (
-              <li key={String(year)} style={{ left: `${position}%` }}>{String(year)}</li>
+              <li key={String(year)} className={year === 0n ? "timeline-zero" : undefined} style={{ left: `${position}%` }}>{String(year)}</li>
             ))}
           </ol>
           {highlightedYear !== undefined && (

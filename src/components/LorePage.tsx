@@ -1,6 +1,7 @@
-import { useState, type FormEvent } from 'react'
+import { useState, type CSSProperties, type FormEvent } from 'react'
+import { MagicDetails, RaceFields, SpellFields } from './LoreDetails'
 import { CreationDialog } from './CreationDialog'
-import { emptyLore, glossaryDescription, isGlossarySection, linkKinds, loreTargets, validLore, type LinkKind, type WorldLore } from '../domain/lore'
+import { emptyLore, glossaryDescription, isGlossarySection, spellComponents, loreTargets, validLore, type LinkKind, type WorldLore } from '../domain/lore'
 import type { Timeline } from '../domain/timeline'
 
 const sections = [
@@ -14,14 +15,24 @@ const fieldsByKind = {
   faiths: ['Божества', 'Культы', 'Обряды', 'Святыни'],
 }
 
-const linkLabels = { characters: 'Персонажи', locations: 'Локации', organizations: 'Фракции и ордены', events: 'События' }
 const linkParameters = { characters: 'character', locations: 'entry', organizations: 'organization', events: 'event' }
+
+function entryId(entry: string | { id: string }) {
+  return typeof entry === 'string' ? entry : entry.id
+}
+
+function entryName(entry: string | { name: string } | { title: string }) {
+  return typeof entry === 'string' ? entry : 'title' in entry ? entry.title : entry.name
+}
 
 export function LorePage({ timeline, save, initialSection }: { timeline: Timeline; save: (lore: WorldLore) => void; initialSection?: string }) {
   const lore = { ...emptyLore, ...timeline.lore, classes: timeline.lore?.classes ?? [], spells: timeline.lore?.spells ?? [] }
   const [section, setSection] = useState<typeof sections[number][0]>(() => sections.find(([key]) => key === initialSection)?.[0] ?? 'surnames')
+  const [selectedId, setSelectedId] = useState<string | null>(null)
   const [editing, setEditing] = useState<string | null>(null)
   const [error, setError] = useState('')
+  const entries = lore[section]
+  const selected = entries.find((entry) => entryId(entry) === selectedId) ?? entries[0]
   const label = sections.find(([key]) => key === section)?.[1]
   const traditionKind = section === 'cultures' || section === 'faiths' ? section : null
   const tradition = traditionKind ? lore[traditionKind].find(({ id }) => id === editing) : undefined
@@ -51,7 +62,7 @@ export function LorePage({ timeline, save, initialSection }: { timeline: Timelin
     if (traditionKind) {
       const entry = {
         id, name, fields: fieldsByKind[traditionKind].map((_, index) => read('field-' + index)),
-        links: linkKinds.flatMap((kind) => data.getAll(kind).map((id) => ({ kind, id: String(id) }))),
+        links: tradition?.links ?? [],
       }
       persist({ ...lore, [traditionKind]: tradition
         ? lore[traditionKind].map((item) => item.id === id ? entry : item) : [...lore[traditionKind], entry] })
@@ -67,15 +78,30 @@ export function LorePage({ timeline, save, initialSection }: { timeline: Timelin
       const text = read('description')
       const descriptions = (lore.descriptions ?? []).filter((entry) => entry.section !== section || entry.name !== editing)
       if (text) descriptions.push({ section, name, text })
-      persist({ ...lore, descriptions, [section]: [...lore[section].filter((item) => item !== editing), name] })
+      const next = { ...lore, descriptions, [section]: [...lore[section].filter((item) => item !== editing), name] }
+      if (section === 'spells') {
+        next.spellDetails = [...(lore.spellDetails ?? []).filter((entry) => entry.name !== editing), {
+          name, image: read('lore-image'), mana: read('mana') ? Number(read('mana')) : null,
+          components: spellComponents.filter((component) => data.getAll('components').includes(component)),
+        }]
+      }
+      if (section === 'races') {
+        next.raceDetails = [...(lore.raceDetails ?? []).filter((entry) => entry.name !== editing), {
+          name, image: read('lore-image'), lifespan: read('lifespan'), height: read('height'),
+          size: read('size'), bonuses: read('bonuses'), debuffs: read('debuffs'),
+        }]
+      }
+      setSelectedId(name)
+      persist(next)
     }
   }
 
   function remove(id: string) {
     if (!window.confirm('Удалить запись из справочника?')) return
-    const entries = lore[section]
     persist({
       ...lore,
+      ...(section === 'races' ? { raceDetails: lore.raceDetails?.filter((entry) => entry.name !== id) } : {}),
+      ...(section === 'spells' ? { spellDetails: lore.spellDetails?.filter((entry) => entry.name !== id) } : {}),
       descriptions: lore.descriptions?.filter((entry) => entry.section !== section || entry.name !== id),
       [section]: entries.filter((entry) => typeof entry === 'string' ? entry !== id : entry.id !== id),
     })
@@ -88,23 +114,28 @@ export function LorePage({ timeline, save, initialSection }: { timeline: Timelin
   return (
     <main className="section-page">
       <h1>Справочник мира</h1>
-      <label>Раздел{' '}
-        <select value={section} onChange={(event) => {
-          const next = sections.find(([key]) => key === event.currentTarget.value)
-          if (next) setSection(next[0])
-          setError('')
-        }}>
-          {sections.map(([key, title]) => <option key={key} value={key}>{title}</option>)}
-        </select>
-      </label>{' '}
-      <button type="button" onClick={() => { setError(''); setEditing('') }}>Добавить запись</button>
+      <nav className="directory-actions" aria-label="Разделы справочника">
+        {sections.map(([key, title]) => (
+          <button type="button" className="lore-toggle" key={key} aria-pressed={section === key} onClick={() => {
+            setSection(key)
+            setSelectedId(null)
+            setError('')
+          }}>{title}</button>
+        ))}
+      </nav>
       {error && editing === null && <p role="alert">{error}</p>}
-      <ul className="event-list">
-        {lore[section].map((entry) => {
-          const id = typeof entry === 'string' ? entry : entry.id
-          const name = typeof entry === 'string' ? entry : 'title' in entry ? entry.title : entry.name
-          return <li key={id}>
+      <div className="directory-layout">
+        <div>
+        {selected === undefined ? <p>В разделе пока нет записей.</p> : [selected].map((entry) => {
+          const id = entryId(entry)
+          const name = entryName(entry)
+          const magic = section === 'races' || section === 'spells'
+          return <article key={id} className={magic ? 'archive-card item-card item-tooltip lore-magic-card' : 'directory-card'}
+            style={magic ? { '--item-accent': '#f4d28d' } as CSSProperties : undefined}>
             <h2>{name}</h2>
+            {magic && <MagicDetails
+              race={section === 'races' ? lore.raceDetails?.find((item) => item.name === name) : undefined}
+              spell={section === 'spells' ? lore.spellDetails?.find((item) => item.name === name) : undefined} />}
             {isGlossarySection(section) && <p hidden={!glossaryDescription(lore, section, name)}>
               {glossaryDescription(lore, section, name)}
             </p>}
@@ -121,9 +152,28 @@ export function LorePage({ timeline, save, initialSection }: { timeline: Timelin
             )}
             <button type="button" onClick={() => { setError(''); setEditing(id) }}>Редактировать</button>{' '}
             <button type="button" onClick={() => remove(id)}>Удалить</button>
-          </li>
+          </article>
         })}
-      </ul>
+        </div>
+        <section className="directory-table" aria-label={label}>
+          <div className="directory-actions">
+            <button type="button" onClick={() => { setError(''); setEditing('') }}>Добавить запись</button>
+          </div>
+          {entries.length > 0 && (
+            <div className="directory-table-scroll">
+              <table>
+                <thead><tr><th scope="col">Название</th></tr></thead>
+                <tbody>{entries.map((entry) => (
+                  <tr key={entryId(entry)} data-selected={entry === selected}>
+                    <td><button className="directory-select" type="button" aria-pressed={entry === selected}
+                      onClick={() => setSelectedId(entryId(entry))}>{entryName(entry)}</button></td>
+                  </tr>
+                ))}</tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      </div>
       {editing !== null && (
         <CreationDialog onCancel={() => { setEditing(null); setError('') }}>
           <h2 id="creation-dialog-title">{label}</h2>
@@ -133,18 +183,12 @@ export function LorePage({ timeline, save, initialSection }: { timeline: Timelin
               <p><label>Описание<br /><textarea name="description" rows={4}
                 defaultValue={glossaryDescription(lore, section, editing)} /></label></p>
             )}
+            {section === 'races' && <RaceFields race={lore.raceDetails?.find(({ name }) => name === editing)} />}
+            {section === 'spells' && <SpellFields spell={lore.spellDetails?.find(({ name }) => name === editing)} />}
             {traditionKind && (
               <>
                 {fieldsByKind[traditionKind].map((field, index) => (
                   <p key={field}><label>{field}<br /><textarea name={'field-' + index} defaultValue={tradition?.fields[index]} /></label></p>
-                ))}
-                {linkKinds.map((kind) => (
-                  <fieldset key={kind}><legend>{linkLabels[kind]}</legend>
-                    {loreTargets(timeline, kind).map(({ id, name }) => <label key={id} className="event-participant">
-                      <input type="checkbox" name={kind} value={id}
-                        defaultChecked={tradition?.links.some((link) => link.kind === kind && link.id === id)} /> {name}
-                    </label>)}
-                  </fieldset>
                 ))}
               </>
             )}

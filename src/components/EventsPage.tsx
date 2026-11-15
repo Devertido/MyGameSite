@@ -26,17 +26,19 @@ export function EventsPage({ timeline, calendar, save, yearFilter, eventId }: {
   const [period, setPeriod] = useState(false)
   const [error, setError] = useState('')
   const characters = timeline.characters ?? []
+  const [selectedId, setSelectedId] = useState(eventId)
   const [search, setSearch] = useState('')
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
   const query = search.trim().toLocaleLowerCase('ru')
   const original = draft === 'new' ? null : draft
   const sorted = events
-    .filter((entry) => eventId === undefined ? matchesStatus(entry) : entry.id === eventId)
+    .filter((entry) => matchesStatus(entry) || entry.id === eventId)
     .filter(({ year, end }) => yearFilter === undefined || (year <= yearFilter && (end?.year ?? year) >= yearFilter))
     .filter(({ title, description }) => [title, description].some((text) => text.toLocaleLowerCase('ru').includes(query)))
     .filter(({ year, end }) => (!from || (end?.year ?? year) >= Number(from)) && (!to || year <= Number(to)))
     .sort((left, right) => left.year - right.year || (left.date?.first ?? 1) - (right.date?.first ?? 1))
+  const selected = sorted.find(({ id }) => id === selectedId) ?? sorted[0]
   const initialYear = original?.year ??
     (yearFilter !== undefined && yearFilter >= timeline.startYear && yearFilter <= timeline.endYear
       ? yearFilter
@@ -125,16 +127,6 @@ export function EventsPage({ timeline, calendar, save, yearFilter, eventId }: {
       <h1>{yearFilter === undefined ? 'События' : `События за системный год ${yearFilter}`}</h1>
       {(yearFilter !== undefined || eventId !== undefined) && <p><a href="#events">Все события</a></p>}
       <p>{timeline.name} · системные годы {timeline.startYear} — {timeline.endYear}</p>
-      {eventId === undefined && <fieldset className="catalog-filters">
-        <legend>Фильтры событий</legend>
-        <label>Поиск <input type="search" value={search} onChange={(event) => setSearch(event.currentTarget.value)} /></label>
-        <label>С года <input type="number" value={from} onChange={(event) => setFrom(event.currentTarget.value)} /></label>
-        <label>По год <input type="number" value={to} onChange={(event) => setTo(event.currentTarget.value)} /></label>
-      </fieldset>}
-      {eventId === undefined && deleting === null && (
-        <button type="button" onClick={() => { setPeriod(false); setDraft('new') }}>Добавить событие</button>
-      )}
-
       {draft !== null && (
         <CreationDialog onCancel={() => { setDraft(null); setError('') }}>
           <form onSubmit={submit} onInput={() => setError('')}>
@@ -177,10 +169,10 @@ export function EventsPage({ timeline, calendar, save, yearFilter, eventId }: {
       )}
 
       {draft === null && error && <p role="alert">{error}</p>}
-      {sorted.length === 0 ? <p>{eventId !== undefined ? 'Событие не найдено в выбранном таймлайне.' : events.length ? 'События по этим условиям не найдены.' : 'В этом таймлайне пока нет событий.'}</p> : (
-        <ul className="event-list">
-          {sorted.map((entry) => (
-            <li key={entry.id}>
+      <div className="directory-layout">
+        <div>
+          {selected ? [selected].map((entry) => (
+            <article key={entry.id} className="directory-card">
               <EntryStatusLabel entry={entry} />
               <EntryGallery entry={entry} />
               <LoreLinks timeline={timeline} kind="events" id={entry.id} />
@@ -215,10 +207,35 @@ export function EventsPage({ timeline, calendar, save, yearFilter, eventId }: {
               <button className="event-action" type="button" disabled={draft !== null || deleting !== null} onClick={() => setDeleting(entry)} aria-label="Удалить событие" title="Удалить событие">
                 <TrashIcon />
               </button>
-            </li>
-          ))}
-        </ul>
+            </article>
+          )) : <p>События по этим условиям не найдены.</p>}
+        </div>
+        <section className="directory-table" aria-label="Список событий">
+          <div className="directory-actions">
+            <fieldset className="catalog-filters">
+        <legend>Фильтры событий</legend>
+        <label>Поиск <input type="search" value={search} onChange={(event) => setSearch(event.currentTarget.value)} /></label>
+        <label>С года <input type="number" value={from} onChange={(event) => setFrom(event.currentTarget.value)} /></label>
+        <label>По год <input type="number" value={to} onChange={(event) => setTo(event.currentTarget.value)} /></label>
+      </fieldset>
+      {deleting === null && (
+        <button type="button" onClick={() => { setPeriod(false); setDraft('new') }}>Добавить событие</button>
       )}
+          </div>
+          <div className="directory-table-scroll">
+            <table>
+              <thead><tr><th scope="col">Событие</th><th scope="col">Системные годы</th></tr></thead>
+              <tbody>{sorted.map((entry) => (
+                <tr key={entry.id} data-selected={entry.id === selected?.id}>
+                  <td><button className="directory-select" type="button" aria-pressed={entry.id === selected?.id}
+                    onClick={() => setSelectedId(entry.id)}>{entry.title}</button></td>
+                  <td>{entry.year}{entry.end && ' — ' + entry.end.year}</td>
+                </tr>
+              ))}</tbody>
+            </table>
+          </div>
+        </section>
+      </div>
       <dialog ref={characterDialog} aria-labelledby="event-character-name">
         <h2 id="event-character-name">{activeCharacter?.name}</h2>
         <p className="event-character-description">{activeCharacter?.description || 'Описание пока не добавлено.'}</p>
