@@ -52,7 +52,7 @@ export function ImageField({ name, label, initial, allowGif = false }: {
       {image && (
         <div className="image-preview">
           <img className="atlas-entry-image" src={image} alt="Предпросмотр" />
-          <button className="image-remove" type="button" aria-label="Убрать изображение" title="Убрать изображение"
+          <button className="form-icon-button form-icon-remove image-remove" type="button" aria-label="Убрать изображение" title="Убрать изображение"
             onClick={() => { revision.current++; setImage(''); setError('') }}>×</button>
         </div>
       )}

@@ -104,6 +104,7 @@ function parseTimeline(value: unknown): Timeline | null {
       isRecord(event) && typeof event.id === 'string' && Boolean(event.id.trim()) &&
       validMetadata(event) && typeof event.year === 'number' && typeof event.title === 'string' &&
       typeof event.description === 'string' && (!('color' in event) || isAtlasColor(event.color)) &&
+      (event.type === undefined || event.type === 'battle' || event.type === 'other') &&
       (!('onTimeline' in event) || typeof event.onTimeline === 'boolean') &&
       (!('characterIds' in event) || (Array.isArray(event.characterIds) &&
         new Set(event.characterIds).size === event.characterIds.length &&

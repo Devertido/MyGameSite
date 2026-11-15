@@ -1,4 +1,4 @@
-import { createContext, useContext, useId, useRef, useState, type ChangeEvent } from 'react'
+import { createContext, useContext, useId, useRef, useState, type ChangeEvent, type ReactNode } from 'react'
 import type { EntryMetadata, EntryStatus, GalleryImage } from '../domain/timeline'
 import { CreationDialog } from './CreationDialog'
 import { prepareImage } from './prepareImage'
@@ -19,7 +19,7 @@ export function readEntryMetadata(fields: FormData): EntryMetadata {
   return { status: fields.get('entry-status') === 'draft' ? 'draft' : 'canon', gallery }
 }
 
-export function EntryFields({ entry }: { entry?: EntryMetadata | null }) {
+export function EntryFields({ entry, beforeStatus }: { entry?: EntryMetadata | null; beforeStatus?: ReactNode }) {
   const [rows, setRows] = useState(() => (entry?.gallery ?? []).map((image) => ({
     id: crypto.randomUUID(), ...image,
   })))
@@ -70,10 +70,10 @@ export function EntryFields({ entry }: { entry?: EntryMetadata | null }) {
 
   return (
     <>
-      <p><label>Статус <select name="entry-status" defaultValue={entry?.status ?? 'canon'}>
+      <div className="entry-status-row">{beforeStatus}<label>Статус <select name="entry-status" defaultValue={entry?.status ?? 'canon'}>
         <option value="canon">Канон</option>
         <option value="draft">Черновик</option>
-      </select></label></p>
+      </select></label></div>
       <fieldset>
         <legend>Галерея</legend>
         <div className="gallery-editor">
@@ -83,7 +83,7 @@ export function EntryFields({ entry }: { entry?: EntryMetadata | null }) {
               <input type="hidden" name={'gallery-image-' + row.id} value={row.image} />
               <div className="image-preview">
                 <img className="atlas-entry-image" src={row.image} alt={row.caption || 'Изображение галереи'} />
-                <button className="image-remove" type="button"
+                <button className="form-icon-button form-icon-remove image-remove" type="button"
                   aria-label={'Убрать изображение ' + (index + 1)} title="Убрать изображение"
                   onClick={() => setRows((current) => current.filter(({ id }) => id !== row.id))}>×</button>
               </div>
@@ -96,7 +96,7 @@ export function EntryFields({ entry }: { entry?: EntryMetadata | null }) {
               </div>
             </div>
           ))}
-          <button className="gallery-add" type="button" disabled={busy} aria-label="Добавить изображения"
+          <button className="form-icon-button form-icon-add gallery-add" type="button" disabled={busy} aria-label="Добавить изображения"
             title="Добавить изображения" onClick={() => filePicker.current?.click()}>+</button>
           <input className="gallery-file-picker" type="file" ref={filePicker} multiple tabIndex={-1}
             aria-label="Файлы для галереи" accept="image/png,image/jpeg,image/webp" onChange={addImages} />

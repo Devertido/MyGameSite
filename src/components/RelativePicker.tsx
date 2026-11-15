@@ -28,7 +28,7 @@ export function RelativePicker({ name, label, candidates, initialIds }: {
           {candidates.filter(({ id }) => selectedIds.includes(id)).map((candidate) => (
             <li key={candidate.id}>
               {fullName(candidate)}{' '}
-              <button type="button" aria-label={'Убрать из списка «' + label + '» — ' + fullName(candidate)}
+              <button className="form-icon-button form-icon-remove" type="button" aria-label={'Убрать из списка «' + label + '» — ' + fullName(candidate)}
                 onClick={() => setSelectedIds((ids) => ids.filter((id) => id !== candidate.id))}>×</button>
             </li>
           ))}

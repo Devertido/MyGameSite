@@ -8,7 +8,7 @@ import { EventSideLink } from './EventSideLink'
 import { EventParticipants } from './EventParticipants'
 import { toCalendarYear } from '../domain/calendarYear'
 import type { Timeline, TimelineCalendar, TimelineCharacter, TimelineEvent } from '../domain/timeline'
-import { calendarDay, eventDays, validateEvent, type EventDays, type EventEndpoint } from '../domain/timeline'
+import { calendarDay, eventDays, eventTypes, validateEvent, type EventType, type EventDays, type EventEndpoint } from '../domain/timeline'
 
 export function EventsPage({ timeline, calendar, save, yearFilter, eventId }: {
   timeline: Timeline
@@ -76,7 +76,8 @@ export function EventsPage({ timeline, calendar, save, yearFilter, eventId }: {
       return
     }
     const end = period ? { year: Number(fields.get('endYear')), date: endDate } : undefined
-    const details = { year, title, description, date, end, color: String(fields.get('color')) }
+    const type: EventType = fields.get('type') === 'battle' ? 'battle' : 'other'
+    const details = { year, title, description, date, end, type, color: String(fields.get('color')) }
     const issue = validateEvent(details, timeline)
     if (issue) {
       setError(issue)
@@ -131,7 +132,7 @@ export function EventsPage({ timeline, calendar, save, yearFilter, eventId }: {
         <CreationDialog onCancel={() => { setDraft(null); setError('') }}>
           <form onSubmit={submit} onInput={() => setError('')}>
             <h2 id="creation-dialog-title">{original ? 'Редактировать событие' : 'Новое событие'}</h2>
-            <p><label>Название<br /><input name="title" defaultValue={original?.title} required /></label></p>
+            <p><label>Название<br /><input className="event-title-input" name="title" size={32} defaultValue={original?.title} required /></label></p>
             <p>
               <label>
                 Системный год<br />
@@ -149,9 +150,13 @@ export function EventsPage({ timeline, calendar, save, yearFilter, eventId }: {
                 <DateFields prefix="end" months={calendar.months} previous={original?.end?.date} />
               </fieldset>
             )}
+            <p><label>Тип события <select name="type" defaultValue={original?.type ?? "other"}>
+              {Object.entries(eventTypes).map(([key, type]) => <option key={key} value={key}>{type.label}</option>)}
+            </select></label></p>
             <p><label>Описание<br /><textarea name="description" defaultValue={original?.description} rows={4} /></label></p>
-            <p><label>Цвет события <input name="color" type="color" defaultValue={original?.color ?? '#174b43'} /></label></p>
-            <EntryFields entry={original} />
+            <EntryFields entry={original} beforeStatus={
+              <label>Цвет события <input name="color" type="color" defaultValue={original?.color ?? '#174b43'} /></label>
+            } />
             <EventParticipants characters={characters} organizations={timeline.organizations ?? []} original={original} />
             {error && <p role="alert">{error}</p>}
             <button type="submit">Сохранить</button>{' '}
@@ -225,13 +230,15 @@ export function EventsPage({ timeline, calendar, save, yearFilter, eventId }: {
           <div className="directory-table-scroll">
             <table>
               <thead><tr><th scope="col">Событие</th><th scope="col">Системные годы</th></tr></thead>
-              <tbody>{sorted.map((entry) => (
+              <tbody>{sorted.map((entry) => {
+                const type = eventTypes[entry.type ?? 'other']
+                return (
                 <tr key={entry.id} data-selected={entry.id === selected?.id}>
                   <td><button className="directory-select" type="button" aria-pressed={entry.id === selected?.id}
-                    onClick={() => setSelectedId(entry.id)}>{entry.title}</button></td>
+                    onClick={() => setSelectedId(entry.id)}><span className="event-type-icon" role="img" aria-label={type.label} title={type.label}>{type.icon}</span> {entry.title}</button></td>
                   <td>{entry.year}{entry.end && ' — ' + entry.end.year}</td>
                 </tr>
-              ))}</tbody>
+              )})}</tbody>
             </table>
           </div>
         </section>

@@ -51,7 +51,15 @@ export function validateTimelineBounds(
   return null
 }
 
+export const eventTypes = {
+  battle: { label: 'Битва', icon: '⚔' },
+  other: { label: 'Другое', icon: '◆' },
+} as const
+
+export type EventType = keyof typeof eventTypes
+
 export type TimelineEvent = EntryMetadata & {
+  type?: EventType
   color?: string
   id: string
   year: number
